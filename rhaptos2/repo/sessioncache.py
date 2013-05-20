@@ -81,7 +81,7 @@ We firstly pass in a badly formed id.::
 >>> sid = "Dr. Evil"
 >>> get_session(sid)
 Traceback (most recent call last):
-     ... 
+     ...
 Rhaptos2Error: Incorrect UUID format for sessionid...
 
 OK, now lets use a properly formatted (but unlikely) UUID
@@ -134,14 +134,20 @@ import psycopg2
 import json
 import datetime
 from err import Rhaptos2Error,  Rhaptos2NoSessionCookieError
-from rhaptos2.repo  import dolog
+from rhaptos2.repo import dolog
 
-#### I do not think this is suitable for configuring in usual channel.
+
 #### (set to one hour for now)
 FIXEDSESSIONDURATIONSECS = 3600
-DT = datetime.timedelta(seconds=FIXEDSESSIONDURATIONSECS)
-CONFD = {}# module level global to be setup
+#### We fix this here, not in .ini files, as this is a security issue
+#### as much as a config so should be changed with caution.
 
+
+############
+### CONFIG - module level global able to be set during start up.
+############
+
+CONFD = {}  # module level global to be setup
 
 
 def set_config(confd):
@@ -149,38 +155,53 @@ def set_config(confd):
     """
     global CONFD
     CONFD.update(confd)
-    
+
+#####
+## Helper methods
+#####
+
 
 def validate_uuid_format(uuidstr):
     """
     Given a string, try to ensure it is of type UUID.
-    
-    
+
+
     >>> validate_uuid_format("75e06194-baee-4395-8e1a-566b656f6920")
     True
     >>> validate_uuid_format("FooBar")
     False
-    
+
     """
-    l =  uuidstr.split("-")
+    l = uuidstr.split("-")
     res = [len(item) for item in l]
-    if not res == [8,4,4,4,12]:
+    if not res == [8, 4, 4, 4, 12]:
         return False
     else:
         return True
 
+##############
+### Database functions
+##############
+
+
 def getconn():
-    """
-    Connection pooling required, but want to use a greenlet-aware pool, but until finish testing
-    not pooling at all will suffice.
+    """returns a connection object based on global confd.
+
+    This is, at the moment, not a pooled connection getter.
 
     We do not want the ThreadedPool here, as it is designed for
-    "real" threads, and listens to their states.
-    
+    "real" threads, and listens to their states, which will be 'awkward'
+    in moving to greenlets.
+
+    We want a pool that will relinquish
+    control back using gevent calls
+
+    https://bitbucket.org/denis/gevent/src/5f6169fc65c9/examples/psycopg2_pool.py
     http://initd.org/psycopg/docs/pool.html
 
-    We want a pool that will relinquish control back using gevent calls
-    https://bitbucket.org/denis/gevent/src/5f6169fc65c9/examples/psycopg2_pool.py - see surfly in github.
+    :return ``psycopg2 connection obj``: conn obj
+    :return psycopg2.Error:              or Err
+
     """
     try:
         dolog("INFO", "CONFD is %s" % str(CONFD))
@@ -189,48 +210,59 @@ def getconn():
                                 user=CONFD['app']['pgusername'],
                                 password=CONFD['app']['pgpassword'])
     except psycopg2.Error, e:
-        pass
-        
+        dolog("INFO", "Error making pg conn - %s" % str(e))
+        raise e
+
     return conn
-    
+
 
 def run_query(insql, params):
-    """
-    Running a query, avoiding the idle transaction costs.
+    """trivial ability to run a query outside SQLAlchemy.
 
+    :param insql: A correctly parameterised SQL stmt ready for psycopg driver.
+    :param params: iterable of parameters to be inserted into insql
+
+    :return a dbapi recordset: (list of tuples)
 
     run_query(conn, "SELECT * FROM tbl where id = %s;", (15,))
-    todo: write the usual dict return stuff and object return stuff.
 
-    issues: lots.  No fetch_iterator. connection per query(see above)
-                   
+    issues: lots.
+    No fetch_iterator. connection per query(see above)
+    We should at least return a dict per row with fields as keys.
+
+
     """
     conn = getconn()
     cur = conn.cursor()
     cur.execute(insql, params)
     rs = cur.fetchall()
     cur.close()
-    #connection_refresh(conn)  #I can rollback here, its a SELECT
+    # connection_refresh(conn)  #I can rollback here, its a SELECT
     return rs
-    
+
+
 def exec_stmt(insql, params):
     """
-    Running a query, avoiding the idle transaction costs.
+    trivial ability to run a *dm* query outside SQLAlchemy.
 
+    :param insql: A correctly parameterised SQL stmt ready for psycopg driver.
+    :param params: iterable of parameters to be inserted into insql
 
-    run_query(conn, "SELECT * FROM tbl where id = %s;", (15,))
-    todo: write the usual dict return stuff and object return stuff.
+    :return a dbapi recordset: (list of tuples)
 
-    FixMe: Write up all adge case handling here. 
+    issues: lots.
+    No fetch_iterator. connection per query(see above)
+    FixMe: Write up all adge case handling here.
     """
     conn = getconn()
     cur = conn.cursor()
     cur.execute(insql, params)
-    conn.commit() 
+    conn.commit()
     cur.close()
-    #connection_refresh(conn)  #I can rollback here, its a SELECT
+    # connection_refresh(conn)  #I can rollback here, its a SELECT
     conn.close()
-    
+
+
 def connection_refresh(conn):
     """
     As a default psycopg2 will wrap every sql stmt in a transaction,
@@ -252,8 +284,8 @@ def set_session(sessionid, userd):
     :returns:         True on successful setting.
     Can raise Rhaptos2Errors
 
-   
-    
+
+
     TIMESTAMPS.  We are comparing the time now, with the expirytime of the
     cookie *in the database* This reduces the portability.
 
@@ -264,8 +296,9 @@ def set_session(sessionid, userd):
 
     """
     if not validate_uuid_format(sessionid):
-        raise Rhaptos2Error("Incorrect UUID format for sessionid %s" % sessionid)
-        
+        raise Rhaptos2Error(
+            "Incorrect UUID format for sessionid %s" % sessionid)
+
     SQL = """INSERT INTO session_cache (sessionid
                                         , userdict
                                         , session_startutc
@@ -278,57 +311,61 @@ def set_session(sessionid, userd):
         exec_stmt(SQL, [sessionid,
                         json.dumps(userd),
                         FIXEDSESSIONDURATIONSECS
-                       ])
-    except psycopg2.IntegrityError, e :
+                        ])
+    except psycopg2.IntegrityError, e:
         ### This should never happen, but does in testing enough to trap.
         ### if it does, I guess the session is underattack, close it
         delete_session(sessionid)
         raise Rhaptos2Error(str(e))
     return True
 
+
 def delete_session(sessionid):
     """
     Remve from session_cache an existing but no longer wanted session(id)
-    
+
     for whatever reason we want to end a session.
     """
     if not validate_uuid_format(sessionid):
-        raise Rhaptos2Error("Incorrect UUID format for sessionid %s" % sessionid)
+        raise Rhaptos2Error(
+            "Incorrect UUID format for sessionid %s" % sessionid)
     SQL = """DELETE FROM session_cache WHERE sessionid = %s;"""
     try:
         exec_stmt(SQL, [sessionid])
-    except psycopg2.IntegrityError, e :
+    except psycopg2.IntegrityError, e:
         ### Why did we try to close a non-existent session?
         raise Rhaptos2Error(str(e))
-    
+
+
 def get_session(sessionid):
     """
     Given a sessionid, if it exists, and is "in date" then
        return userdict (oppostie of set_session)
-    
+
     Otherwise return None
     (We do not error out on id not found)
 
-    NB this depends heavily on co-ordinating the incoming TZ of 
+    NB this depends heavily on co-ordinating the incoming TZ of
     """
     if not validate_uuid_format(sessionid):
-        raise Rhaptos2Error("Incorrect UUID format for sessionid %s" % sessionid)
+        raise Rhaptos2Error(
+            "Incorrect UUID format for sessionid %s" % sessionid)
     dolog("INFO", "lookup %s type %s" % (sessionid, type(sessionid)))
-          
+
     SQL = """SELECT userdict FROM session_cache WHERE sessionid = %s
              AND CURRENT_TIMESTAMP BETWEEN
                   session_startutc AND session_endutc;"""
-    rs = run_query(SQL, [sessionid,])
+    rs = run_query(SQL, [sessionid, ])
     if len(rs) != 1:
         return None
     else:
         return json.loads(rs[0][0])
-    
+
 
 def _fakesessionusers(sessiontype='fixed'):
     """a mechainsims to help with testing.
     :param:`sessiontype` can be either ``floating`` or ``fixed``
-    
+
     ``fixed`` will set three sessionids of type all zeros + 1 / 2 and assign
     them three test users as below
 
@@ -357,22 +394,22 @@ def _fakesessionusers(sessiontype='fixed'):
                         "fullname": "%(name)s", "homepage": null,
                         "affiliationinstitution": null, "biography": null}"""
 
-    developers = [{"name":"pbrian",
-                   "uri":"cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
-                   "fakesessionid":"00000000-0000-0000-0000-000000000000"
-                  },
-                  {"name":"rossreedstrm",
-                   "uri":"cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
-                   "fakesessionid":"00000000-0000-0000-0000-000000000001"
-                  },
-                  {"name":"edwoodward",
-                   "uri":"cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
-                   "fakesessionid":"00000000-0000-0000-0000-000000000002"
-                  }
-    ]
-    
+    developers = [{"name": "pbrian",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000000"
+                   },
+                  {"name": "rossreedstrm",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000001"
+                   },
+                  {"name": "edwoodward",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000002"
+                   }
+                  ]
+
     if sessiontype == 'fixed':
-        #clear down the cache - only use this in testing anyway
+        # clear down the cache - only use this in testing anyway
         exec_stmt("DELETE from session_cache;", {})
         for dev in developers:
             js = developertmpl % dev
@@ -385,11 +422,10 @@ def _fakesessionusers(sessiontype='fixed'):
         set_session(sid, js)
     else:
         raise Rhaptos2Error("sessiontype Must be 'floating' or 'fixed'")
-        
-        
 
-        
+
 if __name__ == '__main__':
     import doctest
-    val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE+doctest.IGNORE_EXCEPTION_DETAIL
+    val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE + \
+        doctest.IGNORE_EXCEPTION_DETAIL
     doctest.testmod(optionflags=val)
