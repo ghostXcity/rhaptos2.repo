@@ -243,18 +243,25 @@ def connection_refresh(conn):
 
 
 def set_session(sessionid, userd):
-    """
-    Given a sessionid (generated according to ``cnxsessionid spec`` elsewhere)
-    and a ``userdict`` store in session cache with appropriate timeouts.
+    """Given a sessionid (generated according to ``cnxsessionid spec``
+    elsewhere) and a ``userdict`` store in session cache with appropriate
+    timeouts.
 
-    TIMESTAMPS.
-    We are comparing the time now, with the expirytime of the cookie *in the database*
-    This reduces the portability.
+    :param sessionid: a UUID, that is to be the new sessionid
+    :param userd:     python dict of format cnx-user-dict.
+    :returns:         True on successful setting.
+    Can raise Rhaptos2Errors
 
-    This beats the previous solution of passing in python formatted UTC and then comparing
-    on database.
+   
+    
+    TIMESTAMPS.  We are comparing the time now, with the expirytime of the
+    cookie *in the database* This reduces the portability.
 
-    FIXME: bring comaprison into python.
+    This beats the previous solution of passing in python formatted UTC and then
+    comparing on database.
+
+    FIXME: bring comaprison into python for portability across cache stores.
+
     """
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error("Incorrect UUID format for sessionid %s" % sessionid)

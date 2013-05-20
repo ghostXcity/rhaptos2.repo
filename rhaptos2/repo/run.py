@@ -22,6 +22,20 @@ app, and pass it to the waitress server (To be replaced by gunicorn)::
    Michaels solution to include a sererate standalone module was much better.
    Replicate it and pull much of the URLMap code out of here.
 
+
+def make_app(name, confd):
+    /
+    an attempt at an app_factory
+    /
+    open("/tmp/log", "a").write("APPFACTORYCALLED\n")
+    app = Flask(name)
+    app.config.update(confd)
+    app.add_url_rule("/", view_func=index)
+    app.add_url_rule("/favicon", view_func=favicon)
+    app.add_url_rule("/cms/<path:path>", view_func=cms)        
+    
+    return app
+
 """
 
 from rhaptos2.repo import make_app, sessioncache
