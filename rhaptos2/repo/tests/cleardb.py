@@ -13,4 +13,5 @@ confd = conf.get_config(CONFD_PATH)
 backend.initdb(confd['app'])
 backend.clean_dbase(confd['app'])
 
+sessioncache.set_config(confd)
 sessioncache._fakesessionusers()

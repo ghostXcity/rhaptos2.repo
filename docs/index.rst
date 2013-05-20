@@ -40,6 +40,10 @@ docs.
 
 
 
+.. toctree::
+
+   glossary
+
 
 
 

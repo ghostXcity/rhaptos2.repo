@@ -23,8 +23,9 @@
 """
 
 
-import decl
-from rhaptos2.repo import make_app, backend, restrest, sessioncache, dolog
+import decl, restrest
+from rhaptos2.repo import (make_app, backend,
+                           sessioncache, dolog)
 from webtest import TestApp
 from wsgiproxy.app import WSGIProxyApp
 from optparse import OptionParser
@@ -353,14 +354,14 @@ def test_put_collection():
     assert resp.json['body'].find('href="cnxmodule:d3911c28') > -1
     simplelog(resp)
 
-def test_put_collection_rouser():
+def ntest_put_collection_rouser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
     resp = wapp_put(TESTAPP, "collection", data, ROUSERSESSIONID, collectionuri)
     assert resp.status_int == 403
 
 
-def test_put_collection_baduser():
+def ntest_put_collection_baduser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB1", ]
     resp = wapp_put(TESTAPP, "collection", data, ROUSERSESSIONID, collectionuri)
@@ -379,14 +380,14 @@ def test_dateModifiedStamp():
     resp = wapp_put(TESTAPP, "module", data, RWUSERSESSIONID, moduleuri)
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
     
-def test_put_module_rouser():
+def ntest_put_module_rouser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, ROUSERSESSIONID, moduleuri)
     assert resp.status_int == 403
 
 
-def test_put_module_baduser():
+def ntest_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, moduleuri)
@@ -401,28 +402,28 @@ def test_put_folder():
     assert len(resp.json['body']) == 1
 
 
-def test_put_folder_ro():
+def ntest_put_folder_ro():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
     resp = wapp_put(TESTAPP, "folder", data, ROUSERSESSIONID, folderuri)
     assert resp.status_int == 403
 
 
-def test_put_folder_bad():
+def ntest_put_folder_bad():
     data = decl.declarationdict['folder']
     data['body'] = ["BADUSER", ]
     resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, folderuri)
     assert resp.status_int == 403
 
 
-def test_put_module_acl():
+def ntest_put_module_acl():
     data = decl.acllist
     resp = wapp_put(TESTAPP, "module_acl", data, RWUSERSESSIONID, moduleuri)
     assert resp.status_int == 200
 
 
     
-def test_read_module_rouser():
+def ntest_read_module_rouser():
     resp = wapp_get(TESTAPP, "module", moduleuri, ROUSERSESSIONID)
     assert resp.status_int == 200
 
@@ -431,7 +432,7 @@ def test_read_folder_gooduser():
     assert resp.status_int == 200
     simplelog(resp)
 
-def test_read_module_baduser():
+def ntest_read_module_baduser():
     resp = wapp_get(TESTAPP, "module", moduleuri, BADUSERSESSIONID)
     print resp, resp.status, BADUSERSESSIONID
     assert resp.status_int == 403
@@ -448,12 +449,12 @@ def test_get_workspace_good():
     
 ###############    
 
-def test_delete_module_baduser():
+def ntest_delete_module_baduser():
     resp = wapp_delete(TESTAPP, "module", moduleuri, BADUSERSESSIONID)
     assert resp.status_int == 403
 
 
-def test_delete_module_rouser():
+def ntest_delete_module_rouser():
     resp = wapp_delete(TESTAPP, "module", moduleuri, ROUSERSESSIONID)
     assert resp.status_int == 403
 
@@ -463,12 +464,12 @@ def test_delete_module_good():
 
 ###
     
-def test_delete_collection_baduser():
+def ntest_delete_collection_baduser():
     resp = wapp_delete(TESTAPP, "collection", collectionuri, BADUSERSESSIONID)
     assert resp.status_int == 403
 
 
-def test_delete_collection_rouser():
+def ntest_delete_collection_rouser():
     resp = wapp_delete(TESTAPP, "collection", collectionuri, ROUSERSESSIONID)
     assert resp.status_int == 403
 
@@ -479,12 +480,12 @@ def test_delete_collection_good():
 
 ###
     
-def test_delete_folder_baduser():
+def ntest_delete_folder_baduser():
     resp = wapp_delete(TESTAPP, "folder", folderuri, BADUSERSESSIONID)
     assert resp.status_int == 403
 
 
-def test_delete_folder_rouser():
+def ntest_delete_folder_rouser():
     resp = wapp_delete(TESTAPP, "folder", folderuri, ROUSERSESSIONID)
     assert resp.status_int == 403
 
@@ -493,7 +494,7 @@ def test_delete_folder_good():
     resp = wapp_delete(TESTAPP, "folder", folderuri, RWUSERSESSIONID)
     assert resp.status_int == 200
 
-def test_whoami():
+def ntest_whoami():
     resp = wapp_get(TESTAPP, "-", None,
                     RWUSERSESSIONID,
                     URL="http://localhost:8000/me/"
@@ -511,12 +512,13 @@ TESTAPP = None
 def convert_config(config):
     """
     This is done to convert the "dict" from configuration into true dict.
-    
+
+    FIXME - this is ridiculous - just go back to one confd object 
     """
     defaultsection = 'app'
     for k in config[defaultsection]:
         config[k] = config[defaultsection][k]
-    del config[defaultsection]
+    #del config[defaultsection]
     return config
 
 
