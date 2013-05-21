@@ -117,32 +117,39 @@ def handle_user_authentication(flask_request):
     Where do we keep the current request's user details.
     For the moment, on ``g`` Flask's thread-local dumping ground.
     
-    
-    The flow (state diagram later)
 
-    A. Registered User
-    B. Temp-Registered User
-    C. UnRegistered User
+    Truth table - an HTTP request arrives, now what?
 
-    1. User with valid cookie
-    2. User with no cookie / invalid cookie
-    
-    A.2. A user who has previously registered but has a expired cookie or cleared cache.
+    ----   ---  ---------  --------------  ---------------
+    Auth   Reg  InSession  ProfileCookie   Next Action / RoleType
+    ----   ---  ---------  --------------  ---------------
+    Y      Y    Y          Y               Go
+    Y      Y    Y          N               set_profile_cookie
+    Y      Y    N          Y               set_session
+    Y      Y    N          N               FirstTimeOK
 
-    Arrives at /
-    
-    
+    Y      N    Y          Y               ErrorA
+    Y      N    Y          N               ErrorB 
+    Y      N    N          Y               ErrorC 
+    Y      N    N          N               NeedToRegister
 
+    N      N    Y          Y               AnonymousGo 
+    N      N    Y          N               set_profile_cookie
+    N      N    N          Y               LongTimeNoSee  
+    N      N    N          N               FreshMeat
+    
+    N      Y    Y          Y               Conflict with anonymous and reg?
+    N      Y    Y          N               Err-SetProfile-AskForLogin
+    N      Y    N          Y               NotArrivedYet
+    N      Y    N          N               CouldBeAnyone
+    ----   ---  ---------  --------------  ---------------    
+
+    All the final 4 are problematic because if the user has not authorised
+    how do we know they are registered? Trust the profile cookie?
+    
+        
     we examine the request, find session cookie,
     register any logged in user, or redirect to login pages
-
-
-    1. If no session cookie provided (ie browser never visited us)
-       -> Create a temporary session id and temporary user.
-    2. If session cookie provided but the lookup fails (out of date?)
-       -> they have visited before, redirect to login with "session expired"
-    3. If session cookie provided, and lookup is ok,
-       -> return the ``user_dict`` and let auth-flow take care of it
 
     """
     #clear down storage area.
@@ -255,13 +262,21 @@ def authenticated_identifier_to_registered_user_details(ai):
         raise Rhaptos2Error("Not a known user")
 
 def create_session(userdata):
-    """
-    discuss: do we expire this?
-    do we limit domain?
+    """A ``closure`` function that is stored and called at end of response,
+    allowing us to set a cookie, with correct uuid, before response obj
+    has been created (before request is processed !)
 
     :param: userdata - a ``userdict`` format.
     :returns: sessionid
-    
+
+    cookie settings:
+    * cnxsessionid - a fixed key string that is constant for the
+    app.  FIXME!
+    * expires - we want a cookie that will live even if user
+    shutsdown browser.  However do not live forever ...?
+    * httponly - prevent easy CSRF, however allow AJAX to request browser
+    to send cookie.
+
     """
     sessionid = str(uuid.uuid4())
     def begin_session(resp):
@@ -272,7 +287,8 @@ def create_session(userdata):
         
     g.deferred_callbacks.append(begin_session)
     sessioncache.set_session(sessionid, userdata)
-    ### Now at end of request we will call begin_session() and its closure will set sessionid correctly.
+    ### Now at end of request we will call begin_session() and its closure will
+    ### set sessionid correctly.
     return sessionid
     
 def delete_session(sessionid):

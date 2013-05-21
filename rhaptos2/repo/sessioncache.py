@@ -9,12 +9,30 @@
 
 ###
 
-""":author:  paul@mikadosoftware.com <Paul Brian>
+"""
+:mod:`sessioncache` is a standalone module providing the ability to
+control persistent-session client cookies and profile-cookies.
 
-session-cache: This is a one module solution, proving ability for
-               a web-app to get, set and delete a session marker on a client
-               It is intended to be used by :mod:`auth.py` which controls the
-               flow of authentication decisions made during request processing.
+:mod:`sessioncache.py` is a "low-level" piece, and is expected to be used
+in conjunction with lower-level *authentication* systems such as OpenID
+and with "higher-level" *authorisation* systems such as the flow-control in
+:mod:`auth.py`
+
+persistent-session
+  This is the period of time during which a web server will accept
+  a id-number presented as part of an HTTP request
+  as a replacement for an actual valid form of authentication.
+  (we remember that someone authenticated a while ago, and assume no-one
+   is able to impersonate them in the intervening time period)
+
+persistent-session cookie
+  This is a cookie set on a client browser that stores a id number
+  pertaining to a persistant-session.  It will last beyond a browser
+  shutdown, and is expected to be sent as a HTTP header as part of
+  each request to the server.
+
+ses
+
 
 Why? Because I was getting confused with lack of fine control over sessions
 and because the Flask implementation relied heavily on encryption which
@@ -84,7 +102,9 @@ Traceback (most recent call last):
      ...
 Rhaptos2Error: Incorrect UUID format for sessionid...
 
+
 OK, now lets use a properly formatted (but unlikely) UUID
+
 
 >>> sid = "00000000-0000-0000-0000-000000000001"
 >>> set_session(sid, {"name":"Paul"})

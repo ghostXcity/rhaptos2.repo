@@ -15,9 +15,17 @@ previously authenticated) and linked to that flow-control that makes decisions
 based on the session management such as presenting a login screen, a
 registration screen or whatever we need.
 
+What is a session?
+------------------
+
+A session here is a defined period of time in which a CNX server will accept
+a random number string as a *password-replacement/proxy* for each HTTP request received.  
+
+
 
 Overview
 --------
+
 
 The session shall be activated after a registered user logs in to the repo (via
 openid) and the session will be assigned a UUID, which shall be stored on the
@@ -73,10 +81,11 @@ THere are two main phases
 Known issues
 ============
 
-I am not handling the situation of user signing in twice.
-I am not handling registraftion (co-ordinate with michael)
-I am not setting cookie expires ...
-I *am* setting httponly
+* I am not handling the situation of user signing in twice.
+* I am not handling registraftion (co-ordinate with michael)
+* I am not setting cookie expires ...
+* I *am* setting httponly
+* 'SSL' * 443
 
 
 What is wrong with current setup?
