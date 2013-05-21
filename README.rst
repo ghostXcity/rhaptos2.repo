@@ -14,6 +14,27 @@ See the `Connexions development documentation
 Install 
 -------
 
+(Notes from pbrian)::
+
+  $ mkvirtualenv sessioncache
+  $ pip install -r ../../requirements.txt
+
+  $ python setup.py develop
+
+
+Configuration setup
+
+  $ 
+
+Database setup
+
+  
+   
+
+/pbrian
+
+
+
 The following will setup a development install. For instructions about
 a production deployment, go to http://connexions.github.com/ .
 

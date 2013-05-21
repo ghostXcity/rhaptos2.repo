@@ -9,8 +9,7 @@
 
 ###
 
-"""
-:mod:`sessioncache` is a standalone module providing the ability to
+""":mod:`sessioncache` is a standalone module providing the ability to
 control persistent-session client cookies and profile-cookies.
 
 :mod:`sessioncache.py` is a "low-level" piece, and is expected to be used
@@ -19,19 +18,19 @@ and with "higher-level" *authorisation* systems such as the flow-control in
 :mod:`auth.py`
 
 persistent-session
-  This is the period of time during which a web server will accept
-  a id-number presented as part of an HTTP request
-  as a replacement for an actual valid form of authentication.
-  (we remember that someone authenticated a while ago, and assume no-one
-   is able to impersonate them in the intervening time period)
+    This is the period of time during which a web server will
+    accept a id-number presented as part of an HTTP request as a replacement for
+    an actual valid form of authentication.  (we remember that someone
+    authenticated a while ago, and assume no-one is able to impersonate them in
+    the intervening time period)
 
 persistent-session cookie
-  This is a cookie set on a client browser that stores a id number
-  pertaining to a persistant-session.  It will last beyond a browser
-  shutdown, and is expected to be sent as a HTTP header as part of
-  each request to the server.
+    This is a cookie set on a client browser that stores a
+    id number pertaining to a persistant-session.  It will last beyond a browser
+    shutdown, and is expected to be sent as a HTTP header as part of each
+    request to the server.
 
-ses
+
 
 
 Why? Because I was getting confused with lack of fine control over sessions
@@ -123,31 +122,23 @@ To do
 * pg's UUID type?
 
 
-
-
-Error cases::
-   * SessionID already exists
-   * SessionID has been used before
-   * Invalid format of sessionID
-
-Create stmts
-------------
-
-CREATE TABLE session_cache(
-   sessionid  character varying NOT NULL,
-   userdict   character varying NOT NULL,
-   session_startUTC timestamptz,
-   session_endUTC timestamptz
-);
-
-ALTER TABLE ONLY session_cache
-    ADD CONSTRAINT session_cache_pkey PRIMARY KEY (sessionid);
-
-
 Standalone usage
 ----------------
-d = {'host':'127.0.0.1', 'user':'repo', 'passwd':'repopass', 'dbase':'dbtest'}
+::
 
+    minimalconfd = {"app": {'pghost':'127.0.0.1',
+                            'pgusername':'repo',
+                            'pgpassword':'CHANGEME',
+                            'pgdbname':'dbtest'}
+                   }
+ 
+    import sessioncache
+    sessioncache.set_config(minimalconfd)
+    sessioncache.initdb()
+    sessioncache._fakesessionusers()
+    sessioncache.get_session("00000000-0000-0000-0000-000000000000")
+    {u'interests': None, u'user_id': u'cnxuser:75e06194-baee-4395-8e1a-566b656f6920', ...}
+>>> 
 
 """
 import psycopg2
@@ -247,8 +238,10 @@ def run_query(insql, params):
     run_query(conn, "SELECT * FROM tbl where id = %s;", (15,))
 
     issues: lots.
-    No fetch_iterator. connection per query(see above)
-    We should at least return a dict per row with fields as keys.
+    
+    * No fetch_iterator.
+    * connection per query(see above)
+    * We should at least return a dict per row with fields as keys.
 
 
     """
@@ -257,7 +250,7 @@ def run_query(insql, params):
     cur.execute(insql, params)
     rs = cur.fetchall()
     cur.close()
-    # connection_refresh(conn)  #I can rollback here, its a SELECT
+    connection_refresh(conn)
     return rs
 
 
@@ -269,29 +262,27 @@ def exec_stmt(insql, params):
     :param params: iterable of parameters to be inserted into insql
 
     :return a dbapi recordset: (list of tuples)
-
-    issues: lots.
-    No fetch_iterator. connection per query(see above)
-    FixMe: Write up all adge case handling here.
     """
     conn = getconn()
     cur = conn.cursor()
     cur.execute(insql, params)
     conn.commit()
     cur.close()
-    # connection_refresh(conn)  #I can rollback here, its a SELECT
-    conn.close()
+    connection_refresh(conn)  #I can rollback here, its a SELECT
+    
 
 
 def connection_refresh(conn):
     """
-    As a default psycopg2 will wrap every sql stmt in a transaction,
-    and so we can easily leave the system in idle-wait transactions.
-
-    1. refresh by running commit / rollback
-    2. refresh by replacing in pool using thread-approrpiate calls
+    Connections should be pooled and returned here.
+    
     """
-    conn.rollback()
+    conn.close()
+
+
+#######
+### Main functions
+#######
 
 
 def set_session(sessionid, userd):
@@ -303,8 +294,6 @@ def set_session(sessionid, userd):
     :param userd:     python dict of format cnx-user-dict.
     :returns:         True on successful setting.
     Can raise Rhaptos2Errors
-
-
 
     TIMESTAMPS.  We are comparing the time now, with the expirytime of the
     cookie *in the database* This reduces the portability.
@@ -343,8 +332,11 @@ def set_session(sessionid, userd):
 def delete_session(sessionid):
     """
     Remve from session_cache an existing but no longer wanted session(id)
-
     for whatever reason we want to end a session.
+
+    :param sessionid: Sessionid from cookie
+    :returns nothing if success.
+    
     """
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
@@ -365,7 +357,9 @@ def get_session(sessionid):
     Otherwise return None
     (We do not error out on id not found)
 
-    NB this depends heavily on co-ordinating the incoming TZ of
+    NB this depends heavily on co-ordinating the incoming TZ
+    of the DB and the python app server - I am soley runnig the
+    check on the dbase, which avoids that but does make it less portable.
     """
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
@@ -444,6 +438,41 @@ def _fakesessionusers(sessiontype='fixed'):
         raise Rhaptos2Error("sessiontype Must be 'floating' or 'fixed'")
 
 
+def initdb():
+    """
+    A helper function for creating the
+    This should be in backend, but it was easier to submit one module only.
+
+    
+    """
+    SQL0 = """DROP TABLE session_cache;"""
+    
+    SQL1 = """CREATE TABLE session_cache(
+   sessionid  character varying NOT NULL,
+   userdict   character varying NOT NULL,
+   session_startUTC timestamptz,
+   session_endUTC timestamptz);"""
+
+    
+    SQL2="""ALTER TABLE ONLY session_cache
+    ADD CONSTRAINT session_cache_pkey PRIMARY KEY (sessionid);"""
+
+    exec_stmt(SQL0, {})    
+    exec_stmt(SQL1, {})
+    exec_stmt(SQL2, {})    
+
+
+def maintenance_batch():
+    """
+    A holdng location for ways to clean up the session cache over time.
+    These will need improvement and testing.
+
+    
+    """
+    SQL = "REINDEX session_cache;"
+    exec_stmt(SQL, {})
+    
+    
 if __name__ == '__main__':
     import doctest
     val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE + \
