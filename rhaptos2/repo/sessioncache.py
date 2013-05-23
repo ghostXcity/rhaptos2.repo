@@ -145,7 +145,12 @@ import psycopg2
 import json
 import datetime
 from err import Rhaptos2Error,  Rhaptos2NoSessionCookieError
-from rhaptos2.repo import dolog
+
+import logging
+lgr = logging.getLogger("sessmodule")
+
+def dolog(lvl, msg):
+    lgr.info(msg)
 
 
 #### (set to one hour for now)

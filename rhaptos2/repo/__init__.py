@@ -19,12 +19,10 @@ use the `get_app` function.
 
 """
 import logging
-
 from flask import Flask, g
-
 from rhaptos2.repo import log
-
 import pkg_resources
+
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
 
 APPTYPE = 'rhaptos2repo'
@@ -69,7 +67,12 @@ def make_app(config, as_standalone=False):
 #    if as_standalone:
 #        from rhaptos2.repo import _standalone
 
+    
     # Initialize the views
+    # This import circular avoidinace trick is horrible
+    # I will review log and import process and want to put it all in a single setup in run.
+    from rhaptos2.repo import auth  # noqa    
+    auth.setup_auth()
     from rhaptos2.repo import views  # noqa
 
     return app

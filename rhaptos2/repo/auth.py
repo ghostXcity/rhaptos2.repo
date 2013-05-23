@@ -43,26 +43,44 @@ import statsd
 import json
 import pprint
 import uuid
-
 from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
-from rhaptos2.repo import get_app, dolog, sessioncache
-
+from rhaptos2.repo import get_app, sessioncache
 import flask
 from flask import request, g, session, redirect
 from flaskext.openid import OpenID
 import requests
-
 from webob import Request
 
-app = get_app()
+import logging
+lgr = logging.getLogger("authmodule")
+def dolog(lvl, msg):
+    lgr.info(msg)
 
-app.config.update(
-    SECRET_KEY=app.config['openid_secretkey'],
-    DEBUG=app.debug
-)
 
-# setup flask-openid
-oid = OpenID(app)
+app = None
+
+def setup_auth():
+    """
+
+    sphinx fails to read auth as get_app fails in normal import
+    without run.py
+    So to ensure docs work, and as a nod towards cleaning up the
+    import-time work happening here, this needs to be called by run.
+    
+    """
+    
+    global app
+    global oid
+    
+    app = get_app()
+    app.config.update(
+        SECRET_KEY=app.config['openid_secretkey'],
+        DEBUG=app.debug
+    )
+    
+    # setup flask-openid
+    oid = OpenID(app)
+
 
 ########################
 # User Auth flow
