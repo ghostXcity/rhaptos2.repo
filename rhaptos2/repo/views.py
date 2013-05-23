@@ -114,7 +114,6 @@ def apply_cors(resp_as_pytype):
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
-@app.route('/')
 def index():
     """
     .. dicussion::
@@ -131,10 +130,6 @@ def index():
     resp = flask.redirect('/js/')
     return resp
     
-
-
-
-@app.route("/me/", methods=['GET'])
 def whoamiGET():
     '''
     returns
@@ -157,8 +152,6 @@ def whoamiGET():
         return("Not logged in", 401)#FIXME - zombie code again 
 
     
-# Content GET, POST (create), and PUT (change)
-@app.route("/workspace/", methods=['GET'])
 def workspaceGET():
     ''' '''
     # TODO - should whoami redirect to a login page?
@@ -185,7 +178,6 @@ def workspaceGET():
     return resp
 
 
-@app.route("/keywords/", methods=["GET"])
 def keywords():
     """Returns a list of keywords for the authenticated user."""
     # XXX We really need a database search here. With the current
@@ -206,8 +198,6 @@ def keywords():
     return resp
 
 
-@app.route("/version/", methods=["GET"])
-#@resp_as_json()
 def versionGET():
     ''' '''
     s = VERSION
@@ -219,7 +209,6 @@ def versionGET():
 
 
 ### Below are for test /dev only.
-@app.route("/admin/config/", methods=["GET", ])
 def admin_config():
     """View the config we are using
 
@@ -238,7 +227,6 @@ def admin_config():
     else:
         abort(403)
 
-@app.route("/autosession", methods=['GET'])
 def auto_session():
     """
     strictly for testing purposes
@@ -255,10 +243,6 @@ def auto_session():
 
 
 
-# XXX A temporary fix for the openid images.
-
-
-@app.route('/images/openid-providers-en.png')
 def temp_openid_image_url():
     """Provides a (temporary) fix for the openid images used
     on the login page.
@@ -268,7 +252,6 @@ def temp_openid_image_url():
     return resp
 
 
-@app.route('/login', methods=['GET', 'POST'])
 @auth.oid.loginhandler
 def login():
     """Does the login via OpenID.  Has to call into `auth.oid.try_login`
@@ -301,7 +284,6 @@ def create_or_login(resp):
     return redirect(auth.oid.get_next_url())
 
 
-@app.route('/logout')
 def logout():
     """
     kill the session in cache, remove the cookie from client
@@ -313,13 +295,11 @@ def logout():
 
 
 ##############
-@app.route('/persona/logout/', methods=['POST'])
 def logoutpersona():
     dolog("INFO", "logoutpersona")
     return "Yes"
 
 
-@app.route('/persona/login/', methods=['POST'])
 def loginpersona():
     """Taken mostly from mozilla quickstart """
     dolog("INFO", "loginpersona")
@@ -371,10 +351,6 @@ def obtain_payload(werkzeug_request_obj):
     return jsond
 
 
-@app.route('/folder/', defaults={'folderuri': ''},
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
-@app.route('/folder/<path:folderuri>',
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
 def folder_router(folderuri):
     """
     """
@@ -410,10 +386,6 @@ def folder_router(folderuri):
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
 
-@app.route('/collection/', defaults={'collectionuri': ''},
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
-@app.route('/collection/<path:collectionuri>',
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
 def collection_router(collectionuri):
     """
     """
@@ -449,10 +421,6 @@ def collection_router(collectionuri):
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
 
-@app.route('/module/', defaults={'moduleuri': ''},
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
-@app.route('/module/<path:moduleuri>',
-           methods=['GET', 'POST', 'PUT', 'DELETE'])
 def module_router(moduleuri):
     """
     """
@@ -562,51 +530,7 @@ def generic_delete(uri, requesting_user_uri):
     return resp
 
 
-def generic_acl(klass, uri, acllist):
-    owner = g.userd['user_uri']
-    fldr = model.get_by_id(klass, uri, owner)
-    fldr.set_acls(owner, acllist)
-    resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
-    resp.status_code = 200
-    resp.content_type = 'application/json; charset=utf-8'
-    return resp
 
 
-@app.route('/collection/<path:collectionuri>/acl/',
-           methods=['PUT', 'GET'])
-def collection_acl_put(collectionuri):
-    """ """
-    requesting_user_uri = g.userd['user_uri']
-    if request.method == "PUT":
-        jsond = request.json
-        return generic_acl(model.Collection, collectionuri, jsond)
-    elif request.method == "GET":
-        obj = model.get_by_id(model.Collection,
-                              collectionuri, requesting_user_uri)
-        return str(obj.userroles)
 
 
-@app.route('/folder/<path:uri>/acl/', methods=['PUT', 'GET'])
-def acl_folder_put(uri):
-    """ """
-    requesting_user_uri = g.userd['user_uri']
-    if request.method == "PUT":
-        jsond = request.json
-        return generic_acl(model.Folder, uri, jsond)
-    elif request.method == "GET":
-        obj = model.get_by_id(model.Folder,
-                              uri, requesting_user_uri)
-        return str(obj.userroles)
-
-
-@app.route('/module/<path:uri>/acl/', methods=['PUT', 'GET'])
-def acl_module_put(uri):
-    """ """
-    requesting_user_uri = g.userd['user_uri']
-    if request.method == "PUT":
-        jsond = request.json
-        return generic_acl(model.Module, uri, jsond)
-    elif request.method == "GET":
-        obj = model.get_by_id(model.Module,
-                              uri, requesting_user_uri)
-        return str(obj.userroles)
