@@ -9,31 +9,40 @@
 # See LICENCE.txt for details.
 ###
 
-"""
-
-:module:`auth` supplies the logic to authenticate users and then store that authentication
+""":module:`auth` supplies the logic to authenticate users and then store that authentication
 for later requests.
-
 It is strongly linked with :module:`sessioncache`.
 
+Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however
+the logic over authorisation will remain.
 
 
+Overview
 
-  * requesting_user_uri
-This is passed around a lot
-This is suboptimal, and I think should be replaced with passing around the
-environ dict as a means of linking functions with the request calling them
+auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session
+or the user is unable to authenticate
+
+after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt
+
+
+known issues
+~~~~~~~~~~~~
+
+requesting_user_uri This is passed around a lot This is suboptimal, and I think
+should be replaced with passing around the environ dict as a means of linking
+functions with the request calling them
 
 I am still passing around the userd in ``g.`` This is fairly silly
 but seems consistent for flask. Will need rethink.
 
-- secure (https) - desired future toggle
-- httponly - Set on as defualt.
+secure (https) - desired future toggle
 
-http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
-
+further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
 
 
+userdict example::
+
+    {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
 
 """
 
@@ -51,19 +60,32 @@ from flaskext.openid import OpenID
 import requests
 from webob import Request
 
+
 import logging
 lgr = logging.getLogger("authmodule")
+
+### This is a temporary log fix
+### The full fix is in branch fix-logging-importing
+### THis is a temp workaround to handle the circular import
 def dolog(lvl, msg):
     lgr.info(msg)
 
 
+### global namespace placeholder
 app = None
+
+
+##########
+### Module startup 
+##########
 
 def setup_auth():
     """
-
-    sphinx fails to read auth as get_app fails in normal import
-    without run.py
+    As part of drive to remove app setup from the import process,
+    have moved to calls into this function.  This is driving
+    a circular import cycle, which while temp solved will only
+    be fixed by changing logging process.
+    
     So to ensure docs work, and as a nod towards cleaning up the
     import-time work happening here, this needs to be called by run.
     
@@ -93,7 +115,12 @@ CNXSESSIONID = "cnxsessionid"
 
 def redirect_to_login():
     """
-    A Q&D way to avoid redirection loops
+    On first hitting the site, the user will have no cookie
+    If we issued a 301, the browser would issue another request,
+    which would have no cookie, which would issue a 301...
+
+    By presenting this HTML when the user hits the login server,
+    we avoid this.  Clearly templating is needed.
     
     """
     tmpl = """<p>Hello It seems your session has expired.
@@ -104,14 +131,16 @@ def redirect_to_login():
 
 def store_userdata_in_request(userd, sessionid):
     """
+    given a userdict, keep it in the request cycle for later reference.
+    Best practise here will depend on web framework.
+        
     """
-
     ### For now keep ``g`` the source of data on current thread-local request.
     ### later we transfer to putting it all on environ for extra portability 
     userd['user_uri'] = userd['user_id']
     g.userd = userd
     g.sessionid = sessionid
-    dolog("INFO", "Session Lookup success, sessionid:%s::user_uri:%s::requestid:%s::" %
+    dolog("INFO", "SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
                           (g.sessionid, userd['user_uri'], g.requestid))
     ### Now flask actually calls __call__
     
@@ -119,31 +148,35 @@ def store_userdata_in_request(userd, sessionid):
 def handle_user_authentication(flask_request):
     """Correctly perform all authentication workflows
 
-    Either raise an Error, return an app
-    or
-    return None, thus allowing onward processing of the request.
+    We have 16 options for different user states such as IsLoggedIn, NotRegistered.
+    The states are listed below.
+
+    THis function is where *eventually* all 16 will be handled.  For the moment
+    only a limited number are.
+
+    :param flask_request: request object of pococo flavour.
+    :returns: No return is good because it allows the onward rpocessing of requests.
+    Otherwise we return a login page.
     
-    This gets called before_request (which is *after* processing of HTTP headers
+    
+    This gets called on ``before_request`` (which is *after* processing of HTTP headers
     but *before* __call__ on wsgi.)
 
-    All the functions in sessioncache, and auth, should be called from here
-    (maybe in a chain) and raise errors or other signals to allow this function
-    to take action, not to presume on some action (like a redirect)
-    themselves. (todo-later: such late decisions are well suited for deferred
-    callbacks)
-
-    Where do we keep the current request's user details.
-    For the moment, on ``g`` Flask's thread-local dumping ground.
+    .. note::
     
+        All the functions in sessioncache, and auth, should be called from here
+        (possibly in a chain) and raise errors or other signals to allow this function
+        to take action, not to presume on some action (like a redirect)
+        themselves. (todo-later: such late decisions are well suited for deferred
+        callbacks)
 
-    Truth table - an HTTP request arrives, now what?
 
-    ----   ---  ---------  --------------  ---------------
-    Auth   Reg  InSession  ProfileCookie   Next Action / RoleType
-    ----   ---  ---------  --------------  ---------------
-    Y      Y    Y          Y               Go
-    Y      Y    Y          N               set_profile_cookie
-    Y      Y    N          Y               set_session
+    ====   ===  =========  ==============  ====================================  =================
+    Auth   Reg  InSession  ProfileCookie   Next Action / RoleType                Handled Here
+    ====   ===  =========  ==============  ====================================  =================
+    Y      Y    Y          Y               Go                                    Y
+    Y      Y    Y          N               set_profile_cookie                    Y
+    Y      Y    N          Y               set_session                           Y
     Y      Y    N          N               FirstTimeOK
 
     Y      N    Y          Y               ErrorA
@@ -160,8 +193,9 @@ def handle_user_authentication(flask_request):
     N      Y    Y          N               Err-SetProfile-AskForLogin
     N      Y    N          Y               NotArrivedYet
     N      Y    N          N               CouldBeAnyone
-    ----   ---  ---------  --------------  ---------------    
+    ====   ===  =========  ==============  ====================================  =================
 
+    
     All the final 4 are problematic because if the user has not authorised
     how do we know they are registered? Trust the profile cookie?
     
@@ -177,7 +211,7 @@ def handle_user_authentication(flask_request):
     ### if someone is trying to login, it is the *only* time they should
     ### hit this wsgi app and *not* get bounced out for bad session
     ### FIXME - while this is the *only* exception I dont like the hardcoded manner
-    ### options: have /login served by another app?
+    ### options: have /login served by another app - ala Velruse?
     if flask_request.path in ("/login", "/favicon.ico", "/autosession"):
         return None
     dolog("INFO", "Auth test for %s" %  flask_request.path)    
@@ -205,16 +239,21 @@ def handle_user_authentication(flask_request):
             
 def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
-   
+    Given a request environment and cookie
+
+
+    
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
     >>> userd = session_to_user(cookies, env)
     >>> outenv["fullname"]
     'pbrian'
 
-    Returns: Err, None if lookup fails, userdict if not
+    :params flask_request_cookiedict: the cookiejar sent over as a dict(-like obj).
+    :params flask_request_environ: a dict like object representing WSGI environ
+    
+    :returns: Err if lookup fails, userdict if not
 
-    todo: I prefer having failure to lookup also raise err.
     """
     if CNXSESSIONID in flask_request_cookiedict:
         sessid = flask_request_cookiedict[CNXSESSIONID]
@@ -226,7 +265,9 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
 
 def lookup_session(sessid):
     """
-    We would expect this to be redis-style cache in production
+    As this will be called on *every* request and is a network lookup
+    we should *storngly* look into redis-style lcoal disk cacheing
+    performance monitoring of request life cycle?
 
     returns python dict of ``user_dict`` format.
             or None if no session ID in cache
@@ -251,7 +292,6 @@ def authenticated_identifier_to_registered_user_details(ai):
     """
     Given an ``authenticated_identifier (ai)`` request full user details from
     the ``user service``
-
 
     returns dict of userdetails (success),
             None (user not registerd)
@@ -288,8 +328,8 @@ def create_session(userdata):
     :returns: sessionid
 
     cookie settings:
-    * cnxsessionid - a fixed key string that is constant for the
-    app.  FIXME!
+    
+    * cnxsessionid - a fixed key string that is constant
     * expires - we want a cookie that will live even if user
     shutsdown browser.  However do not live forever ...?
     * httponly - prevent easy CSRF, however allow AJAX to request browser
@@ -318,6 +358,8 @@ def create_session(userdata):
     
 def delete_session(sessionid):
     """
+    request browser temove cookie from client, remove from
+    session-cache dbase.
 
     """
 
@@ -364,8 +406,6 @@ def set_temp_session():
 
     However work saved will be irrecoverable after session expires...
 
-    :discuss:
-    
     """
     useruri = create_temp_user("temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
     tempuserdict = {'fullname':"temporary user", 'user_id':useruri}
@@ -385,26 +425,18 @@ def create_temp_user(identifiertype, identifierstring):
     ### vist the user dbase, get back a user_uri
     stubbeduri = "cnxuser:" + str(uuid.uuid4())
     return stubbeduri
-        
+
+    
 def after_authentication(authenticated_identifier, method):
     """Called after a user has provided a validated ID (openid or peresons)
 
+    This would be an ``endpoint`` in Valruse.
+    
     method either openid, or persona
 
-    Here we have several choices:
+    :parms: authenticated_identifier 
 
-    * User is registered
-      - attempt to lookup validatedID against ``user.cnx.org service``.
-      - capture the details,
-      - create a sessionID
-      - apply details to session-store under the sessionID
-      - set-cookie with sessionid
-      - redirect to rooturl
-    
-    
-    * User is not registered
-      - attempt to lookup validatedID against ``user.cnx.org service``.
-      - redirect to the (TBC) ``/register/`` page
+    pass on responsibility to 
     
        
     

@@ -144,15 +144,13 @@ def whoamiGET():
      "email": "Not Implemented",
      "name": "Not Implemented"}
 
-    I expect we shall want to shift to a User.JSON document...
-    FIXME: 
+
     '''
     ### todo: return 401 code and let ajax client put up login.
     userd = auth.whoami()#same as g.userd
     
     if userd:
         jsond = auth.asjson(userd)#FIXME - zombie code again 
-        ### make decorators !!!
         resp = apply_cors(jsond)
         return resp
     else:
@@ -243,7 +241,7 @@ def admin_config():
 @app.route("/autosession", methods=['GET'])
 def auto_session():
     """
-    this is a bit wrong - for testing purposes
+    strictly for testing purposes
     I want to fake three sessions with known ids.
     Also generate a "real" session with a known user
     FIXME - there has to be a better way

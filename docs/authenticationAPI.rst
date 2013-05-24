@@ -4,6 +4,13 @@ Authentication API
 Summary
 -------
 
+
+
+
+
+
+
+
 We make use of session cookies, a local cache and some logic flow 
 to ensure users can work easily with minimal interruptions
 

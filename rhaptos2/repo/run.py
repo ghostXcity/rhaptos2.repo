@@ -49,8 +49,6 @@ from waitress import serve
 
 def main():
     opts, args = parse_args()
-    print opts
-    print args
     config = Configuration.from_file(opts.conf)
     app = get_app(opts, args, config, 
                   as_standalone = opts.devserver, 

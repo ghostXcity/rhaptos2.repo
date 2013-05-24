@@ -154,7 +154,7 @@ def dolog(lvl, msg):
 
 
 #### (set to one hour for now)
-FIXEDSESSIONDURATIONSECS = 3600
+FIXED_SESSIONDURATION_SECS = 3600
 #### We fix this here, not in .ini files, as this is a security issue
 #### as much as a config so should be changed with caution.
 
@@ -324,7 +324,7 @@ def set_session(sessionid, userd):
     try:
         exec_stmt(SQL, [sessionid,
                         json.dumps(userd),
-                        FIXEDSESSIONDURATIONSECS
+                        FIXED_SESSIONDURATION_SECS
                         ])
     except psycopg2.IntegrityError, e:
         ### This should never happen, but does in testing enough to trap.
