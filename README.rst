@@ -71,6 +71,20 @@ settings (do not use these same instructions for a production install)::
 These commands setup a Postgres user named ``rhaptos2repo`` and made
 it the owner of the newly created ``rhaptos2repo`` database.
 
+Session Cache specific Issues
+
+You will need to build a table in the postgres backend.  This is 
+done as part of ``initdb`` but worth checking.
+
+I would also recommend running tests/cleardb.py as this will populate the session
+cache with three dummy accounts that can be claimed through /autosession
+
+Also ensure that user database is up and contains a mapping from your openid
+to a valid user uuid.
+
+
+
+
 Quick
 ~~~~~
 
