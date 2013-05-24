@@ -302,8 +302,15 @@ def create_session(userdata):
                         httponly=True,
                         expires=datetime.datetime.today()+datetime.timedelta(days=1))
         return resp
+    
+    def begin_profile(resp):
+        resp.set_cookie('cnxprofile',userdata['fullname'],
+                        httponly=True,
+                        expires=-0)
+        return resp
         
-    g.deferred_callbacks.append(begin_session)
+    g.deferred_callbacks.append(begin_session)        
+    g.deferred_callbacks.append(begin_profile)
     sessioncache.set_session(sessionid, userdata)
     ### Now at end of request we will call begin_session() and its closure will
     ### set sessionid correctly.

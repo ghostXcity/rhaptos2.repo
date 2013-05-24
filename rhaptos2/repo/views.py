@@ -128,11 +128,12 @@ def index():
     TODO: either use a config value, or bring a index template in here
     """
     dolog("INFO", "THis is request %s" % g.requestid)
-    return "this is the index"
+    resp = flask.redirect('/js/')
+    return resp
     
 
 
-## .. todo:: why is there a view in here??
+
 @app.route("/me/", methods=['GET'])
 def whoamiGET():
     '''
