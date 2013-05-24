@@ -515,10 +515,15 @@ def convert_config(config):
 
     FIXME - this is ridiculous - just go back to one confd object 
     """
+    print "THis is config beflore"
+    print config
+    
     defaultsection = 'app'
     for k in config[defaultsection]:
         config[k] = config[defaultsection][k]
     #del config[defaultsection]
+    print "and after"
+    print config
     return config
 
 

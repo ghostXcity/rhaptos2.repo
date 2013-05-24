@@ -221,10 +221,10 @@ def getconn():
     """
     try:
         dolog("INFO", "CONFD is %s" % str(CONFD))
-        conn = psycopg2.connect(host=CONFD['app']['pghost'],
-                                database=CONFD['app']['pgdbname'],
-                                user=CONFD['app']['pgusername'],
-                                password=CONFD['app']['pgpassword'])
+        conn = psycopg2.connect(host=CONFD['pghost'],
+                                database=CONFD['pgdbname'],
+                                user=CONFD['pgusername'],
+                                password=CONFD['pgpassword'])
     except psycopg2.Error, e:
         dolog("INFO", "Error making pg conn - %s" % str(e))
         raise e
