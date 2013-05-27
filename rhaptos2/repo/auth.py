@@ -67,6 +67,8 @@ lgr = logging.getLogger("authmodule")
 ### This is a temporary log fix
 ### The full fix is in branch fix-logging-importing
 ### THis is a temp workaround to handle the circular import
+
+
 def dolog(lvl, msg):
     lgr.info(msg)
 
@@ -76,7 +78,7 @@ app = None
 
 
 ##########
-### Module startup 
+### Module startup
 ##########
 
 def setup_auth():
@@ -85,23 +87,28 @@ def setup_auth():
     have moved to calls into this function.  This is driving
     a circular import cycle, which while temp solved will only
     be fixed by changing logging process.
-    
+
     So to ensure docs work, and as a nod towards cleaning up the
     import-time work happening here, this needs to be called by run.
-    
+
     """
-    
+
     global app
-    global oid
-    
+    import views
+
     app = get_app()
     app.config.update(
         SECRET_KEY=app.config['openid_secretkey'],
         DEBUG=app.debug
     )
-    
+
     # setup flask-openid
+    #: we setup the loginhandler and after_login callbacks here
+    #: flesh out docs
     oid = OpenID(app)
+    # views - why here and not in __init
+    oid.loginhandler(login)
+    oid.after_login(create_or_login)
 
 
 ########################
@@ -121,7 +128,7 @@ def redirect_to_login():
 
     By presenting this HTML when the user hits the login server,
     we avoid this.  Clearly templating is needed.
-    
+
     """
     tmpl = """<p>Hello It seems your session has expired.
     <p>Please <a href="/login">login again.</a>
@@ -531,6 +538,95 @@ def asjson(pyobj):
 
 def gettime():
     return datetime.datetime.today().isoformat()
+
+
+################ openid views - from flask
+
+
+def temp_openid_image_url():
+    """Provides a (temporary) fix for the openid images used
+    on the login page.
+    """
+    # Gets around http://openid-selector.googlecode.com quickly
+    resp = flask.redirect('/static/img/openid-providers-en.png')
+    return resp
+
+
+def login():
+    """Does the login via OpenID.  Has to call into `auth.oid.try_login`
+    to start the OpenID .
+    """
+    # if we are already logged in, go back to were we came from
+    if g.userd is not None:
+        dolog("INFO", "Were at /login with g.user_uri of %s" % g.user_uri)
+        return redirect(auth.oid.get_next_url())
+
+    if request.method == 'POST':
+        openid = request.form.get('openid')
+        if openid:
+            return auth.oid.try_login(openid, ask_for=['email', 'fullname',
+                                                       'nickname'])
+
+    return render_template('login.html', next=auth.oid.get_next_url(),
+                           error=auth.oid.fetch_error(),
+                           confd=app.config)
+
+
+def create_or_login(resp):
+    """This is called when login with OpenID succeeded and it's not
+    necessary to figure out if this is the users's first login or not.
+
+    """
+    dolog("INFO", "OpenID worked, now set server to believe this is logged in")
+    auth.after_authentication(resp.identity_url, 'openid')
+    return redirect(auth.oid.get_next_url())
+
+
+def logout():
+    """
+    kill the session in cache, remove the cookie from client
+
+    """
+
+    auth.delete_session(g.sessionid)
+    return redirect(auth.oid.get_next_url())
+
+##############
+
+
+def logoutpersona():
+    dolog("INFO", "logoutpersona")
+    return "Yes"
+
+
+def loginpersona():
+    """Taken mostly from mozilla quickstart """
+    dolog("INFO", "loginpersona")
+    # The request has to have an assertion for us to verify
+    if 'assertion' not in request.form:
+        abort(400)
+
+    # Send the assertion to Mozilla's verifier service.
+    audience = "http://%s" % app.config['www_server_name']
+    data = {'assertion': request.form['assertion'], 'audience': audience}
+    resp = requests.post(
+        'https://verifier.login.persona.org/verify', data=data, verify=True)
+
+    # Did the verifier respond?
+    if resp.ok:
+        # Parse the response
+        verification_data = json.loads(resp.content)
+        dolog("INFO", "Verified persona:%s" % repr(verification_data))
+
+        # Check if the assertion was valid
+        if verification_data['status'] == 'okay':
+            # Log the user in by setting a secure session cookie
+#            session.update({'email': verification_data['email']})
+            after_authentication(verification_data['email'], 'persona')
+            return resp.content
+
+    # Oops, something failed. Abort.
+    abort(500)
 
 
 if __name__ == '__main__':
