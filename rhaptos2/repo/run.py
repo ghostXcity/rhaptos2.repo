@@ -34,30 +34,6 @@ changes:
   find it easier / avoid refactor of the openid approaches.
 
 
-app.add_url_rule("/", view_func=index)
-app.add_url_rule("/me/", view_func=whoamiGET, methods=['GET'])
-app.add_url_rule("/workspace/", view_func=workspaceGET, methods=['GET'])
-app.add_url_rule("/keywords/", view_func=keywords, methods=['GET',])
-app.add_url_rule("/version/", view_func=versionGET, methods=['GET',])
-app.add_url_rule("/admin/config", view_func=admin_config, methods=['GET',])
-app.add_url_rule("/autosession", view_func=auto_session, methods=['GET',])
-app.add_url_rule("/images/openid-providers-en.png", view_func=temp_openid_image_url, methods=['GET',])
-app.add_url_rule("/login", view_func=login, methods=['GET', 'POST'])
-### This needs oid.loginhandler function applied ...@auth.oid.loginhandler
-app.add_url_rule("/logout", view_func=logout, methods=['GET',])
-app.add_url_rule('/persona/logout/', view_func=logoutpersona, methods=['POST',])
-app.add_url_rule("/persona/login/", view_func=loginpersona, methods=['POST',])
-
-app.add_url_rule("/folder/", view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
-app.add_url_rule('/folder/<path:folderuri>', view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'])
-
-app.add_url_rule("/collection/", view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'collectionuri': ''})
-app.add_url_rule('/collection/<path:collectionuri>', view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'])
-
-app.add_url_rule("/module/", view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'moduleuri': ''})
-app.add_url_rule('/module/<path:moduleuri>', view_func=folder_router, methods=['GET', 'POST', 'PUT', 'DELETE'])
-
-
 
 
 """
