@@ -23,6 +23,7 @@ from flask import Flask, g
 from rhaptos2.repo import log
 import pkg_resources
 
+
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
 
 APPTYPE = 'rhaptos2repo'
@@ -43,6 +44,56 @@ def set_app(app):
     return _app
 
 
+def assign_routing_rules(app):
+    """
+
+    In short, have wsgi app created in a factory, *after* import time.
+    Avoid having to have a wsgi / flask app in global namespace of views.
+    We need to replace decorators that assume app already exists at import (or decorator first call time)
+
+    """
+    from rhaptos2.repo import views
+    from rhaptos2.repo import auth
+
+    app.add_url_rule("/", view_func=views.index)
+    app.add_url_rule("/me/", view_func=views.whoamiGET, methods=['GET'])
+    app.add_url_rule(
+        "/workspace/", view_func=views.workspaceGET, methods=['GET'])
+    app.add_url_rule("/keywords/", view_func=views.keywords, methods=['GET', ])
+    app.add_url_rule(
+        "/version/", view_func=views.versionGET, methods=['GET', ])
+    app.add_url_rule(
+        "/autosession", view_func=views.auto_session, methods=['GET', ])
+    app.add_url_rule("/images/openid-providers-en.png",
+                     view_func=auth.temp_openid_image_url, methods=['GET', ])
+    app.add_url_rule("/login", view_func=auth.login, methods=['GET', 'POST'])
+    ### This needs oid.loginhandler function applied ...@auth.oid.loginhandler
+    app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
+    app.add_url_rule(
+        '/persona/logout/', view_func=auth.logoutpersona, methods=['POST', ])
+    app.add_url_rule(
+        "/persona/login/", view_func=auth.loginpersona, methods=['POST', ])
+
+    app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
+                     'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
+    app.add_url_rule('/folder/<path:folderuri>', view_func=views.folder_router, methods=[
+                     'GET', 'POST', 'PUT', 'DELETE'])
+
+    app.add_url_rule("/collection/", view_func=views.collection_router, methods=[
+                     'GET', 'POST', 'PUT', 'DELETE'], defaults={'collectionuri': ''})
+    app.add_url_rule('/collection/<path:collectionuri>', view_func=views.collection_router, methods=[
+                     'GET', 'POST', 'PUT', 'DELETE'])
+
+    app.add_url_rule("/module/", view_func=views.module_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'moduleuri': ''})
+    app.add_url_rule('/module/<path:moduleuri>', view_func=views.folder_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'])
+
+    app.before_request(views.requestid)
+    app.after_request(views.call_after_request_callbacks)
+    return app
+
+
 def make_app(config, as_standalone=False):
     """WSGI application factory
     The ``as_standalone`` parameter is used to tell the factory to serve the
@@ -53,6 +104,7 @@ def make_app(config, as_standalone=False):
     """
     app = Flask(__name__)
     app.config.update(config)
+    app = assign_routing_rules(app)
 
     # Try to set up logging. If not connected to a network this throws
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
@@ -66,8 +118,9 @@ def make_app(config, as_standalone=False):
 
     # Initialize the views
     # This import circular avoidinace trick is horrible
-    # I will review log and import process and want to put it all in a single setup in run.
-    from rhaptos2.repo import auth  # noqa    
+    # I will review log and import process and want to put it all in a single
+    # setup in run.
+    from rhaptos2.repo import auth  # noqa
     auth.setup_auth()
     from rhaptos2.repo import views  # noqa
 
@@ -144,6 +197,7 @@ def set_up_logging(app):
     # Define the log formatting.
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
                                   "- %(message)s")
+
     stream_handler.setFormatter(formatter)
     # Set the handlers on the application.
     for handler in (stream_handler,):
