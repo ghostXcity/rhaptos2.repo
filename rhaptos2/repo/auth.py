@@ -136,22 +136,23 @@ def redirect_to_login():
     resp = flask.make_response(tmpl)
     return resp
 
+
 def store_userdata_in_request(userd, sessionid):
     """
     given a userdict, keep it in the request cycle for later reference.
     Best practise here will depend on web framework.
-        
+
     """
     ### For now keep ``g`` the source of data on current thread-local request.
-    ### later we transfer to putting it all on environ for extra portability 
+    ### later we transfer to putting it all on environ for extra portability
     userd['user_uri'] = userd['user_id']
     g.userd = userd
     g.sessionid = sessionid
     dolog("INFO", "SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
-                          (g.sessionid, userd['user_uri'], g.requestid))
+         (g.sessionid, userd['user_uri'], g.requestid))
     ### Now flask actually calls __call__
-    
-    
+
+
 def handle_user_authentication(flask_request):
     """Correctly perform all authentication workflows
 
@@ -164,13 +165,13 @@ def handle_user_authentication(flask_request):
     :param flask_request: request object of pococo flavour.
     :returns: No return is good because it allows the onward rpocessing of requests.
     Otherwise we return a login page.
-    
-    
+
+
     This gets called on ``before_request`` (which is *after* processing of HTTP headers
     but *before* __call__ on wsgi.)
 
     .. note::
-    
+
         All the functions in sessioncache, and auth, should be called from here
         (possibly in a chain) and raise errors or other signals to allow this function
         to take action, not to presume on some action (like a redirect)
@@ -187,31 +188,31 @@ def handle_user_authentication(flask_request):
     Y      Y    N          N               FirstTimeOK
 
     Y      N    Y          Y               ErrorA
-    Y      N    Y          N               ErrorB 
-    Y      N    N          Y               ErrorC 
+    Y      N    Y          N               ErrorB
+    Y      N    N          Y               ErrorC
     Y      N    N          N               NeedToRegister
 
-    N      N    Y          Y               AnonymousGo 
+    N      N    Y          Y               AnonymousGo
     N      N    Y          N               set_profile_cookie
-    N      N    N          Y               LongTimeNoSee  
+    N      N    N          Y               LongTimeNoSee
     N      N    N          N               FreshMeat
-    
+
     N      Y    Y          Y               Conflict with anonymous and reg?
     N      Y    Y          N               Err-SetProfile-AskForLogin
     N      Y    N          Y               NotArrivedYet
     N      Y    N          N               CouldBeAnyone
     ====   ===  =========  ==============  ====================================  =================
 
-    
+
     All the final 4 are problematic because if the user has not authorised
     how do we know they are registered? Trust the profile cookie?
-    
-        
+
+
     we examine the request, find session cookie,
     register any logged in user, or redirect to login pages
 
     """
-    #clear down storage area.
+    # clear down storage area.
     g.userd = None
     g.sessionid = None
 
@@ -221,35 +222,40 @@ def handle_user_authentication(flask_request):
     ### options: have /login served by another app - ala Velruse?
     if flask_request.path in ("/login", "/favicon.ico", "/autosession"):
         return None
-    dolog("INFO", "Auth test for %s" %  flask_request.path)    
-        
+    dolog("INFO", "Auth test for %s" % flask_request.path)
+
     ### convert the cookie to a registered users details
     try:
-        userdata, sessionid = session_to_user(flask_request.cookies, flask_request.environ)
+        userdata, sessionid = session_to_user(
+            flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
-        dolog("INFO", "Session Lookup returned NoCookieError, so redirect to login")
+        dolog(
+            "INFO", "Session Lookup returned NoCookieError, so redirect to login")
         return redirect_to_login()
-        #We end here for now - later we shall fix tempsessions
-        #userdata = set_temp_session()
-        
-    ## We are at start of request cycle, so tell everything downstream who User is.
+        # We end here for now - later we shall fix tempsessions
+        # userdata = set_temp_session()
+
+    # We are at start of request cycle, so tell everything downstream who User
+    # is.
     if userdata is not None:
         store_userdata_in_request(userdata, sessionid)
     else:
         g.userd = None
-        dolog("INFO", "Session Lookup returned None User, so redirect to login")        
+        dolog(
+            "INFO", "Session Lookup returned None User, so redirect to login")
         return redirect_to_login()
-    
+
 ##########################
 ## Session Cookie Handling
 ##########################
-            
+
+
 def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
     Given a request environment and cookie
 
 
-    
+
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
     >>> userd = session_to_user(cookies, env)
@@ -258,7 +264,7 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
 
     :params flask_request_cookiedict: the cookiejar sent over as a dict(-like obj).
     :params flask_request_environ: a dict like object representing WSGI environ
-    
+
     :returns: Err if lookup fails, userdict if not
 
     """
@@ -268,7 +274,7 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
         raise Rhaptos2NoSessionCookieError("NO SESSION - REDIRECT TO LOGIN")
     userdata = lookup_session(sessid)
     return (userdata, sessid)
-    
+
 
 def lookup_session(sessid):
     """
@@ -279,22 +285,26 @@ def lookup_session(sessid):
     returns python dict of ``user_dict`` format.
             or None if no session ID in cache
             or Error if lookup failed for other reason.
-    
+
     """
     dolog("INFO", "begin look up sessid %s in cache" % sessid)
     try:
         userd = sessioncache.get_session(sessid)
         dolog("INFO", "we got this from session lookup %s" % str(userd))
         if userd:
-            dolog("INFO", "We attempted to look up sessid %s in cache SUCCESS" % sessid)
+            dolog("INFO", "We attempted to look up sessid %s in cache SUCCESS" %
+                  sessid)
             return userd
         else:
-            dolog("INFO", "We attempted to look up sessid %s in cache FAILED" % sessid)
+            dolog("INFO", "We attempted to look up sessid %s in cache FAILED" %
+                  sessid)
             return None
     except Exception, e:
-        dolog("INFO", "We attempted to look up sessid %s in cache FAILED with Err %s" % (sessid, str(e)))        
+        dolog("INFO", "We attempted to look up sessid %s in cache FAILED with Err %s" %
+              (sessid, str(e)))
         raise e
-    
+
+
 def authenticated_identifier_to_registered_user_details(ai):
     """
     Given an ``authenticated_identifier (ai)`` request full user details from
@@ -303,11 +313,12 @@ def authenticated_identifier_to_registered_user_details(ai):
     returns dict of userdetails (success),
             None (user not registerd)
             or error (user service down).
-    
+
     """
     payload = {'user': ai}
     ### Fixme - the whole app global thing is annoying me now.
-    user_server_url = app.config['globals'][u'userserver'].replace("/user", "/openid")
+    user_server_url = app.config['globals'][
+        u'userserver'].replace("/user", "/openid")
 
     dolog("INFO", "user info - from url %s and query string %s" %
                   (user_server_url, repr(payload)))
@@ -326,6 +337,7 @@ def authenticated_identifier_to_registered_user_details(ai):
     else:
         raise Rhaptos2Error("Not a known user")
 
+
 def create_session(userdata):
     """A ``closure`` function that is stored and called at end of response,
     allowing us to set a cookie, with correct uuid, before response obj
@@ -335,7 +347,7 @@ def create_session(userdata):
     :returns: sessionid
 
     cookie settings:
-    
+
     * cnxsessionid - a fixed key string that is constant
     * expires - we want a cookie that will live even if user
     shutsdown browser.  However do not live forever ...?
@@ -344,25 +356,27 @@ def create_session(userdata):
 
     """
     sessionid = str(uuid.uuid4())
+
     def begin_session(resp):
-        resp.set_cookie('cnxsessionid',sessionid,
+        resp.set_cookie('cnxsessionid', sessionid,
                         httponly=True,
                         expires=datetime.datetime.today()+datetime.timedelta(days=1))
         return resp
-    
+
     def begin_profile(resp):
-        resp.set_cookie('cnxprofile',userdata['fullname'],
+        resp.set_cookie('cnxprofile', userdata['fullname'],
                         httponly=True,
                         expires=-0)
         return resp
-        
-    g.deferred_callbacks.append(begin_session)        
+
+    g.deferred_callbacks.append(begin_session)
     g.deferred_callbacks.append(begin_profile)
     sessioncache.set_session(sessionid, userdata)
     ### Now at end of request we will call begin_session() and its closure will
     ### set sessionid correctly.
     return sessionid
-    
+
+
 def delete_session(sessionid):
     """
     request browser temove cookie from client, remove from
@@ -371,7 +385,7 @@ def delete_session(sessionid):
     """
 
     def end_session(resp):
-        resp.set_cookie('cnxsessionid',"SessionExpired",
+        resp.set_cookie('cnxsessionid', "SessionExpired",
                         expires=0,
                         httponly=True)
         return resp
@@ -381,27 +395,29 @@ def delete_session(sessionid):
     ### Now at end of request we will call end_session() and its closure will
     ### set an invalid cookie, thus removeing the cookie in most cases.
 
+
 def set_autosession():
     """
     This is a convenience function for development
     It should fail in production
-    
+
     """
-    if not app.debug: raise Rhaptos2Error("autosession should fail in prod.")
+    if not app.debug:
+        raise Rhaptos2Error("autosession should fail in prod.")
 
-    #check if session already live for this user?
-    #Hmm I have not written such code yet - seems a problem
-    #only likely to occur here...
+    # check if session already live for this user?
+    # Hmm I have not written such code yet - seems a problem
+    # only likely to occur here...
 
-    ###FIXME get the real userdict template
-    standarduser = {'fullname': 'Paul Brian', 'user_id':'cnxuser:1234'}
-    sessionid = create_session(standarduser)    
+    # FIXME get the real userdict template
+    standarduser = {'fullname': 'Paul Brian', 'user_id': 'cnxuser:1234'}
+    sessionid = create_session(standarduser)
     store_userdata_in_request(standarduser, sessionid)
     ### fake in three users of id 0001 002 etc
     sessioncache._fakesessionusers(sessiontype='fixed')
     return standarduser
-    
-    
+
+
 def set_temp_session():
     """
     A temopriary session is not yet fully implemented
@@ -414,12 +430,13 @@ def set_temp_session():
     However work saved will be irrecoverable after session expires...
 
     """
-    useruri = create_temp_user("temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
-    tempuserdict = {'fullname':"temporary user", 'user_id':useruri}
+    useruri = create_temp_user(
+        "temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
+    tempuserdict = {'fullname': "temporary user", 'user_id': useruri}
     create_session(tempuserdict)
     return tempuserdict
 
-    
+
 def create_temp_user(identifiertype, identifierstring):
     """
     We should ping to user service and create a temporary userid
@@ -433,42 +450,39 @@ def create_temp_user(identifiertype, identifierstring):
     stubbeduri = "cnxuser:" + str(uuid.uuid4())
     return stubbeduri
 
-    
+
 def after_authentication(authenticated_identifier, method):
     """Called after a user has provided a validated ID (openid or peresons)
 
     This would be an ``endpoint`` in Valruse.
-    
+
     method either openid, or persona
 
-    :parms: authenticated_identifier 
+    :parms: authenticated_identifier
 
-    pass on responsibility to 
-    
-       
-    
+    pass on responsibility to
+
+
+
     """
     if method not in ('openid', 'persona', 'temporary'):
         raise Rhaptos2Error("Incorrect method of authenticating ID")
-    
+
     dolog("INFO", "in after auth - %s %s" % (authenticated_identifier, method))
-    userdetails = authenticated_identifier_to_registered_user_details(authenticated_identifier)
-    create_session(userdetails)    
+    userdetails = authenticated_identifier_to_registered_user_details(
+        authenticated_identifier)
+    create_session(userdetails)
     return userdetails
-
-
 
 
 def whoami():
     '''
-    
+
     based on session cookie
     returns userd dict of user details, equivalent to mediatype from service / session
-    
+
     '''
     return g.userd
-
-
 
 
 def apply_cors(resp):
@@ -523,7 +537,9 @@ def callstatsd(dottedcounter):
     except:
         pass
 
-#zombie code
+# zombie code
+
+
 def asjson(pyobj):
     '''just placeholder
 
