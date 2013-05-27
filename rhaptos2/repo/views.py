@@ -68,21 +68,23 @@ from rhaptos2.repo.err import (Rhaptos2Error,
 ## FIXME: prefer to avoid this through urlmapping
 ## unclear if can fix for SA
 ########
-app = get_app()
-backend.initdb(app.config)
+# app = get_app()
 
-@app.before_request
+
 def requestid():
+    """
+    before_request is supplied with this to run before each __call_
+    """
     g.requestid = uuid.uuid4()
     g.request_id = g.requestid
     g.deferred_callbacks = []
-    
+
     ### Before the app.__call__ is called, perform processing of user auth
     ### status.  If this throws err, we redirect or similar, else __call__ app
     ### proceeds
     try:
         resp = auth.handle_user_authentication(request)
-    except Exception,e:
+    except Exception, e:
         raise e
     if resp is not None:
         if hasattr(resp, "__call__") is True:
@@ -90,8 +92,8 @@ def requestid():
     else:
         pass
     ## All good - carry on.
-        
-@app.after_request
+
+
 def call_after_request_callbacks(response):
     for callback in getattr(g, 'deferred_callbacks', ()):
         response = callback(response)
@@ -208,25 +210,6 @@ def versionGET():
     return resp
 
 
-### Below are for test /dev only.
-def admin_config():
-    """View the config we are using
-
-    Clearly quick and dirty fix.
-    Should create a common library for rhaptos2 and web framrwoe
-    """
-    if app.debug:
-        outstr = "<table>"
-        for k in sorted(app.config.keys()):
-            outstr += "<tr><td>%s</td> <td>%s</td></tr>" % (
-                str(k), str(app.config[k]))
-
-        outstr += "</table>"
-
-        return outstr
-    else:
-        abort(403)
-
 def auto_session():
     """
     strictly for testing purposes
@@ -234,100 +217,10 @@ def auto_session():
     Also generate a "real" session with a known user
     FIXME - there has to be a better way
     """
-    
+
     sessionid = auth.set_autosession()
 
     return "Session created - please see headers"
-        
-################ openid views - from flask
-
-
-
-def temp_openid_image_url():
-    """Provides a (temporary) fix for the openid images used
-    on the login page.
-    """
-    # Gets around http://openid-selector.googlecode.com quickly
-    resp = flask.redirect('/static/img/openid-providers-en.png')
-    return resp
-
-
-@auth.oid.loginhandler
-def login():
-    """Does the login via OpenID.  Has to call into `auth.oid.try_login`
-    to start the OpenID .
-    """
-    # if we are already logged in, go back to were we came from
-    if g.userd is not None:
-        dolog("INFO", "Were at /login with g.user_uri of %s" % g.user_uri)
-        return redirect(auth.oid.get_next_url())
-        
-    if request.method == 'POST':
-        openid = request.form.get('openid')
-        if openid:
-            return auth.oid.try_login(openid, ask_for=['email', 'fullname',
-                                                       'nickname'])
-            
-    return render_template('login.html', next=auth.oid.get_next_url(),
-                           error=auth.oid.fetch_error(),
-                           confd=app.config)
-
-
-@auth.oid.after_login
-def create_or_login(resp):
-    """This is called when login with OpenID succeeded and it's not
-    necessary to figure out if this is the users's first login or not.
-
-    """
-    dolog("INFO", "OpenID worked, now set server to believe this is logged in")
-    auth.after_authentication(resp.identity_url, 'openid')
-    return redirect(auth.oid.get_next_url())
-
-
-def logout():
-    """
-    kill the session in cache, remove the cookie from client
-
-    """
-    
-    auth.delete_session(g.sessionid)
-    return redirect(auth.oid.get_next_url())
-
-
-##############
-def logoutpersona():
-    dolog("INFO", "logoutpersona")
-    return "Yes"
-
-
-def loginpersona():
-    """Taken mostly from mozilla quickstart """
-    dolog("INFO", "loginpersona")
-    # The request has to have an assertion for us to verify
-    if 'assertion' not in request.form:
-        abort(400)
-
-    # Send the assertion to Mozilla's verifier service.
-    audience = "http://%s" % app.config['www_server_name']
-    data = {'assertion': request.form['assertion'], 'audience': audience}
-    resp = requests.post(
-        'https://verifier.login.persona.org/verify', data=data, verify=True)
-
-    # Did the verifier respond?
-    if resp.ok:
-        # Parse the response
-        verification_data = json.loads(resp.content)
-        dolog("INFO", "Verified persona:%s" % repr(verification_data))
-
-        # Check if the assertion was valid
-        if verification_data['status'] == 'okay':
-            # Log the user in by setting a secure session cookie
-#            session.update({'email': verification_data['email']})
-            auth.after_authentication(verification_data['email'], 'persona')
-            return resp.content
-
-    # Oops, something failed. Abort.
-    abort(500)
 
 
 MEDIA_MODELS_BY_TYPE = {
@@ -528,9 +421,3 @@ def generic_delete(uri, requesting_user_uri):
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
     return resp
-
-
-
-
-
-
