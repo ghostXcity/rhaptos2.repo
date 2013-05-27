@@ -309,6 +309,7 @@ def set_session(sessionid, userd):
     FIXME: bring comaprison into python for portability across cache stores.
 
     """
+    dolog("DEBUG", "sessioncache-setsession")
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
@@ -322,6 +323,7 @@ def set_session(sessionid, userd):
                                         , CURRENT_TIMESTAMP
                                         , CURRENT_TIMESTAMP + INTERVAL '%s SECONDS');"""
     try:
+        dolog("DEBUG", "sessioncache - %s" % repr(userd.keys()))
         exec_stmt(SQL, [sessionid,
                         json.dumps(userd),
                         FIXED_SESSIONDURATION_SECS
@@ -429,7 +431,10 @@ def _fakesessionusers(sessiontype='fixed'):
 
     if sessiontype == 'fixed':
         # clear down the cache - only use this in testing anyway
-        exec_stmt("DELETE from session_cache;", {})
+        exec_stmt("""DELETE from session_cache WHERE sessionid in
+                  ('00000000-0000-0000-0000-000000000000',
+                   '00000000-0000-0000-0000-000000000001',
+                   '00000000-0000-0000-0000-000000000002');""", {})
         for dev in developers:
             js = developertmpl % dev
             tmpdict = json.loads(js)
