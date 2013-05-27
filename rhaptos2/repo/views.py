@@ -108,13 +108,14 @@ def apply_cors(resp_as_pytype):
        take the output of a app_end and convert it to a Flask response
        with appropriate Json-ified wrappings.
 
-    
+
     '''
     resp = flask.make_response(resp_as_pytype)
     resp.content_type = 'application/json; charset=utf-8'
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
+
 
 def index():
     """
@@ -131,7 +132,8 @@ def index():
     dolog("INFO", "THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
-    
+
+
 def whoamiGET():
     '''
     returns
@@ -144,16 +146,16 @@ def whoamiGET():
 
     '''
     ### todo: return 401 code and let ajax client put up login.
-    userd = auth.whoami()#same as g.userd
-    
+    userd = auth.whoami()  # same as g.userd
+
     if userd:
-        jsond = auth.asjson(userd)#FIXME - zombie code again 
+        jsond = auth.asjson(userd)  # FIXME - zombie code again
         resp = apply_cors(jsond)
         return resp
     else:
-        return("Not logged in", 401)#FIXME - zombie code again 
+        return("Not logged in", 401)  # FIXME - zombie code again
 
-    
+
 def workspaceGET():
     ''' '''
     # TODO - should whoami redirect to a login page?

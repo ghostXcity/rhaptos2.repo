@@ -47,7 +47,7 @@ from rhaptos2.repo import dolog  # depednacy?
 
 class CNXBase():
     """
-    
+
     The resources we use (Folder, Collection, Module) all adhere to a common
     access protocol that is defined in :class:CNXBase.
 
@@ -105,7 +105,7 @@ class CNXBase():
         >> m.populate_self(d)
         >> m.save(db_session)
 
-        
+
         """
         idnames = ['id_', ]
         d = userprofile_dict
@@ -113,11 +113,11 @@ class CNXBase():
             if k in idnames and d[k] is None:
                 continue  # do not assign a id of None to the internal id
             elif k not in self.__table__.columns:
-                raise Rhaptos2Error("Tried to set attr %s when no matching table column" % k)
+                raise Rhaptos2Error(
+                    "Tried to set attr %s when no matching table column" % k)
             else:
                 setattr(self, k, d[k])
 
-                
     def jsonify(self, requesting_user_uri, softform=True):
         """
         public method to return the object as a JSON formatted string.
@@ -133,7 +133,7 @@ class CNXBase():
         to perform *n* more requests to get the title of each.
 
         To avoid this we return a softform
-        
+
          body = [{'id': '/folder/1234', 'title': 'foo', 'mediatype':'application/vnd.org.cnx.folder'},
                  {'id': '/module/5678', 'title': 'bar', 'mediatype':'application/vnd.org.cnx.module'},
 
@@ -147,18 +147,19 @@ class CNXBase():
            its own hierarchy and produce short-form versions of its children
            And a short-form long-form approach that needs to produce either the whole object
            or just a few items (title, id etc)
-        
+
         """
-        #get self as a (non-recursive) list of python types (ie json encodaeable)
+        # get self as a (non-recursive) list of python types (ie json
+        # encodaeable)
         self_as_complex = self.__complex__(requesting_user_uri, softform)
         jsonstr = json.dumps(self_as_complex)
         return jsonstr
-        
+
     def __complex__(self, requesting_user_uri, softform=True):
         """Return self as a dict, suitable for jsonifying     """
 
-        #softform and hardform have no distinction if there are
-        #no child nodes
+        # softform and hardform have no distinction if there are
+        # no child nodes
         if not self.is_action_auth("GET", requesting_user_uri):
             raise Rhaptos2AccessNotAllowedError("user %s not allowed access to %s"
                                                 % (requesting_user_uri,
@@ -293,7 +294,7 @@ class CNXBase():
         """ Given a user and a action type, determine if it is
             authorised on this object
 
-        
+
         #unittest not available as setup is large.
         >> C = CNXBase()
         >> C.is_action_auth(action="PUT", requesting_user_uri="Fake1")
@@ -321,17 +322,17 @@ class CNXBase():
             return False
 
         if requesting_user_uri is None:
-            s += "FAILED - None user supplied" 
+            s += "FAILED - None user supplied"
             dolog("INFO", s)
             return False
         else:
             if requesting_user_uri not in valid_user_list:
-                s += "FAIL - user not in valid list %s" % str(valid_user_list) 
+                s += "FAIL - user not in valid list %s" % str(valid_user_list)
                 dolog("INFO", s)
                 return False
             else:
-                #At last!
-                s += "SUCCESS user in valid list %s" % str(valid_user_list) 
+                # At last!
+                s += "SUCCESS user in valid list %s" % str(valid_user_list)
                 dolog("INFO", s)
                 return True
 

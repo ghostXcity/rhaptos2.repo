@@ -88,7 +88,7 @@ from rhaptos2.repo import dolog
 from rhaptos2.repo.backend import Base, db_session
 from err import (Rhaptos2Error,
                  Rhaptos2SecurityError,
-                 Rhaptos2AccessNotAllowedError,                 
+                 Rhaptos2AccessNotAllowedError,
                  Rhaptos2HTTPStatusError)
 import json
 from flask import abort
@@ -343,7 +343,7 @@ class Folder(Base, CNXBase):
 
         softform = returning not only the list of pointers, but also data
                    about the items pointed to (ie title, mediatype)
-        
+
                    This is the default for a folder, and is private
                    to indicate we have no plans to change this for now.
 
@@ -352,13 +352,13 @@ class Folder(Base, CNXBase):
         If this was a collection, and collections did not store body as 'li' then
          would a recursive descnet beyond one level be appropriate?
         FIXME - implement a recursive base class that folder and collection use.
-        
+
         """
         if not softform:
             return super(Folder, self).__complex__(requesting_user_uri, softform)
-        
+
         short_format_list = []
-	if self.body:
+        if self.body:
             for urn in self.body:
                 try:
                     subfolder = obj_from_urn(urn, requesting_user_uri)
@@ -371,7 +371,7 @@ class Folder(Base, CNXBase):
                     pass
                 except Rhaptos2Error, e:
                     pass
-                    #todo: should we be ignoring bnroken links??
+                    # todo: should we be ignoring bnroken links??
                 except Exception, e:
                     raise e
 
@@ -381,7 +381,6 @@ class Folder(Base, CNXBase):
         fldr['body'] = short_format_list
         return fldr
 
-        
 
 def klass_from_uri(URI):
     """Return the callable klass that corresponds to a URI
@@ -565,4 +564,5 @@ def workspace_by_user(user_uri):
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod(optionflags=doctest.REPORT_ONLY_FIRST_FAILURE | doctest.ELLIPSIS)
+    doctest.testmod(
+        optionflags=doctest.REPORT_ONLY_FIRST_FAILURE | doctest.ELLIPSIS)
