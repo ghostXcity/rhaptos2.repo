@@ -131,14 +131,14 @@ Standalone usage
                             'pgpassword':'CHANGEME',
                             'pgdbname':'dbtest'}
                    }
- 
+
     import sessioncache
     sessioncache.set_config(minimalconfd)
     sessioncache.initdb()
     sessioncache._fakesessionusers()
     sessioncache.get_session("00000000-0000-0000-0000-000000000000")
     {u'interests': None, u'user_id': u'cnxuser:75e06194-baee-4395-8e1a-566b656f6920', ...}
->>> 
+>>>
 
 """
 import psycopg2
@@ -148,6 +148,7 @@ from err import Rhaptos2Error,  Rhaptos2NoSessionCookieError
 
 import logging
 lgr = logging.getLogger("sessmodule")
+
 
 def dolog(lvl, msg):
     lgr.info(msg)
@@ -243,7 +244,7 @@ def run_query(insql, params):
     run_query(conn, "SELECT * FROM tbl where id = %s;", (15,))
 
     issues: lots.
-    
+
     * No fetch_iterator.
     * connection per query(see above)
     * We should at least return a dict per row with fields as keys.
@@ -273,14 +274,13 @@ def exec_stmt(insql, params):
     cur.execute(insql, params)
     conn.commit()
     cur.close()
-    connection_refresh(conn)  #I can rollback here, its a SELECT
-    
+    connection_refresh(conn)  # I can rollback here, its a SELECT
 
 
 def connection_refresh(conn):
     """
     Connections should be pooled and returned here.
-    
+
     """
     conn.close()
 
@@ -343,7 +343,7 @@ def delete_session(sessionid):
 
     :param sessionid: Sessionid from cookie
     :returns nothing if success.
-    
+
     """
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
@@ -402,6 +402,7 @@ def _fakesessionusers(sessiontype='fixed'):
 [u'interests', u'user_id', u'suffix', u'firstname', u'title', u'middlename', u'lastname', u'imageurl', u'identifiers', u'affiliationinstitution_url', u'email', u'version', u'location', u'recommendations', u'preferredlang', u'affiliationinstitution', u'otherlangs', u'homepage', u'fullname', u'biography']
 
     """
+    print "Calling fake sessioon"
     developertmpl = """{"interests": null,
                         "identifiers": [{"identifierstring":  "https://%(name)s.myopenid.com",
                                          "user_id": "%(uri)s",
@@ -450,26 +451,23 @@ def _fakesessionusers(sessiontype='fixed'):
 
 def initdb():
     """
-    A helper function for creating the
-    This should be in backend, but it was easier to submit one module only.
+    A helper function for creating the session table
 
-    
     """
     SQL0 = """DROP TABLE session_cache;"""
-    
+
     SQL1 = """CREATE TABLE session_cache(
    sessionid  character varying NOT NULL,
    userdict   character varying NOT NULL,
    session_startUTC timestamptz,
    session_endUTC timestamptz);"""
 
-    
-    SQL2="""ALTER TABLE ONLY session_cache
+    SQL2 = """ALTER TABLE ONLY session_cache
     ADD CONSTRAINT session_cache_pkey PRIMARY KEY (sessionid);"""
 
-    exec_stmt(SQL0, {})    
+    exec_stmt(SQL0, {})
     exec_stmt(SQL1, {})
-    exec_stmt(SQL2, {})    
+    exec_stmt(SQL2, {})
 
 
 def maintenance_batch():
@@ -477,12 +475,12 @@ def maintenance_batch():
     A holdng location for ways to clean up the session cache over time.
     These will need improvement and testing.
 
-    
+
     """
     SQL = "REINDEX session_cache;"
     exec_stmt(SQL, {})
-    
-    
+
+
 if __name__ == '__main__':
     import doctest
     val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE + \
