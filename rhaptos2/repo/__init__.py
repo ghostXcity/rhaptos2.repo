@@ -139,31 +139,16 @@ def dolog(lvl, msg, caller=None, statsd=None):
 def set_up_logging(app):
     """Set up the logging within the application.
 
-    useage::
-        logger.warn("Help",
-                    extra={'statsd': ['rhaptos2.repo.module',
-                                      'bamboo.foo.bar']})
-
     """
     config = app.config
 
     # Define the logging handlers
-#    statsd_host = config['globals']['bamboo_global']['statsd_host']
-#    statsd_port = config['globals']['bamboo_global']['statsd_port']
-#    statsd_handler = log.StatsdHandler(statsd_host, statsd_port)
     stream_handler = logging.StreamHandler()
 
-    # Define the log formatting. Reduced this as bug #39 prevents
-    #   extra being used.
-    # formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
-    #                               "- %(request_id)s - %(user_id)s "
-    #                               "- %(message)s")
+    # Define the log formatting.
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
                                   "- %(message)s")
-
-    #statsd_handler.setFormatter(formatter)
     stream_handler.setFormatter(formatter)
-
     # Set the handlers on the application.
     for handler in (stream_handler,):
         app.logger.addHandler(handler)
