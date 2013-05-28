@@ -86,7 +86,7 @@ def assign_routing_rules(app):
 
     app.add_url_rule("/module/", view_func=views.module_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'moduleuri': ''})
-    app.add_url_rule('/module/<path:moduleuri>', view_func=views.folder_router,
+    app.add_url_rule('/module/<path:moduleuri>', view_func=views.module_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
     app.before_request(views.requestid)
