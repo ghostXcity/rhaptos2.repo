@@ -334,26 +334,60 @@ def test_post_module():
     assert returned_module_uri == moduleuri
 
 
+def test_put_module():
+    data = decl.declarationdict['module']
+    data['acl'] = ['cnxuser:00000000-0000-0000-0000-000000000101',
+                   'cnxuser:00000000-0000-0000-0000-000000000111']
+    data['body'] = "<p> Shortened body in test_put_module"
+    resp = wapp_put(TESTAPP, "module", data, RWUSERSESSIONID, moduleuri)
+    assert 'cnxuser:00000000-0000-0000-0000-000000000101' in resp.json['acl'] 
+###
+    
+    
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
                      'folder'], RWUSERSESSIONID)
     returned_folder_uri = resp.json['id']
     assert returned_folder_uri == folderuri
+    
 
+def test_put_folder():
+    data = decl.declarationdict['folder']
+    data['acl'] = ['cnxuser:00000000-0000-0000-0000-000000000101',
+                   'cnxuser:00000000-0000-0000-0000-000000000111']
+    data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
+                    "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127"]
+    resp = wapp_put(TESTAPP, "folder", data, RWUSERSESSIONID, folderuri)
+    assert "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126" ==\
+           resp.json['body'][0]['id']
+
+#    {u'body': [{u'title': u'Introduction', u'mediaType': u'application/vnd.org.cnx.module', u'id': u'cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126'}], 
+
+def test_get_folder():
+    resp = wapp_get(TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", RWUSERSESSIONID, None)
+    assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
+    
 
 def test_post_collection():
-    resp = wapp_post(TESTAPP, "collection", decl.declarationdict[
-                     'collection'], RWUSERSESSIONID)
+    data = decl.declarationdict['collection']
+    resp = wapp_post(TESTAPP, "collection", data, RWUSERSESSIONID)
     returned_collection_uri = resp.json['id']
     assert returned_collection_uri == collectionuri
 
 
 def test_put_collection():
     data = decl.declarationdict['collection_small']
+    data['acl'] = ['cnxuser:00000000-0000-0000-0000-000000000101',
+                   'cnxuser:00000000-0000-0000-0000-000000000111']
     resp = wapp_put(TESTAPP, "collection", data, RWUSERSESSIONID, collectionuri)
     assert resp.json['body'].find('href="cnxmodule:d3911c28') > -1
-    simplelog(resp)
 
+def test_get_collection():
+    resp = wapp_get(TESTAPP, "collection",
+                    "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+                    , RWUSERSESSIONID, None)
+    assert resp.json['id'] == "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+    
 def ntest_put_collection_rouser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
@@ -366,13 +400,6 @@ def ntest_put_collection_baduser():
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB1", ]
     resp = wapp_put(TESTAPP, "collection", data, ROUSERSESSIONID, collectionuri)
     assert resp.status_int == 403
-
-
-def test_put_module():
-    data = decl.declarationdict['module']
-    data['body'] = "Declaration test text"
-    resp = wapp_put(TESTAPP, "module", data, RWUSERSESSIONID, moduleuri)
-    assert resp.json['body'] == "Declaration test text"
 
 def test_dateModifiedStamp():
     data = decl.declarationdict['module']
@@ -395,11 +422,6 @@ def ntest_put_module_baduser():
     assert resp.status_int == 403
 
 
-def test_put_folder():
-    data = decl.declarationdict['folder']
-    data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", ]
-    resp = wapp_put(TESTAPP, "folder", data, RWUSERSESSIONID, folderuri)
-    assert len(resp.json['body']) == 1
 
 
 def ntest_put_folder_ro():
@@ -536,7 +558,8 @@ def setup():
     from testconfig import config
     ## now "convert" to app-style dict
     TESTCONFIG = convert_config(config)
-
+    initdb(TESTCONFIG)
+    
     dolog("INFO", "WHAT THE HELL IS GOING ON WITH CONF %s %s" % (str(config), str(TESTCONFIG)))
     if 'HTTPPROXY' in config.keys():
         app = WSGIProxyApp(config['HTTPPROXY'])
@@ -560,6 +583,7 @@ def initdb(config):
     ### kind of useless as have not instantiated the models yet.
 
 
+    
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
