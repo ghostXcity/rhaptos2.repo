@@ -64,10 +64,6 @@ def make_app(config, as_standalone=False):
     # Set the application
     app = set_app(app)
 
-#    if as_standalone:
-#        from rhaptos2.repo import _standalone
-
-    
     # Initialize the views
     # This import circular avoidinace trick is horrible
     # I will review log and import process and want to put it all in a single setup in run.
