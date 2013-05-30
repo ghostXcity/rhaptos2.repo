@@ -14,27 +14,6 @@ See the `Connexions development documentation
 Install 
 -------
 
-(Notes from pbrian)::
-
-  $ mkvirtualenv sessioncache
-  $ pip install -r ../../requirements.txt
-
-  $ python setup.py develop
-
-
-Configuration setup
-
-  $ 
-
-Database setup
-
-  
-   
-
-/pbrian
-
-
-
 The following will setup a development install. For instructions about
 a production deployment, go to http://connexions.github.com/ .
 
@@ -70,18 +49,6 @@ settings (do not use these same instructions for a production install)::
 
 These commands setup a Postgres user named ``rhaptos2repo`` and made
 it the owner of the newly created ``rhaptos2repo`` database.
-
-Session Cache specific Issues
-
-You will need to build a table in the postgres backend.  This is 
-done as part of ``initdb`` but worth checking.
-
-I would also recommend running tests/cleardb.py as this will populate the session
-cache with three dummy accounts that can be claimed through /autosession
-
-Also ensure that user database is up and contains a mapping from your openid
-to a valid user uuid.
-
 
 
 
@@ -201,6 +168,18 @@ has been installed::
     [app]
     atc_directory = <location you cloned to>
 
+Session Cache specific Issues
+
+You will need to build a table in the postgres backend.  This is 
+done as part of ``initdb`` but worth checking.
+
+I would also recommend running tests/cleardb.py as this will populate the
+session cache with three dummy accounts that can be claimed through /autosession
+
+Also ensure that user database is up and contains a mapping from your openid
+to a valid user uuid.
+
+
 Usage
 -----
 
@@ -275,6 +254,9 @@ $ nosetests --tc-file=../../testing.ini runtests.py
 
 $ python run.py --config=../../testing.ini --host=0.0.0.0 --port=8000
 $ nosetests --tc-file=../../testing.ini --tc=HTTPPROXY:http://localhost:8000
+
+`run_inprocess.sh` and `run_http.sh` run the nose tests against inprocess wsgi server (ie all HTTP calls are passed between paste.WebTest and the app, and run_http.sh which expects a running HTTP server on port specified in sh file.
+
 
 License
 -------
