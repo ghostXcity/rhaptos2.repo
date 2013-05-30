@@ -110,16 +110,19 @@ def format_resp(resp):
 
     return s
 
-def restrest(resp):
+def restrest(req, resp):
     """Simple tool to document a HTTP "conversation" using the
        requests library
 
     useage: resp = requests.get("http://www.google.com")
             restrest(resp)
+
+    That worked ok with 
        """
 
+    ### look at type of response recvd
     
-    req_str = format_req(resp.request)
+    req_str = format_req(req)
     resp_str = format_resp(resp)
     return req_str + resp_str + "\n\n"
 

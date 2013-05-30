@@ -10,55 +10,55 @@
 ###
 
 
-"""run.py - Launch the repo app.
+"""
+tests - designed to use WebTest from paste.
+
+ToDo:
+at the moment we control every id and session id
+Write tests that exercise the system without imposing the ids, so we can run tests
+again without hitting PK errors or clearing dbase.
 
 
-.. todo::
 
-   * replace mess of functions and @decorators with routes on routes
-     (idea: name each route then can build route
-      from name and vice versa with Routes.)
+The DisconnectionError:
 
-   *
+I was seeing a Client has disconnected error, which I traced to the readinto function of
+request.py. This was a red herring it seems, as the cause of the error was
+trying to read the body_file object (IOBase) a *second* time - once to read it when sending the request,
+and once to read it in restrest.
+
+The setting of the seek for the IO Object seemed too deep in the mire for me, so I resorted to simply
+genrating a request object, copying it and *then* executing the request.  Seems to work fine. 
+
 """
 
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
                            sessioncache, dolog)
-from webtest import TestApp
+from webtest import TestApp, TestRequest
 from wsgiproxy.app import WSGIProxyApp
 from optparse import OptionParser
 import urlparse
 import requests
+import json
+from rhaptos2.repo.configuration import (  # noqa
+    Configuration
+)
 
 
-def capture_conversation(resp):
-    """Need to adapt the requests specicfic capture to WebTest """
-    rst = restrest.restrest(resp)
+
+def capture_conversation(webob_request, webob_response):
+    """
+    Given a request and response object, format them nicely in ReSt style
+    and push to a tmp file for later use.
+    
+    restrest assumes you are sending in webob objects
+    """
+    rst = restrest.restrest(webob_request, webob_response)
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
-
-
-def simplelog(r):
-    fo = open("foo.log","a")
-    fo.write(str(r.json))
-    fo.close()
-
-    ##FIXME - handle this problem then find out why it happens
-    ## suspect \n detection in webob.
-#     capture_conversation(r)
-#   File "build/bdist.freebsd-9.1-RC2-amd64/egg/webob/request.py", line 1528, in readinto
-#     + "(%d more bytes were expected)" % self.remaining
-# DisconnectionError: The client disconnected while sending the POST/PUT body (634 more bytes were expected)
-
-
-    
-from rhaptos2.repo.configuration import (  # noqa
-    Configuration,
-)
-
 
 def parse_args():
     parser = OptionParser()
@@ -274,33 +274,34 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
         URL = get_url(resourcetype, id_=id_, method="GET")
     else:
         headerd = get_cookie_hdr(test_session_id)
-              
-    try:
-        resp = wapp.get(URL, status="*", headers=headerd)
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print "\/" * 32
-        print e, tb
-        print "/\\" * 32
+    ###
+    req = TestRequest.blank(URL, method="GET",
+                            headers=headerd)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
     return resp
 
 
 def wapp_post(wapp, resourcetype, data, test_session_id):
-    """ ?
+    """
+
+    We build the request as a blank and copy it to allow restrest to work
+    
     """
     URL = get_url(resourcetype, id_=None, method="POST")
     headerd = get_cookie_hdr(test_session_id)
-    try:
-        resp = wapp.post_json(URL, params=data, headers=headerd, status="*")
-        print resp.request
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print "\/" * 32
-        print e, tb,
-        print "/\\" * 32
-        print URL
+    ###
+    data_as_json = json.dumps(data)
+    req = TestRequest.blank(URL, method="POST",
+                            body=data_as_json,
+                            headers=headerd)
+    req.content_type="application/json"
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
     return resp
 
 
@@ -309,19 +310,30 @@ def wapp_delete(wapp, resourcetype, id_, test_session_id):
     """
     URL = get_url(resourcetype, id_=id_, method="DELETE")
     headerd = get_cookie_hdr(test_session_id)
-    resp = wapp.delete(URL, headers=headerd, status="*")
+
+    req = TestRequest.blank(URL, method="DELETE",
+                            headers=headerd)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
     return resp
 
 
 def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
     headerd = get_cookie_hdr(test_session_id)
     URL = get_url(resourcetype, method="PUT", id_=id_)
-    try:
-        resp = wapp.put_json(URL, params=data, headers=headerd, status="*")
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print e, tb
+
+    ###
+    data_as_json = json.dumps(data)
+    req = TestRequest.blank(URL, method="PUT",
+                            body=data_as_json,
+                            headers=headerd)
+    req.content_type="application/json"
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
+
     return resp
 
 
@@ -332,6 +344,8 @@ def test_post_module():
                      RWUSERSESSIONID)
     returned_module_uri = resp.json['id']
     assert returned_module_uri == moduleuri
+    #capture_conversation(resp)
+    
 
 
 def test_put_module():
@@ -418,7 +432,6 @@ def ntest_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, moduleuri)
-    print "status =", resp.status
     assert resp.status_int == 403
 
 
@@ -452,21 +465,18 @@ def ntest_read_module_rouser():
 def test_read_folder_gooduser():
     resp = wapp_get(TESTAPP, "folder", folderuri, RWUSERSESSIONID)
     assert resp.status_int == 200
-    simplelog(resp)
+
 
 def ntest_read_module_baduser():
     resp = wapp_get(TESTAPP, "module", moduleuri, BADUSERSESSIONID)
-    print resp, resp.status, BADUSERSESSIONID
     assert resp.status_int == 403
     
     
 def test_get_workspace_good():
     resp = wapp_get(TESTAPP, "workspace", None, RWUSERSESSIONID)
-    print resp
-    print resp.json
     assert len(resp.json) == 3   
     assert resp.status_int == 200
-    simplelog(resp)
+
     
     
 ###############    
@@ -537,15 +547,12 @@ def convert_config(config):
 
     FIXME - this is ridiculous - just go back to one confd object 
     """
-    print "THis is config beflore"
-    print config
     
     defaultsection = 'app'
-    for k in config[defaultsection]:
-        config[k] = config[defaultsection][k]
+    if defaultsection in config:
+        for k in config[defaultsection]:
+            config[k] = config[defaultsection][k]
     #del config[defaultsection]
-    print "and after"
-    print config
     return config
 
 
@@ -559,7 +566,7 @@ def setup():
     ## now "convert" to app-style dict
     TESTCONFIG = convert_config(config)
     initdb(TESTCONFIG)
-    
+
     dolog("INFO", "WHAT THE HELL IS GOING ON WITH CONF %s %s" % (str(config), str(TESTCONFIG)))
     if 'HTTPPROXY' in config.keys():
         app = WSGIProxyApp(config['HTTPPROXY'])
@@ -571,7 +578,7 @@ def setup():
         TESTAPP = TestApp(app.wsgi_app)
 
 
-    print "Running setup"
+
     print "cookies", TESTAPP.cookies 
 
 def cleardown(config):

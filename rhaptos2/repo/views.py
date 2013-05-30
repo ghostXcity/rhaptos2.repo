@@ -329,8 +329,7 @@ def module_router(moduleuri):
     elif request.method == "POST":
         if payload is None:
             raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON",
-                code=400)
+                "Received a Null payload, expecting JSON")
         else:
             return generic_post(model.Module,
                                 payload, requesting_user_uri)
