@@ -29,10 +29,12 @@ useage:
     simply execute the script, it should print to stderr the conversation
     with google.
 
-JSON - we assume pretty much anything we care about is sent as json.
-XML - TBD
+    Or supply a request and response object to the main function :meth:`restrest`.  Please note that this was built initially to use ``Requests`` objects, then moved to ``WebOb.Requests``.  They main use case is webob so the formatting works sensibly there, the requests generally work fine.
 
-This is still very simple.
+
+JSON - we assume pretty much anything we care about is sent as json.
+
+Output is returned to you from restrest, do with it what you will.
 
 """
 
@@ -110,25 +112,37 @@ def format_resp(resp):
 
     return s
 
-def restrest(req, resp):
+def restrest(req, resp, shortformat=True):
     """Simple tool to document a HTTP "conversation" using the
        requests library
 
     useage: resp = requests.get("http://www.google.com")
             restrest(resp)
 
-    That worked ok with 
+    At the moment only supporting WebOb, requests was originally supported
+    
+    :params req: a request object of WebOb type
+    :params resp: a response object of WebOb type    
+    :params shortformat: Boolean.  If True output more readable
+                         body and headers, replacing extra text with ellipsis
+                         If false output everything as is.
        """
 
-    ### look at type of response recvd
-    
-    req_str = format_req(req)
-    resp_str = format_resp(resp)
+    ### Quick dirty solution 
+    if not shortformat:
+        req_str = str(req)
+        resp_str = str(resp)
+        req_str = "    "+ req_str.replace("\n", "\n    ")
+        resp_str = "    "+ resp_str.replace("\n", "\n    ")        
+    else:
+        req_str = format_req(req)
+        resp_str = format_resp(resp)
+
     return req_str + resp_str + "\n\n"
 
 
 if __name__ == '__main__':
 
     resp = requests.get("http://www.google.com", data={"foo":"bar"})
-    print restrest(resp)
+    print restrest(resp.request, resp)
 

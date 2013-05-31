@@ -55,7 +55,7 @@ def capture_conversation(webob_request, webob_response):
     
     restrest assumes you are sending in webob objects
     """
-    rst = restrest.restrest(webob_request, webob_response)
+    rst = restrest.restrest(webob_request, webob_response, shortformat=False)
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
