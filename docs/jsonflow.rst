@@ -7,70 +7,128 @@ THe below is the output of restrest.py.
 It documents HTTP conversations as they occur through 
 the python requestsmodule. 
 
-THis is still draft
-
 POST /module/
 -------------
 
 ::
 
-    Content-Length: 827
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 826
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "Authors": [
+        "authors": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "CopyrightHolders": [
+        "body": "<h1>In CONGRESS, July 4, 1776.</h1>\n<p>The unanimous Declaration ...
+        "copyrightHolders": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Maintainers": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "content": "<h1>In CONGRESS, July 4, 1776.<h1>\n<p>The unanimous Declaratio...
         "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
         "title": "Introduction"
     }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:09 GMT
-    content-length: 996
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 1131
 
 
 ::
 
+    {"body": "<h1>In CONGRESS, July 4, 1776....
+
+
+POST /module/
+-------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 826
+    Content-Type: application/json
+
+
+Body::
+
     {
-        "Authors": [
+        "authors": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "CopyrightHolders": [
+        "body": "<h1>In CONGRESS, July 4, 1776.</h1>\n<p>The unanimous Declaration ...
+        "copyrightHolders": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Keywords": null, 
-        "Language": null, 
-        "Maintainers": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Subjects": null, 
-        "Summary": null, 
-        "content": "<h1>In CONGRESS, July 4, 1776.<h1>\n<p>The unanimous Declaratio...
-        "date_created_utc": "2013-02-21T15:10:09.010619", 
-        "date_lastmodified_utc": null, 
         "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
-        "subtype": null, 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
         "title": "Introduction"
     }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 1131
+
+
+::
+
+    {"body": "<h1>In CONGRESS, July 4, 1776....
+
+
+PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 432
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "<p> Shortened body in test_put_module", 
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "title": "Introduction"
+    }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 724
+
+
+::
+
+    {"body": "<p> Shortened body in test_put...
 
 
 POST /folder/
@@ -78,18 +136,16 @@ POST /folder/
 
 ::
 
-    Content-Length: 401
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 398
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "content": [
+        "body": [
             "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
             "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b", 
             "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6", 
@@ -104,28 +160,72 @@ Body::
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:13 GMT
-    content-length: 482
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 445
 
 
 ::
 
+    {"body": [{"mediaType": "application/vnd...
+
+
+PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 303
+    Content-Type: application/json
+
+
+Body::
+
     {
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
-            "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b", 
-            "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6", 
-            "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae", 
-            "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389", 
-            "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8"
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
         ], 
-        "date_created_utc": "2013-02-21T15:10:13.384189", 
-        "date_lastmodified_utc": null, 
+        "body": [
+            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127"
+        ], 
         "id_": "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", 
         "title": "Declaration Folder"
     }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+
+
+::
+
+    {"body": [{"mediaType": "application/vnd...
+
+
+GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+    Access-Control-Allow-Origin: *
+
+
+::
+
+    {"body": [{"mediaType": "application/vnd...
 
 
 POST /collection/
@@ -133,263 +233,379 @@ POST /collection/
 
 ::
 
-    Content-Length: 771
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 956
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "Authors": [
+        "authors": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "CopyrightHolders": [
+        "body": "<ul><li><a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
+        "copyrightHolders": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Keywords": [
+        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
+        "keywords": [
             "Life", 
             "Liberty", 
             "Happiness"
         ], 
-        "Language": "English", 
-        "Maintainers": [
+        "language": "en", 
+        "maintainers": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Subjects": [
+        "subType": "Other Report", 
+        "subjects": [
             "Social Sciences"
         ], 
-        "Summary": "No.", 
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
-            "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b", 
-            "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6", 
-            "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae", 
-            "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389", 
-            "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8"
-        ], 
-        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
-        "subtype": "Other Report", 
+        "summary": "No.", 
         "title": "United States Declaration Of Independance"
     }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:18 GMT
-    content-length: 852
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 1181
 
 
 ::
 
-    {
-        "Authors": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "CopyrightHolders": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Keywords": [
-            "Life", 
-            "Liberty", 
-            "Happiness"
-        ], 
-        "Language": "English", 
-        "Maintainers": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Subjects": [
-            "Social Sciences"
-        ], 
-        "Summary": "No.", 
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
-            "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b", 
-            "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6", 
-            "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae", 
-            "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389", 
-            "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8"
-        ], 
-        "date_created_utc": "2013-02-21T15:10:17.964797", 
-        "date_lastmodified_utc": null, 
-        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
-        "subtype": "Other Report", 
-        "title": "United States Declaration Of Independance"
-    }
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
 
 
-PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126/
------------------------------------------------------------
+PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+------------------------------------------------------------------
 
 ::
 
-    Content-Length: 322
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 739
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "Authors": [
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "CopyrightHolders": [
+        "body": "<ul><li><a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
+        "copyrightHolders": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Maintainers": [
+        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
+        "keywords": [
+            "Life", 
+            "Liberty", 
+            "Happiness"
+        ], 
+        "language": "en", 
+        "maintainers": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "content": "Dear King George, cup of tea?", 
+        "subType": "Other Report", 
+        "subjects": [
+            "Social Sciences"
+        ], 
+        "summary": "No.", 
+        "title": "United States Declaration Of Independance"
+    }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 951
+
+
+::
+
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
+
+
+GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+------------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 951
+
+
+::
+
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
+
+
+PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 416
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "Declaration test text", 
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
         "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
         "title": "Introduction"
     }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:30 GMT
-    content-length: 491
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 708
 
 
 ::
 
-    {
-        "Authors": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "CopyrightHolders": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Keywords": null, 
-        "Language": null, 
-        "Maintainers": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Subjects": null, 
-        "Summary": null, 
-        "content": "Dear King George, cup of tea?", 
-        "date_created_utc": "2013-02-21T15:10:09.010619", 
-        "date_lastmodified_utc": null, 
-        "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
-        "subtype": null, 
-        "title": "Introduction"
-    }
+    {"body": "Declaration test text", "id_":...
 
 
-PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7/
--------------------------------------------------------------------
+GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
 
 ::
 
-    Content-Length: 521
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+    Access-Control-Allow-Origin: *
+
+
+::
+
+    {"body": [{"mediaType": "application/vnd...
+
+
+GET /workspace/
+---------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 433
+    Access-Control-Allow-Origin: *
+    Access-Control-Allow-Credentials: true
+
+
+::
+
+    [{"mediaType": "application/vnd.org.cnx....
+
+
+DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+-------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 57
+
+
+::
+
+    cnxmodule:d3911c28-2a9e-4153-9546-f71d83...
+
+
+DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+---------------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 61
+
+
+::
+
+    cnxcollection:be7790d1-9ee4-4b25-be84-30...
+
+
+DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+-------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 57
+
+
+::
+
+    cnxfolder:c192bcaf-669a-44c5-b799-96ae00...
+
+
+POST /module/
+-------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 826
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "Authors": [
+        "authors": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "CopyrightHolders": [
+        "body": "<h1>In CONGRESS, July 4, 1776.</h1>\n<p>The unanimous Declaration ...
+        "copyrightHolders": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Keywords": [
-            "Life", 
-            "Liberty", 
-            "Happiness"
-        ], 
-        "Language": "English", 
-        "Maintainers": [
+        "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
             "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
         ], 
-        "Subjects": [
-            "Social Sciences"
-        ], 
-        "Summary": "No.", 
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
-        ], 
-        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
-        "subtype": "Other Report", 
-        "title": "United States Declaration Of Independance"
+        "title": "Introduction"
     }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:35 GMT
-    content-length: 602
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 1131
 
 
 ::
 
-    {
-        "Authors": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "CopyrightHolders": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Keywords": [
-            "Life", 
-            "Liberty", 
-            "Happiness"
-        ], 
-        "Language": "English", 
-        "Maintainers": [
-            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-        ], 
-        "Subjects": [
-            "Social Sciences"
-        ], 
-        "Summary": "No.", 
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
-        ], 
-        "date_created_utc": "2013-02-21T15:10:17.964797", 
-        "date_lastmodified_utc": null, 
-        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
-        "subtype": "Other Report", 
-        "title": "United States Declaration Of Independance"
-    }
+    {"body": "<h1>In CONGRESS, July 4, 1776....
 
 
-PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707/
------------------------------------------------------------
+PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+----------------------------------------------------------
 
 ::
 
-    Content-Length: 151
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    Accept: */*
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
-    content-type: application/json
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 432
+    Content-Type: application/json
 
 
 Body::
 
     {
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "<p> Shortened body in test_put_module", 
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "title": "Introduction"
+    }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 724
+
+
+::
+
+    {"body": "<p> Shortened body in test_put...
+
+
+POST /folder/
+-------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 398
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "body": [
+            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+            "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b", 
+            "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6", 
+            "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae", 
+            "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389", 
+            "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8"
         ], 
         "id_": "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", 
         "title": "Declaration Folder"
@@ -398,97 +614,344 @@ Body::
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:10:42 GMT
-    content-length: 232
-    content-type: application/json
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 445
 
 
 ::
 
+    {"body": [{"mediaType": "application/vnd...
+
+
+PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 303
+    Content-Type: application/json
+
+
+Body::
+
     {
-        "content": [
-            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
         ], 
-        "date_created_utc": "2013-02-21T15:10:13.384189", 
-        "date_lastmodified_utc": null, 
+        "body": [
+            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+            "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127"
+        ], 
         "id_": "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", 
         "title": "Declaration Folder"
     }
 
 
-DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707/
---------------------------------------------------------------
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+
 
 ::
 
-    Accept: */*
-    Content-Length: 0
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
+    {"body": [{"mediaType": "application/vnd...
+
+
+GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:11:01 GMT
-    content-length: 0
-    content-type: text/html; charset=utf-8
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+    Access-Control-Allow-Origin: *
 
 
 ::
 
-    ...
+    {"body": [{"mediaType": "application/vnd...
 
 
-DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7/
-----------------------------------------------------------------------
+POST /collection/
+-----------------
 
 ::
 
-    Accept: */*
-    Content-Length: 0
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 956
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "<ul><li><a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
+        "keywords": [
+            "Life", 
+            "Liberty", 
+            "Happiness"
+        ], 
+        "language": "en", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "subType": "Other Report", 
+        "subjects": [
+            "Social Sciences"
+        ], 
+        "summary": "No.", 
+        "title": "United States Declaration Of Independance"
+    }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:11:07 GMT
-    content-length: 0
-    content-type: text/html; charset=utf-8
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 1181
 
 
 ::
 
-    ...
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
 
 
-DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126/
---------------------------------------------------------------
+PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+------------------------------------------------------------------
 
 ::
 
-    Accept: */*
-    Content-Length: 0
-    Accept-Encoding: gzip, deflate, compress
-    X-Cnx-FakeUserId: cnxuser:1234
-    User-Agent: python-requests/1.1.0 CPython/2.7.3 Free...
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 739
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "<ul><li><a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", 
+        "keywords": [
+            "Life", 
+            "Liberty", 
+            "Happiness"
+        ], 
+        "language": "en", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "subType": "Other Report", 
+        "subjects": [
+            "Social Sciences"
+        ], 
+        "summary": "No.", 
+        "title": "United States Declaration Of Independance"
+    }
 
 
 Response:: 
 
-    date: Thu, 21 Feb 2013 15:11:27 GMT
-    content-length: 0
-    content-type: text/html; charset=utf-8
-    server: Werkzeug/0.8.3 Python/2.7.3
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 951
 
 
 ::
 
-    ...
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
+
+
+GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+------------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 951
+
+
+::
+
+    {"body": "<ul><li><a href=\"cnxmodule:d3...
+
+
+PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+    Content-Length: 416
+    Content-Type: application/json
+
+
+Body::
+
+    {
+        "acl": [
+            "cnxuser:00000000-0000-0000-0000-000000000101", 
+            "cnxuser:00000000-0000-0000-0000-000000000111"
+        ], 
+        "authors": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "body": "Declaration test text", 
+        "copyrightHolders": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", 
+        "maintainers": [
+            "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
+        ], 
+        "title": "Introduction"
+    }
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 708
+
+
+::
+
+    {"body": "Declaration test text", "id_":...
+
+
+GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+----------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 537
+    Access-Control-Allow-Origin: *
+
+
+::
+
+    {"body": [{"mediaType": "application/vnd...
+
+
+GET /workspace/
+---------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 433
+    Access-Control-Allow-Origin: *
+    Access-Control-Allow-Credentials: true
+
+
+::
+
+    [{"mediaType": "application/vnd.org.cnx....
+
+
+DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126
+-------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 57
+
+
+::
+
+    cnxmodule:d3911c28-2a9e-4153-9546-f71d83...
+
+
+DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7
+---------------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 61
+
+
+::
+
+    cnxcollection:be7790d1-9ee4-4b25-be84-30...
+
+
+DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707
+-------------------------------------------------------------
+
+::
+
+    Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+    Host: 127.0.0.1:8000
+
+
+Response:: 
+
+    Content-Type: application/json; charset=utf-8
+    Content-Length: 57
+
+
+::
+
+    cnxfolder:c192bcaf-669a-44c5-b799-96ae00...
 
 
