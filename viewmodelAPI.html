@@ -1,0 +1,692 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API for Views and models &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Authentication API" href="authenticationAPI.html" />
+    <link rel="prev" title="Simple spec links" href="specindex.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="authenticationAPI.html" title="Authentication API"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="specindex.html" title="Simple spec links"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="api-for-views-and-models">
+<h1>API for Views and models<a class="headerlink" href="#api-for-views-and-models" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>We have a great deal of shared functionality for the models in
+the <a class="reference internal" href="#module-rhaptos2.repo.cnxbase" title="rhaptos2.repo.cnxbase"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.cnxbase</span></tt></a> which is inherited over <em>multiple</em> inheritence
+by each model class.  The model classes also inherit SqlAlchemy base class.</p>
+<p>It is intended to remove sqlalchemy and move to pure psycopg2 approach.
+If we move to greenlets as well we need to test that ability. As such
+I have not introduced a pool for psyocpg2 work yet. (see sessioncache)</p>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rhaptos2.repo.model">
+<span id="rhaptos2-repo-model"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.model" title="rhaptos2.repo.model"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.model</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.model" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="dbase-backed-models-for-content-on-unpub-repositories">
+<h3>dbase-backed models for content on unpub repositories<a class="headerlink" href="#dbase-backed-models-for-content-on-unpub-repositories" title="Permalink to this headline">¶</a></h3>
+<p>This module provides the class defintions for</p>
+<ul class="simple">
+<li><a class="reference internal" href="#rhaptos2.repo.model.Module" title="rhaptos2.repo.model.Module"><tt class="xref py py-class docutils literal"><span class="pre">Module</span></tt></a></li>
+<li><a class="reference internal" href="#rhaptos2.repo.model.Folder" title="rhaptos2.repo.model.Folder"><tt class="xref py py-class docutils literal"><span class="pre">Folder</span></tt></a></li>
+<li><a class="reference internal" href="#rhaptos2.repo.model.Collection" title="rhaptos2.repo.model.Collection"><tt class="xref py py-class docutils literal"><span class="pre">Collection</span></tt></a></li>
+</ul>
+<p>These are backd onto SQLAlchemy foundations and then onto PostgresQL
+database.  An explcit use of the ARRAY datatype in postgres limits the
+ability to swap out backends.</p>
+</div>
+<div class="section" id="security">
+<h3>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h3>
+<p>We expect to receive a HTTP HEADER (REMOTE_USER / X-Fake-CNXUser) with
+a user-uri</p>
+<p>A cnx user-uri is in the glossary (!)</p>
+<p>models:  I am trying to keep things simple.  This may not be a good idea.</p>
+<p>each model is a class, based on a SQLAlchemy foundation with :class:CNXBase
+as a extra inheritence.  This CNXBase gives us to and from json capabilities,
+but each model has to manually override to and from json calls if</p>
+<p>What is the same about each model / class</p>
+<ol class="arabic simple">
+<li>They have only themselves - there are no child tables needing
+hierarchialcly handling.  If this was needed we should look at
+rhaptos2.user for the approach - pretty simple, just modiufy the
+from and to dict calls</li>
+<li>They are representing <em>resources</em> - that is a entity we want to
+have some form of access control over.  So we use the generic-ish
+approach of userroles - see below.</li>
+<li>THey are all ID&#8217;d by URI</li>
+</ol>
+<p>Note on json - the obvious generic approach, of traversing the SQLA
+model and converting to/from JSON automagically has so far failed.
+There are no sensible approaches &#8220;out there&#8221;, seemingly because the
+obvious approaches (iter) have already been hijacked by SQLA and
+the edge cases are producing weird effects.</p>
+<p>So, this basically implies a protocol for objects / classes</p>
+<ol class="arabic simple">
+<li>support creater_uri= in your constructor</li>
+<li>override fomr and to json SQLA where needed</li>
+<li>Support ACLs</li>
+<li>err ....</li>
+</ol>
+<dl class="class">
+<dt id="rhaptos2.repo.model.Collection">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">Collection</tt><big>(</big><em>id_=None</em>, <em>creator_uuid=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#Collection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.Collection" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="rhaptos2.repo.model.Collection.userroleklass">
+<tt class="descname">userroleklass</tt><a class="headerlink" href="#rhaptos2.repo.model.Collection.userroleklass" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#rhaptos2.repo.model.UserRoleCollection" title="rhaptos2.repo.model.UserRoleCollection"><tt class="xref py py-class docutils literal"><span class="pre">UserRoleCollection</span></tt></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rhaptos2.repo.model.Folder">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">Folder</tt><big>(</big><em>id_=None</em>, <em>creator_uuid=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#Folder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.Folder" title="Permalink to this definition">¶</a></dt>
+<dd><p>FOlder Class inheriting from SQLAlchemy and from a CNXBase
+class to get a few generic functions.</p>
+<dl class="attribute">
+<dt id="rhaptos2.repo.model.Folder.userroleklass">
+<tt class="descname">userroleklass</tt><a class="headerlink" href="#rhaptos2.repo.model.Folder.userroleklass" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#rhaptos2.repo.model.UserRoleFolder" title="rhaptos2.repo.model.UserRoleFolder"><tt class="xref py py-class docutils literal"><span class="pre">UserRoleFolder</span></tt></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rhaptos2.repo.model.Module">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">Module</tt><big>(</big><em>id_=None</em>, <em>creator_uuid=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#Module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.Module" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c">#test we can autogen a uuid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Module</span><span class="p">(</span><span class="n">id_</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">creator_uuid</span><span class="o">=</span><span class="s">&quot;cnxuser:1234&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">mediaType</span>
+<span class="go">&#39;application/vnd.org.cnx.module&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">jsonify</span><span class="p">(</span><span class="s">&quot;cnxuser:1234&quot;</span><span class="p">)</span>
+<span class="go">{...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="s">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="s">&#39;mediaType&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="rhaptos2.repo.model.Module.userroleklass">
+<tt class="descname">userroleklass</tt><a class="headerlink" href="#rhaptos2.repo.model.Module.userroleklass" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#rhaptos2.repo.model.UserRoleModule" title="rhaptos2.repo.model.UserRoleModule"><tt class="xref py py-class docutils literal"><span class="pre">UserRoleModule</span></tt></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rhaptos2.repo.model.UserRoleCollection">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">UserRoleCollection</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#UserRoleCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.UserRoleCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>The roles and users assigned for a given folder</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rhaptos2.repo.model.UserRoleFolder">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">UserRoleFolder</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#UserRoleFolder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.UserRoleFolder" title="Permalink to this definition">¶</a></dt>
+<dd><p>The roles and users assigned for a given folder</p>
+<p>We have following Roles: Owner, Maintainer, XXX</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Todo :</th><td class="field-body">storing timezones naively here needs fixing</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="rhaptos2.repo.model.UserRoleModule">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">UserRoleModule</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#UserRoleModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.UserRoleModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>The roles and users assigned for a given folder</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.change_approval">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">change_approval</tt><big>(</big><em>uobj</em>, <em>jsond</em>, <em>requesting_user_uri</em>, <em>requesttype</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#change_approval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.change_approval" title="Permalink to this definition">¶</a></dt>
+<dd><p>is the change valid for the given ACL context?
+returns True / False</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.delete_o">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">delete_o</tt><big>(</big><em>resource_uri</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#delete_o"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.delete_o" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.klass_from_uri">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">klass_from_uri</tt><big>(</big><em>URI</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#klass_from_uri"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.klass_from_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the callable klass that corresponds to a URI</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">klass_from_uri</span><span class="p">(</span><span class="s">&quot;cnxfolder:1234&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>
+<span class="go">&lt;class &#39;__main__.Folder&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">klass_from_uri</span><span class="p">(</span><span class="s">&quot;cnxfolder:&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>
+<span class="go">&lt;class &#39;__main__.Folder&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">klass_from_uri</span><span class="p">(</span><span class="s">&quot;cnxfolder:1234/acl/cnxuser:123456&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>
+<span class="go">&lt;class &#39;__main__.Folder&#39;&gt;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.obj_from_urn">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">obj_from_urn</tt><big>(</big><em>URN</em>, <em>requesting_user_uri</em>, <em>klass=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#obj_from_urn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.obj_from_urn" title="Permalink to this definition">¶</a></dt>
+<dd><p>THis is the refactored version of get_by_id</p>
+<dl class="docutils">
+<dt>URN</dt>
+<dd>cnxmodule:1234-5678</dd>
+<dt>requesting_user_urn</dt>
+<dd>cnxuser:1234-5678</dd>
+</dl>
+<p>I have reservations about encoding the type in the ID string.
+But not many.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.post_o">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">post_o</tt><big>(</big><em>klass</em>, <em>incomingd</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#post_o"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.post_o" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dict representing the complete set
+of fields then create a new user and those fields</p>
+<p>I am getting a dictionary direct form Flask request object - want
+to handle that myself with parser.</p>
+<p>returns User object, for later saveing to DB</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.put_o">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">put_o</tt><big>(</big><em>jsond</em>, <em>klass</em>, <em>ID</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#put_o"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.put_o" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a user_id, and a json_str representing the &#8220;Updated&#8221; fields
+then update those fields for that user_id</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.model.workspace_by_user">
+<tt class="descclassname">rhaptos2.repo.model.</tt><tt class="descname">workspace_by_user</tt><big>(</big><em>user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/model.html#workspace_by_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.model.workspace_by_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Its at times like these I just want to pass SQL in...</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-rhaptos2.repo.views">
+<span id="rhaptos2-repo-views"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.views" title="rhaptos2.repo.views"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.views</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.views" title="Permalink to this headline">¶</a></h2>
+<p>views.py - View code for the repository application.</p>
+<p>Structure:
+We have three main view-areas.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>the models (Folder, Collection, Module)</li>
+<li>the helper views (workspace)</li>
+<li>binary uploads.</li>
+<li>openid and persona</li>
+</ol>
+</div></blockquote>
+<div class="section" id="protocols">
+<h3>Protocols<a class="headerlink" href="#protocols" title="Permalink to this headline">¶</a></h3>
+<p>I try to stick to these</p>
+<ol class="arabic simple">
+<li>Every action (GET POST PUT DELETE) must have a useruri passed in to authorise</li>
+<li>views recevie back <em>either</em> a model.&lt;&gt; object or a json-encodeable version of that</li>
+</ol>
+</div>
+<div class="section" id="json-encoding">
+<h3>json-encoding<a class="headerlink" href="#json-encoding" title="Permalink to this headline">¶</a></h3>
+<p>todo: convert to factory based app entirely
+todo: remove view / as thats now JS
+todo: remove apply_cors and apply internally. Or just use it?
+todo: remove crash and burn</p>
+<dl class="function">
+<dt id="rhaptos2.repo.views.apply_cors">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">apply_cors</tt><big>(</big><em>resp_as_pytype</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#apply_cors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.apply_cors" title="Permalink to this definition">¶</a></dt>
+<dd><p>A callable function (not decorator) to
+take the output of a app_end and convert it to a Flask response
+with appropriate Json-ified wrappings.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.auto_session">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">auto_session</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#auto_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.auto_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>strictly for testing purposes
+I want to fake three sessions with known ids.
+Also generate a &#8220;real&#8221; session with a known user
+FIXME - there has to be a better way</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.collection_router">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">collection_router</tt><big>(</big><em>collectionuri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#collection_router"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.collection_router" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.folder_get">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">folder_get</tt><big>(</big><em>folderuri</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#folder_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.folder_get" title="Permalink to this definition">¶</a></dt>
+<dd><p>return folder as an appropriate json based response string</p>
+<p>.__complex__ -&gt; creates a version of an object that can be run through a std json.dump</p>
+<p>Why am I passing in the same userid in two successive objects</p>
+<ol class="arabic simple">
+<li>I am not maintaining any state in the object, not assuming any state in thread(*)</li>
+<li>The first call returns the &#8220;hard&#8221; object (pointers only)
+Thus it (rightly) has no knowledge of the user permissions of its children.
+We will need to descend the hierarchy to</li>
+</ol>
+<dl class="docutils">
+<dt>(*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes</dt>
+<dd>on backend.py</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.folder_router">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">folder_router</tt><big>(</big><em>folderuri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#folder_router"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.folder_router" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.generic_delete">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">generic_delete</tt><big>(</big><em>uri</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#generic_delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.generic_delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.generic_post">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">generic_post</tt><big>(</big><em>klass</em>, <em>payload_as_dict</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#generic_post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.generic_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post an appropriately formatted dict to klass</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.index">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">index</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>The index page for an api.cnx.org might point to say docs
+The index page here is the index of www.cnx, so it should serve</p>
+<blockquote>
+<div>the workspace.</div></blockquote>
+<p>Which is not something &#8220;known&#8221; by the repo, hence the redirect.
+It may be neater to bring the index.html page into here later on.</p>
+<p>TODO: either use a config value, or bring a index template in here</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.keywords">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">keywords</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#keywords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.keywords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of keywords for the authenticated user.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.module_router">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">module_router</tt><big>(</big><em>moduleuri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#module_router"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.module_router" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.obtain_payload">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">obtain_payload</tt><big>(</big><em>werkzeug_request_obj</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#obtain_payload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.obtain_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>expand this function to encompass various checks on incoming
+payload of POST / PUT requests incl unicode,</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.requestid">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">requestid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#requestid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.requestid" title="Permalink to this definition">¶</a></dt>
+<dd><p>before_request is supplied with this to run before each __call_</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.versionGET">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">versionGET</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#versionGET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.versionGET" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.whoamiGET">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">whoamiGET</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#whoamiGET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.whoamiGET" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns
+Either 401 if OpenID not available or JSON document of form</p>
+<dl class="docutils">
+<dt>{&#8220;openid_url&#8221;: &#8220;<a class="reference external" href="https://www.google.com/accounts/o8/id?id=AItOawlWRa8JTK7NyaAvAC4KrGaZik80gsKfe2U">https://www.google.com/accounts/o8/id?id=AItOawlWRa8JTK7NyaAvAC4KrGaZik80gsKfe2U</a>&#8221;,  # noqa</dt>
+<dd>&#8220;email&#8221;: &#8220;Not Implemented&#8221;,
+&#8220;name&#8221;: &#8220;Not Implemented&#8221;}</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.workspaceGET">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">workspaceGET</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#workspaceGET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.workspaceGET" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-rhaptos2.repo.cnxbase">
+<span id="rhaptos2-repo-cnxbase"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.cnxbase" title="rhaptos2.repo.cnxbase"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.cnxbase</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.cnxbase" title="Permalink to this headline">¶</a></h2>
+<p>THis exists solely to provide less typing for a &#8220;leaf node&#8221; in a
+simple realtional schema (1:M and 1:M-N:1) when used with SQLAlchemy</p>
+<p>SA does not support class based inheritence in the normal Python way
+for objects inheriting from Base.  Thus we have those objects perform
+multiple inheritence...</p>
+<p>security issues</p>
+<p>Discussion</p>
+<p>I see each resource (folder, module, collection) as a individual resource
+with individually managed permissions.</p>
+<p>Each function (GET PUT POST DELETE) should be requested through the API with
+a security &#8220;thing&#8221; (useruri).  This is to try and keep stateless end to end
+(ie not have to worry how we are handling sessions from the request point through the
+backend)</p>
+<p>Security use cases</p>
+<p>folder</p>
+<ol class="arabic simple">
+<li>User has RW permission set on Folder F and children C1,C2</li>
+</ol>
+<dl class="class">
+<dt id="rhaptos2.repo.cnxbase.CNXBase">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.cnxbase.</tt><tt class="descname">CNXBase</tt><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>The resources we use (Folder, Collection, Module) all adhere to a common
+access protocol that is defined in :class:CNXBase.</p>
+<p>Where incomingjsond is a python representation of a json object that
+meets a folder jsonschema</p>
+<p>&gt; f2 = model.Folder(creator_uuid=user_urn)
+&gt; f2.populate_self(incomingjsond)
+f2 will now be populated</p>
+<p>&gt; f2.to_dict(requesting_user_urn)
+Here I am getting the object to return as python std types,
+so they can be easily jsonified at the last possible minute.</p>
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.adduserrole">
+<tt class="descname">adduserrole</tt><big>(</big><em>userrole_klass</em>, <em>usrdict</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.adduserrole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.adduserrole" title="Permalink to this definition">¶</a></dt>
+<dd><p>keeping a common funciton in one place</p>
+<p>Given a usr_uuid and a role_type, update a UserRole object</p>
+<p>I am checking setter_user is authorised in calling function.</p>
+<p>The requesting_user_uri merry-go-round
+I am pushing the user name all over the place - I think because
+userrole.from_dict is in cnbxbase which is not exclusive as base for userrole module.
+SO have cnxbase klass for userroles as well. ToDO</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.delete">
+<tt class="descname">delete</tt><big>(</big><em>dbase_session</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assumes we are working with sqlalchemy dbsessions</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.from_dict">
+<tt class="descname">from_dict</tt><big>(</big><em>userprofile_dict</em>, <em>requesting_user_uri=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>given a dict, derived from either test fixture or json POST
+populate the object.</p>
+<p>setattr is valid as a means of internally updating
+a sqlalchemy object, and will correctly pass the diamond lookup.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">creator_uuid</span><span class="o">=</span><span class="s">&quot;test&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;totalfake&quot;</span><span class="p">:</span><span class="mi">100</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">populate_self</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+<span class="gp">... </span><span class="n">Tried</span> <span class="n">to</span> <span class="nb">set</span> <span class="n">attr</span> <span class="n">totalfake</span> <span class="n">when</span> <span class="n">no</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>[correct usage would be as:]
+&gt;&gt; d = {&#8220;title&#8221;:&#8221;testtitle&#8221;}
+&gt;&gt; m.populate_self(d)
+&gt;&gt; m.save(db_session)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.get_utcnow">
+<tt class="descname">get_utcnow</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.get_utcnow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.get_utcnow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eventually we shall handle TZones here too</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.is_action_auth">
+<tt class="descname">is_action_auth</tt><big>(</big><em>action=None</em>, <em>requesting_user_uri=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.is_action_auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.is_action_auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a user and a action type, determine if it is
+authorised on this object</p>
+<p>#unittest not available as setup is large.
+&gt;&gt; C = CNXBase()
+&gt;&gt; C.is_action_auth(action=&#8221;PUT&#8221;, requesting_user_uri=&#8221;Fake1&#8221;)
+<strong>* [u&#8217;Fake1&#8217;]
+True
+&gt;&gt; C.is_action_auth(action=&#8221;PUT&#8221;, requesting_user_uri=&#8221;ff&#8221;)
+*</strong> [u&#8217;Fake1&#8217;]
+False</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.jsonify">
+<tt class="descname">jsonify</tt><big>(</big><em>requesting_user_uri</em>, <em>softform=True</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.jsonify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.jsonify" title="Permalink to this definition">¶</a></dt>
+<dd><p>public method to return the object as a JSON formatted string.</p>
+<p>form.  There are two types we <em>shall</em> support.  softform and hardform
+A resource only contains links (pointers) to other resources - so
+a container-type resource (folder, collection) will hold links only
+such as</p>
+<blockquote>
+<div>body = [&#8220;/folder/1234&#8221;, &#8220;/module/5678&#8221;]</div></blockquote>
+<p>However if we returned that resource to the client, it would then need
+to perform <em>n</em> more requests to get the title of each.</p>
+<p>To avoid this we return a softform</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>body = [{&#8216;id&#8217;: &#8216;/folder/1234&#8217;, &#8216;title&#8217;: &#8216;foo&#8217;, &#8216;mediatype&#8217;:&#8217;application/vnd.org.cnx.folder&#8217;},</dt>
+<dd>{&#8216;id&#8217;: &#8216;/module/5678&#8217;, &#8216;title&#8217;: &#8216;bar&#8217;, &#8216;mediatype&#8217;:&#8217;application/vnd.org.cnx.module&#8217;},</dd>
+</dl>
+</div></blockquote>
+<p>This however needs us to descend into the container, and requiores a security check at each
+resource.  It also requires a flag for whih form.</p>
+<p>At the moment only folder has any need for a softform approach and it is the default here</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.parse_json">
+<tt class="descname">parse_json</tt><big>(</big><em>jsonstr</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.parse_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.parse_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a json-formatted string representing a folder, return a dict</p>
+<p>There is a lot todo here.
+We should have version handling (see online discussions)
+We should check that the json is actually valid for a folder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.populate_self">
+<tt class="descname">populate_self</tt><big>(</big><em>d</em>, <em>requesting_user_uri=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.populate_self"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.populate_self" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.prep_delete_userrole">
+<tt class="descname">prep_delete_userrole</tt><big>(</big><em>user_uri</em>, <em>role_type=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.prep_delete_userrole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.prep_delete_userrole" title="Permalink to this definition">¶</a></dt>
+<dd><p>policy: we are ignoring role type for now.  Any delete will delete
+the user, there should only be one roletype per user, and one user per</p>
+<blockquote>
+<div>resource.  This is policy not enforced</div></blockquote>
+<dl class="docutils">
+<dt><em>editing</em> a user&#8217;s role is not transaction supported (del then add in one</dt>
+<dd>trans).  If we ever change policy we need to fix that</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.safe_type_out">
+<tt class="descname">safe_type_out</tt><big>(</big><em>col</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.safe_type_out"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.safe_type_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the value of a coulmn field safely for json
+This is essentially a JSONEncoder sublclass inside object - ...</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.save">
+<tt class="descname">save</tt><big>(</big><em>dbase_session</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assumes we are working with sqlalchemy dbsessions</p>
+<p>This is a naive implementation of the dateModified field.
+More sensitive approaches would include taking the timestamp of
+a request as the point of all changes. FIXME</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.set_acls">
+<tt class="descname">set_acls</tt><big>(</big><em>setter_user_uri</em>, <em>acllist</em>, <em>userrole_klass=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.set_acls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.set_acls" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the user acls on this object.</p>
+<p>inheriting from CNXBase implies we are modelling
+a resource, and we want to control Read?write of the resource
+through ACLs - which are represented in dbase as userrole_&lt;resource&gt;</p>
+<p>NB whilst practical to use one userrole table and preferable
+SQLAlchemy seems to place limits on it. and I dont want to
+muck about.</p>
+<p>SOme, not all objects that inherit form CNXBase (!)
+will have a relatred user_roles table.
+This will map the object ID to a acl type and a user</p>
+<dl class="docutils">
+<dt>[{&#8216;dateLastModifiedUTC&#8217;: None,</dt>
+<dd><blockquote class="first">
+<div>&#8216;dateCreatedUTC&#8217;: None,
+&#8216;user_uri&#8217;: u&#8217;Testuser1&#8217;,
+&#8216;role_type&#8217;: &#8216;author&#8217;},</div></blockquote>
+<dl class="last docutils">
+<dt>{&#8216;dateLastModifiedUTC&#8217;: None,</dt>
+<dd>&#8216;dateCreatedUTC&#8217;: None,
+&#8216;user_uri&#8217;: u&#8217;testuser2&#8217;,
+&#8216;role_type&#8217;: &#8216;author&#8217;}]</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.update_userroles">
+<tt class="descname">update_userroles</tt><big>(</big><em>proposed_acl_list</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.update_userroles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.update_userroles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of (valid) user uris, add them to SQLA list</p>
+<p>The proposed list is <em>always</em> accurate, <em>except</em> if it leaves off the
+current requesting_user_uri, which is always added. (This may lead to some
+strange behaviour or test issues so be flexible)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rhaptos2.repo.cnxbase.CNXBase.validateid">
+<tt class="descname">validateid</tt><big>(</big><em>id_</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#CNXBase.validateid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.CNXBase.validateid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a <a href="#id1"><span class="problematic" id="id2">id_</span></a> check it is of correct uri format</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">CNXBase</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span><span class="o">.</span><span class="n">validateid</span><span class="p">(</span><span class="s">&quot;cnxuser:1234&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span><span class="o">.</span><span class="n">validateid</span><span class="p">(</span><span class="s">&quot;1234&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API for Views and models</a><ul>
+<li><a class="reference internal" href="#summary">Summary</a></li>
+<li><a class="reference internal" href="#api">API</a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.model"><tt class="docutils literal"><span class="pre">rhaptos2.repo.model</span></tt></a><ul>
+<li><a class="reference internal" href="#dbase-backed-models-for-content-on-unpub-repositories">dbase-backed models for content on unpub repositories</a></li>
+<li><a class="reference internal" href="#security">Security</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.views"><tt class="docutils literal"><span class="pre">rhaptos2.repo.views</span></tt></a><ul>
+<li><a class="reference internal" href="#protocols">Protocols</a></li>
+<li><a class="reference internal" href="#json-encoding">json-encoding</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.cnxbase"><tt class="docutils literal"><span class="pre">rhaptos2.repo.cnxbase</span></tt></a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="specindex.html"
+                        title="previous chapter">Simple spec links</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="authenticationAPI.html"
+                        title="next chapter">Authentication API</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/viewmodelAPI.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="authenticationAPI.html" title="Authentication API"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="specindex.html" title="Simple spec links"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

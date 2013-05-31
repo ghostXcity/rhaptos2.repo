@@ -1,0 +1,155 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Config &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Session Management" href="session-mgmt.html" />
+    <link rel="prev" title="Testing" href="testing.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="session-mgmt.html" title="Session Management"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="config">
+<h1>Config<a class="headerlink" href="#config" title="Permalink to this headline">¶</a></h1>
+<p>After the great configuration debates I am reluctant to touch this too
+much but nosetests has rather forced our hands.</p>
+<p>noestests is a useful piece of kit but has one major problem - its
+really awkward to pass configuration <em>into</em> to test.  Doug Hellman has
+a generally accepted soklution - nose-testconfig.</p>
+<p>THis effectively takes the config file given on command line and
+parses it into a python dict and presents it as a variable named
+&#8220;config&#8221;:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">testconfig</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="n">main_server</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">][</span><span class="s">&#39;bar&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The current Configuration setup uses the convention of moving all keys
+under the [app] section into the top level of the dict and then
+everything else lives under &#8220;globals&#8221;.  It returns a Mapping object
+that acts like a dict.  Pretty quickly this is read off into the
+app.config object which also acts like a dict.</p>
+<p>To satisfy this I muck around with nosetest ini file I find this
+unsatisfaotry but survieable for now - ultimately I think just
+producing a dict out of a ini file and being done with it will work.
+God knows how I drove to a different conclusion at any time.</p>
+<p>Ultimately its pretty hacky so there may wel lbe a break somewhere
+down the line.</p>
+<div class="section" id="future-notes">
+<h2>Future notes<a class="headerlink" href="#future-notes" title="Permalink to this headline">¶</a></h2>
+<p>nose-testconfig supports YAML and python files so is not particularly
+limiting, and we can change this again - I did not particularly want
+to as it seemed churlish rehashing old stuff but its become a RRPIA.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Config</a><ul>
+<li><a class="reference internal" href="#future-notes">Future notes</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="testing.html"
+                        title="previous chapter">Testing</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="session-mgmt.html"
+                        title="next chapter">Session Management</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/config.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="session-mgmt.html" title="Session Management"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

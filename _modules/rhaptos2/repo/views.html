@@ -1,0 +1,518 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.views &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.views</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">###</span>
+<span class="c"># Copyright (c) Rice University 2012-13</span>
+<span class="c"># This software is subject to</span>
+<span class="c"># the provisions of the GNU Affero General</span>
+<span class="c"># Public License version 3 (AGPLv3).</span>
+<span class="c"># See LICENCE.txt for details.</span>
+<span class="c">###</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">views.py - View code for the repository application.</span>
+
+<span class="sd">Structure:</span>
+<span class="sd">We have three main view-areas.</span>
+
+<span class="sd"> 1. the models (Folder, Collection, Module)</span>
+<span class="sd"> 2. the helper views (workspace)</span>
+<span class="sd"> 3. binary uploads.</span>
+<span class="sd"> 4. openid and persona</span>
+
+<span class="sd">Protocols</span>
+<span class="sd">~~~~~~~~~</span>
+<span class="sd">I try to stick to these</span>
+
+<span class="sd">1. Every action (GET POST PUT DELETE) must have a useruri passed in to authorise</span>
+<span class="sd">2. views recevie back *either* a model.&lt;&gt; object or a json-encodeable version of that</span>
+
+
+<span class="sd">json-encoding</span>
+<span class="sd">~~~~~~~~~~~~~</span>
+
+<span class="sd">todo: convert to factory based app entirely</span>
+<span class="sd">todo: remove view / as thats now JS</span>
+<span class="sd">todo: remove apply_cors and apply internally. Or just use it?</span>
+<span class="sd">todo: remove crash and burn</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">cStringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>  <span class="c"># noqa</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">StringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>  <span class="c"># noqa</span>
+
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">flask</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">render_template</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">flash</span><span class="p">,</span>
+    <span class="n">redirect</span><span class="p">,</span> <span class="n">abort</span><span class="p">,</span>
+    <span class="n">send_from_directory</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="p">(</span><span class="n">get_app</span><span class="p">,</span> <span class="n">dolog</span><span class="p">,</span>
+                           <span class="n">auth</span><span class="p">,</span> <span class="n">VERSION</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span>
+                           <span class="n">backend</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo.err</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Rhaptos2Error</span><span class="p">,</span>
+                               <span class="n">Rhaptos2SecurityError</span><span class="p">,</span>
+                               <span class="n">Rhaptos2HTTPStatusError</span><span class="p">)</span>
+<span class="c">########</span>
+<span class="c">## module level globals -</span>
+<span class="c">## FIXME: prefer to avoid this through urlmapping</span>
+<span class="c">## unclear if can fix for SA</span>
+<span class="c">########</span>
+<span class="c"># app = get_app()</span>
+
+
+<div class="viewcode-block" id="requestid"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.requestid">[docs]</a><span class="k">def</span> <span class="nf">requestid</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    before_request is supplied with this to run before each __call_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">requestid</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">request_id</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">requestid</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">deferred_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c">### Before the app.__call__ is called, perform processing of user auth</span>
+    <span class="c">### status.  If this throws err, we redirect or similar, else __call__ app</span>
+    <span class="c">### proceeds</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">handle_user_authentication</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">e</span>
+    <span class="k">if</span> <span class="n">resp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="s">&quot;__call__&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">resp</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="c">## All good - carry on.</span>
+
+</div>
+<span class="k">def</span> <span class="nf">call_after_request_callbacks</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="s">&#39;deferred_callbacks&#39;</span><span class="p">,</span> <span class="p">()):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">callback</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span>
+
+
+<span class="c">########################### views</span>
+
+
+<div class="viewcode-block" id="apply_cors"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.apply_cors">[docs]</a><span class="k">def</span> <span class="nf">apply_cors</span><span class="p">(</span><span class="n">resp_as_pytype</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;A callable function (not decorator) to</span>
+<span class="sd">       take the output of a app_end and convert it to a Flask response</span>
+<span class="sd">       with appropriate Json-ified wrappings.</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">resp_as_pytype</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Credentials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;true&quot;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="index"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.index">[docs]</a><span class="k">def</span> <span class="nf">index</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    .. dicussion::</span>
+
+<span class="sd">    The index page for an api.cnx.org might point to say docs</span>
+<span class="sd">    The index page here is the index of www.cnx, so it should serve</span>
+<span class="sd">     the workspace.</span>
+<span class="sd">    Which is not something &quot;known&quot; by the repo, hence the redirect.</span>
+<span class="sd">    It may be neater to bring the index.html page into here later on.</span>
+
+<span class="sd">    TODO: either use a config value, or bring a index template in here</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;THis is request </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">g</span><span class="o">.</span><span class="n">requestid</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="s">&#39;/js/&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="whoamiGET"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.whoamiGET">[docs]</a><span class="k">def</span> <span class="nf">whoamiGET</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    returns</span>
+<span class="sd">    Either 401 if OpenID not available or JSON document of form</span>
+
+<span class="sd">    {&quot;openid_url&quot;: &quot;https://www.google.com/accounts/o8/id?id=AItOawlWRa8JTK7NyaAvAC4KrGaZik80gsKfe2U&quot;,  # noqa</span>
+<span class="sd">     &quot;email&quot;: &quot;Not Implemented&quot;,</span>
+<span class="sd">     &quot;name&quot;: &quot;Not Implemented&quot;}</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c">### todo: return 401 code and let ajax client put up login.</span>
+    <span class="n">userd</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">whoami</span><span class="p">()</span>  <span class="c"># same as g.userd</span>
+
+    <span class="k">if</span> <span class="n">userd</span><span class="p">:</span>
+        <span class="n">jsond</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">asjson</span><span class="p">(</span><span class="n">userd</span><span class="p">)</span>  <span class="c"># FIXME - zombie code again</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">apply_cors</span><span class="p">(</span><span class="n">jsond</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span><span class="s">&quot;Not logged in&quot;</span><span class="p">,</span> <span class="mi">401</span><span class="p">)</span>  <span class="c"># FIXME - zombie code again</span>
+
+</div>
+<div class="viewcode-block" id="workspaceGET"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.workspaceGET">[docs]</a><span class="k">def</span> <span class="nf">workspaceGET</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39; &#39;&#39;&#39;</span>
+    <span class="c"># TODO - should whoami redirect to a login page?</span>
+    <span class="c">### yes the client should only expect to handle HTTP CODES</span>
+    <span class="c">### compare on userID</span>
+
+    <span class="n">userd</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">whoami</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">userd</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">403</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">wout</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Calling workspace with </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">])</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">workspace_by_user</span><span class="p">(</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">])</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+        <span class="c">## w is a list of models (folders, cols etc).</span>
+        <span class="c"># it would require some flattening or a JSONEncoder but we just want</span>
+        <span class="c"># short form for now</span>
+        <span class="n">short_format_list</span> <span class="o">=</span> <span class="p">[{</span>
+            <span class="s">&quot;id&quot;</span><span class="p">:</span> <span class="n">i</span><span class="o">.</span><span class="n">id_</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="n">i</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="s">&quot;mediaType&quot;</span><span class="p">:</span> <span class="n">i</span><span class="o">.</span><span class="n">mediaType</span><span class="p">}</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">w</span><span class="p">]</span>
+        <span class="n">flatten</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">short_format_list</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">callstatsd</span><span class="p">(</span><span class="s">&#39;rhaptos2.e2repo.workspace.GET&#39;</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">apply_cors</span><span class="p">(</span><span class="n">flatten</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="keywords"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.keywords">[docs]</a><span class="k">def</span> <span class="nf">keywords</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of keywords for the authenticated user.&quot;&quot;&quot;</span>
+    <span class="c"># XXX We really need a database search here. With the current</span>
+    <span class="c">#     state of the storage (file system), we would need to open</span>
+    <span class="c">#     every module&#39;s keywords in order to compile a comprehensive</span>
+    <span class="c">#     list of available keywords created by the user.</span>
+    <span class="c">#     We should come back to this after we have created a storage</span>
+    <span class="c">#     that can be queried (e.g. a SQL database).</span>
+    <span class="n">XXX_JUNK_KEYWORDS</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;Quantum Physics&quot;</span><span class="p">,</span> <span class="s">&quot;Information Technology&quot;</span><span class="p">,</span>
+                         <span class="s">&quot;Biology&quot;</span><span class="p">,</span> <span class="s">&quot;Anthropology&quot;</span><span class="p">,</span> <span class="s">&quot;Philosophy&quot;</span><span class="p">,</span> <span class="s">&quot;Psychology&quot;</span><span class="p">,</span>
+                         <span class="s">&quot;Physics&quot;</span><span class="p">,</span> <span class="s">&quot;Socialogy&quot;</span><span class="p">,</span> <span class="s">&quot;Plumbing&quot;</span><span class="p">,</span> <span class="s">&quot;Engine Repair&quot;</span><span class="p">,</span>
+                         <span class="s">&quot;Programming&quot;</span><span class="p">,</span> <span class="s">&quot;Window Washing&quot;</span><span class="p">,</span> <span class="s">&quot;Cooking&quot;</span><span class="p">,</span> <span class="s">&quot;Hunting&quot;</span><span class="p">,</span>
+                         <span class="s">&quot;Fishing&quot;</span><span class="p">,</span> <span class="s">&quot;Surfing&quot;</span><span class="p">,</span>
+                         <span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">XXX_JUNK_KEYWORDS</span><span class="p">))</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="versionGET"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.versionGET">[docs]</a><span class="k">def</span> <span class="nf">versionGET</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39; &#39;&#39;&#39;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">VERSION</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
+
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="auto_session"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.auto_session">[docs]</a><span class="k">def</span> <span class="nf">auto_session</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    strictly for testing purposes</span>
+<span class="sd">    I want to fake three sessions with known ids.</span>
+<span class="sd">    Also generate a &quot;real&quot; session with a known user</span>
+<span class="sd">    FIXME - there has to be a better way</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sessionid</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">set_autosession</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s">&quot;Session created - please see headers&quot;</span>
+
+</div>
+<span class="n">MEDIA_MODELS_BY_TYPE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&quot;application/vnd.org.cnx.collection&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Collection</span><span class="p">,</span>
+    <span class="s">&quot;application/vnd.org.cnx.module&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="s">&quot;application/vnd.org.cnx.folder&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Folder</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="obtain_payload"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.obtain_payload">[docs]</a><span class="k">def</span> <span class="nf">obtain_payload</span><span class="p">(</span><span class="n">werkzeug_request_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    .. todo::</span>
+<span class="sd">       expand this function to encompass various checks on incoming</span>
+<span class="sd">       payload of POST / PUT requests incl unicode,</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">jsond</span> <span class="o">=</span> <span class="n">werkzeug_request_obj</span><span class="o">.</span><span class="n">json</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">jsond</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="n">jsond</span>
+
+</div>
+<div class="viewcode-block" id="folder_router"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.folder_router">[docs]</a><span class="k">def</span> <span class="nf">folder_router</span><span class="p">(</span><span class="n">folderuri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;In folder router, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">)</span>
+    <span class="n">requesting_user_uri</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">obtain_payload</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;GET&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">folder_get</span><span class="p">(</span><span class="n">folderuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;POST&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON &quot;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_post</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Folder</span><span class="p">,</span>
+                                <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;PUT&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON &quot;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_put</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Folder</span><span class="p">,</span> <span class="n">folderuri</span><span class="p">,</span>
+                               <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;DELETE&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generic_delete</span><span class="p">(</span><span class="n">folderuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span><span class="s">&quot;Methods:GET PUT POST DELETE.&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="collection_router"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.collection_router">[docs]</a><span class="k">def</span> <span class="nf">collection_router</span><span class="p">(</span><span class="n">collectionuri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;In collection router, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">)</span>
+    <span class="n">requesting_user_uri</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">obtain_payload</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;GET&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generic_get</span><span class="p">(</span><span class="n">collectionuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;POST&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON&quot;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_post</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Collection</span><span class="p">,</span>
+                                <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;PUT&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON&quot;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_put</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Collection</span><span class="p">,</span> <span class="n">collectionuri</span><span class="p">,</span>
+                               <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;DELETE&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generic_delete</span><span class="p">(</span><span class="n">collectionuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span><span class="s">&quot;Methods:GET PUT POST DELETE.&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="module_router"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.module_router">[docs]</a><span class="k">def</span> <span class="nf">module_router</span><span class="p">(</span><span class="n">moduleuri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;In module router, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">)</span>
+    <span class="n">requesting_user_uri</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">obtain_payload</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;GET&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generic_get</span><span class="p">(</span><span class="n">moduleuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;POST&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_post</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+                                <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;PUT&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span>
+                <span class="s">&quot;Received a Null payload, expecting JSON&quot;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_put</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">moduleuri</span><span class="p">,</span>
+                               <span class="n">payload</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;DELETE&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generic_delete</span><span class="p">(</span><span class="n">moduleuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Rhaptos2HTTPStatusError</span><span class="p">(</span><span class="s">&quot;Methods:GET PUT POST DELETE.&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="folder_get"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.folder_get">[docs]</a><span class="k">def</span> <span class="nf">folder_get</span><span class="p">(</span><span class="n">folderuri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    return folder as an appropriate json based response string</span>
+
+<span class="sd">    .__complex__ -&gt; creates a version of an object that can be run through a std json.dump</span>
+
+<span class="sd">    Why am I passing in the same userid in two successive objects</span>
+
+<span class="sd">    1. I am not maintaining any state in the object, not assuming any state in thread(*)</span>
+<span class="sd">    2. The first call returns the &quot;hard&quot; object (pointers only)</span>
+<span class="sd">       Thus it (rightly) has no knowledge of the user permissions of its children.</span>
+<span class="sd">       We will need to descend the hierarchy to</span>
+
+<span class="sd">    (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes</span>
+<span class="sd">        on backend.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fldr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">obj_from_urn</span><span class="p">(</span><span class="n">folderuri</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">])</span>
+    <span class="n">fldr_complex</span> <span class="o">=</span> <span class="n">fldr</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">])</span>
+
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">fldr_complex</span><span class="p">))</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<span class="k">def</span> <span class="nf">generic_get</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="c"># mod = model.get_by_id(klass, uri, requesting_user_uri)</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">obj_from_urn</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+                               <span class="n">mod</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">)))</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+
+<div class="viewcode-block" id="generic_post"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.generic_post">[docs]</a><span class="k">def</span> <span class="nf">generic_post</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">payload_as_dict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post an appropriately formatted dict to klass</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">       its very inefficient posting the folder, then asking for</span>
+<span class="sd">       it to be recreated.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">requesting_user_uri</span>
+    <span class="n">fldr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">post_o</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">payload_as_dict</span><span class="p">,</span>
+                        <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">owner</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">fldr</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">owner</span><span class="p">)))</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<span class="k">def</span> <span class="nf">generic_put</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">resource_uri</span><span class="p">,</span> <span class="n">payload_as_dict</span><span class="p">,</span>
+                <span class="n">requesting_user_uri</span><span class="p">):</span>
+
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">requesting_user_uri</span>
+    <span class="n">fldr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">put_o</span><span class="p">(</span><span class="n">payload_as_dict</span><span class="p">,</span> <span class="n">klass</span><span class="p">,</span> <span class="n">resource_uri</span><span class="p">,</span>
+                       <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">owner</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">fldr</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">owner</span><span class="p">)))</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+
+<div class="viewcode-block" id="generic_delete"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.generic_delete">[docs]</a><span class="k">def</span> <span class="nf">generic_delete</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">requesting_user_uri</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">delete_o</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">owner</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s"> is no more&quot;</span> <span class="o">%</span> <span class="n">uri</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="s">&#39;application/json; charset=utf-8&#39;</span>
+    <span class="k">return</span> <span class="n">resp</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

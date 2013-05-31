@@ -1,0 +1,247 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Common functionality &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="run" href="runAPI.html" />
+    <link rel="prev" title="Authentication API" href="authenticationAPI.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="runAPI.html" title="run"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="authenticationAPI.html" title="Authentication API"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="common-functionality">
+<h1>Common functionality<a class="headerlink" href="#common-functionality" title="Permalink to this headline">¶</a></h1>
+<p>For various reasons the common functions like errors and config
+are held not in a seperate repo but here.</p>
+</div>
+<div class="section" id="module-rhaptos2.repo.backend">
+<span id="rhaptos2-repo-backend"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.backend" title="rhaptos2.repo.backend"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.backend</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.backend" title="Permalink to this headline">¶</a></h1>
+<p>Provide a abstracted SQL Alchemy backend to allow
+models to connect to postegres.</p>
+<dl class="function">
+<dt id="rhaptos2.repo.backend.clean_dbase">
+<tt class="descclassname">rhaptos2.repo.backend.</tt><tt class="descname">clean_dbase</tt><big>(</big><em>config</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/backend.html#clean_dbase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.backend.clean_dbase" title="Permalink to this definition">¶</a></dt>
+<dd><p>clear down the database tables - used for testing purposes</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.backend.initdb">
+<tt class="descclassname">rhaptos2.repo.backend.</tt><tt class="descname">initdb</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/backend.html#initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.backend.initdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>This could become a conn factory.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.backend.status_dbase">
+<tt class="descclassname">rhaptos2.repo.backend.</tt><tt class="descname">status_dbase</tt><big>(</big><em>config</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/backend.html#status_dbase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.backend.status_dbase" title="Permalink to this definition">¶</a></dt>
+<dd><p>clear down the database tables - used for testing purposes</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rhaptos2.repo.configuration">
+<span id="rhaptos2-repo-configuration"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.configuration" title="rhaptos2.repo.configuration"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.configuration</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.configuration" title="Permalink to this headline">¶</a></h1>
+<p>Contains a common configuration parsing class and various utilities for
+dealing with configuration.</p>
+<p>Author: Michael Mulich
+Copyright (c) 2012 Rice University</p>
+<p>This software is subject to the provisions of the GNU Lesser General
+Public License Version 2.1 (LGPL).  See LICENSE.txt for details.</p>
+<dl class="class">
+<dt id="rhaptos2.repo.configuration.Configuration">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.configuration.</tt><tt class="descname">Configuration</tt><big>(</big><em>settings={}</em>, <em>**sections</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/configuration.html#Configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.configuration.Configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>A configuration settings object</p>
+<p>The Configuration class reads from a file, is <em>case-sensitive</em>
+and it transforms the [app] section into top-level dotted values
+(ie print conf.foo returns &#8220;bar&#8221;)
+and stores all other sections under a key of the same name</p>
+<p>It looks and acts like a dict. And has</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">initxt</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;[app]</span>
+<span class="gp">... </span><span class="s">appkey=appval</span>
+<span class="gp">...</span><span class="s"></span>
+<span class="gp">... </span><span class="s">[test]</span>
+<span class="gp">... </span><span class="s">foo=1</span>
+<span class="gp">...</span><span class="s"></span>
+<span class="gp">... </span><span class="s">[test2]</span>
+<span class="gp">... </span><span class="s">bar=1</span>
+<span class="gp">... </span><span class="s">&#39;&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="s">&quot;/tmp/foo.ini&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">initxt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">Configuration</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;test&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;foo&#39;</span><span class="p">:</span> <span class="s">&#39;1&#39;</span><span class="p">},</span>
+<span class="gp">... </span>           <span class="s">&#39;test2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;bar&#39;</span><span class="p">:</span> <span class="s">&#39;1&#39;</span><span class="p">},</span>
+<span class="gp">... </span>           <span class="s">&quot;appkey&quot;</span><span class="p">:</span><span class="s">&quot;appval&quot;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">C</span> <span class="o">==</span> <span class="n">expected</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">C</span><span class="o">.</span><span class="n">test</span> <span class="o">==</span> <span class="p">{</span><span class="s">&#39;foo&#39;</span><span class="p">:</span> <span class="s">&#39;1&#39;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">C</span><span class="o">.</span><span class="n">appkey</span> <span class="o">==</span> <span class="s">&quot;appval&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">C</span><span class="o">.</span><span class="n">test</span><span class="p">[</span><span class="s">&quot;foo&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;1&#39;</span>
+</pre></div>
+</div>
+<dl class="classmethod">
+<dt id="rhaptos2.repo.configuration.Configuration.from_file">
+<em class="property">classmethod </em><tt class="descname">from_file</tt><big>(</big><em>file</em>, <em>app_name='app'</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/configuration.html#Configuration.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.configuration.Configuration.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the class from an INI file.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rhaptos2.repo.err">
+<span id="rhaptos2-repo-err"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.err" title="rhaptos2.repo.err"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.err</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.err" title="Permalink to this headline">¶</a></h1>
+</div>
+<div class="section" id="module-rhaptos2.repo.log">
+<span id="rhaptos2-repo-log"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.log" title="rhaptos2.repo.log"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.log" title="Permalink to this headline">¶</a></h1>
+<p>Provide common logging facilites for all rhaptos2 components.</p>
+<p>We expect to create two log <em>handlers</em> in the application</p>
+<ol class="arabic simple">
+<li>to log audit messages to stderr</li>
+<li>to fire off statsd events</li>
+</ol>
+<p>We combine both into one logger, I think that is the best approach.</p>
+<p>See set_logger in rhaptos2.repo for useage</p>
+<p>Changelog:</p>
+<dl class="docutils">
+<dt>2012-09-13 <span class="classifier-delimiter">:</span> <span class="classifier">removed the get_logger facility, basically each app is</span></dt>
+<dd>responsible for setting up its own logger.  This merely
+supplies a custom Handler for statsd</dd>
+</dl>
+<dl class="class">
+<dt id="rhaptos2.repo.log.StatsdHandler">
+<em class="property">class </em><tt class="descclassname">rhaptos2.repo.log.</tt><tt class="descname">StatsdHandler</tt><big>(</big><em>host</em>, <em>port</em>, <em>debug=False</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/log.html#StatsdHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.log.StatsdHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logging Handler class that emits statsd calls to graphite, then stdout</p>
+<p>It <em>only</em> does incr logs, ie event counting.
+Thats probably appropriate for most all log related stats</p>
+<p>issues - we init with host and port, probably a bad idea.
+Just do not want to muck around with config mdule for logging yet.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;doctest&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">StatsdHandler</span><span class="p">(</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">2222</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;an error&quot;</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;statsd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s">&#39;a.b&#39;</span><span class="p">,</span> <span class="s">&#39;e.f&#39;</span><span class="p">]})</span>
+<span class="go">Firing a.b</span>
+<span class="go">Firing e.f</span>
+</pre></div>
+</div>
+<p>So we take it on trust that statsd fired.
+This is a unsolved problem with statsd.</p>
+<dl class="method">
+<dt id="rhaptos2.repo.log.StatsdHandler.emit">
+<tt class="descname">emit</tt><big>(</big><em>record</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/log.html#StatsdHandler.emit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.log.StatsdHandler.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>given a LogRecord r, extract the dotted names if any and fire off</p>
+<p>Hmm, testing this in doctest (in anything) is hard....
+So A totally contrived test</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Common functionality</a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.backend"><tt class="docutils literal"><span class="pre">rhaptos2.repo.backend</span></tt></a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.configuration"><tt class="docutils literal"><span class="pre">rhaptos2.repo.configuration</span></tt></a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.err"><tt class="docutils literal"><span class="pre">rhaptos2.repo.err</span></tt></a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.log"><tt class="docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="authenticationAPI.html"
+                        title="previous chapter">Authentication API</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="runAPI.html"
+                        title="next chapter">run</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/commonAPI.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="runAPI.html" title="run"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="authenticationAPI.html" title="Authentication API"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -7,9 +8,9 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to frozone’s documentation! &mdash; rhaptos2 0.0.1 documentation</title>
+    <title>Rhaptos2.Repo - Documentation &mdash; rhaptos2 0.0.1 documentation</title>
     
-    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -25,18 +26,9 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rhaptos2 0.0.1 documentation" href="#" />
-    <link rel="next" title="Overview" href="Overview.html" />
-   
-  
-  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
-
+    <link rel="next" title="Testing" href="testing.html" /> 
   </head>
   <body>
-  
-  
-  <div class=indexwrapper>
-  
-
     <div class="related">
       <h3>Navigation</h3>
       <ul>
@@ -44,7 +36,10 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="Overview.html" title="Overview"
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing"
              accesskey="N">next</a> |</li>
         <li><a href="#">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>
@@ -55,51 +50,77 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="welcome-to-frozone-s-documentation">
-<h1>Welcome to frozone&#8217;s documentation!<a class="headerlink" href="#welcome-to-frozone-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Frozone is <a class="reference external" href="http://www.cnx.org">Connexions</a> new editor and other components.</p>
+  <div class="section" id="rhaptos2-repo-documentation">
+<h1>Rhaptos2.Repo - Documentation<a class="headerlink" href="#rhaptos2-repo-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the docs for Rhaptos2.repo.</p>
+<p>Some documentation is hand-written as below, and some is API further below</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="storysofar.html">Story So Far</a></li>
-<li class="toctree-l2"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
-<li class="toctree-l2"><a class="reference internal" href="requirements.html">Mapping requirements docs to Service features.</a></li>
-<li class="toctree-l2"><a class="reference internal" href="requirements.html#draft-rest-defintions">Draft REST defintions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="requirements.html#currently-supported">Currently Supported</a></li>
-<li class="toctree-l2"><a class="reference internal" href="requirements.html#proposed">Proposed</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installing and updating</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Installation.html#overview">Overview</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Architecture.html">Architecture</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Architecture.html#some-thoughts">Some thoughts</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-mgmt.html">Session Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-mgmt.html#summary">Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-mgmt.html#known-issues">Known issues</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jsonflow.html">Documenting JSON flow of repo API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specindex.html">Simple spec links</a></li>
 </ul>
 </div>
-<p>And the Blog :</p>
+</div>
+<div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<p>These documents come directly from source code as API docs (ala epydoc),
+but are divided up and commented in reasonable order below.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="blog/20120723.html">Mon, 23 Jul</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="blog/20120723.html#jenkins-and-continuous-deployment">Jenkins and COntinuous Deployment</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="blog/20120724.html">Tue, 24 Jul</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="blog/20120724.html#openstack-and-rackspace">OpenStack and Rackspace</a></li>
-<li class="toctree-l2"><a class="reference internal" href="blog/20120724.html#starting-blogging">Starting Blogging !</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="viewmodelAPI.html">API for Views and models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authenticationAPI.html">Authentication API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commonAPI.html">Common functionality</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commonAPI.html#module-rhaptos2.repo.backend"><tt class="docutils literal"><span class="pre">rhaptos2.repo.backend</span></tt></a></li>
+<li class="toctree-l1"><a class="reference internal" href="commonAPI.html#module-rhaptos2.repo.configuration"><tt class="docutils literal"><span class="pre">rhaptos2.repo.configuration</span></tt></a></li>
+<li class="toctree-l1"><a class="reference internal" href="commonAPI.html#module-rhaptos2.repo.err"><tt class="docutils literal"><span class="pre">rhaptos2.repo.err</span></tt></a></li>
+<li class="toctree-l1"><a class="reference internal" href="commonAPI.html#module-rhaptos2.repo.log"><tt class="docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a></li>
+<li class="toctree-l1"><a class="reference internal" href="runAPI.html">run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runAPI.html#module-rhaptos2.repo.run"><tt class="docutils literal"><span class="pre">rhaptos2.repo.run</span></tt></a></li>
 </ul>
 </div>
-<p>And the Spec:</p>
+</div>
+<div class="section" id="misc">
+<h1>Misc.<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h1>
+<p>Here are misc notes that need to be better incorporated into the body of the
+docs.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="spec/index.html">Index for Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">Glossary</a></li>
 </ul>
 </div>
+<ol class="arabic">
+<li><p class="first">Concerns over use of &lt;li&gt; in storing data.</p>
+<p>We are using textual representations of HTML5 to store a module.
+This means we store the HTML5 of a module as part of a document
+that represents that doc and its associated metadata.</p>
+<p>THis seems to work well.</p>
+<p>We are also storing a collection using HTML5 in the body of the documnet
+- that is the tree structure of a collection is represented in one documnet
+as a seires of &lt;li&gt; nodes.</p>
+<p>Using &lt;li&gt; as nodes is of minor consequence, but there is consequence for
+storing the whole tree in one document.  Let us take for example a collection
+of three levels deep - lets choose the article on penguins in the
+Encycloipaedia Britiannica.  THe collection looks like:</p>
+<div class="highlight-python"><pre> Britannica
+ |
+  - P-O
+  |
+   - Penguin
+
+Now if Britannica is a collection (of all the volumes), and stores the whole
+tree within itself, and the P-O is another collection and stores the whole
+tree, we have two trees pointing to Penguion - and they need to be kept in
+synch.
+
+We basically cannot nest collections and store the whole tree within each</pre>
+</div>
+</li>
+</ol>
 </div>
 
 
@@ -108,14 +129,22 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="#">
-              <img class="logo" src="_static/rhaptos2userlogo.jpg" alt="Logo"/>
-            </a></p><h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="Overview.html" title="next chapter">Overview</a></li>
-  </ul></li>
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Rhaptos2.Repo - Documentation</a><ul>
 </ul>
+</li>
+<li><a class="reference internal" href="#api">API</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#misc">Misc.</a><ul>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="testing.html"
+                        title="next chapter">Testing</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/index.txt"
@@ -138,12 +167,24 @@
       </div>
       <div class="clearer"></div>
     </div>
-  <div class="footer">
-    &copy; Copyright 2012, Paul Brian.
-    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
-  </div>
-  
-  </div>
-  
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing"
+             >next</a> |</li>
+        <li><a href="#">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
   </body>
 </html>

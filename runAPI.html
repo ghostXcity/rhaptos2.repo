@@ -1,0 +1,191 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>run &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Glossary" href="glossary.html" />
+    <link rel="prev" title="Common functionality" href="commonAPI.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="glossary.html" title="Glossary"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="commonAPI.html" title="Common functionality"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="run">
+<h1>run<a class="headerlink" href="#run" title="Permalink to this headline">¶</a></h1>
+<p>How to run the repo, with different options.</p>
+</div>
+<div class="section" id="module-rhaptos2.repo.run">
+<span id="rhaptos2-repo-run"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.run" title="rhaptos2.repo.run"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.run</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.run" title="Permalink to this headline">¶</a></h1>
+<p>run.py - Launch the repo app.</p>
+<p>This is the suggested method for running a WSGI Server - we instantiate the repo
+app, and pass it to the waitress server (To be replaced by gunicorn):</p>
+<div class="highlight-python"><pre>python run.py --config=../../testing.ini</pre>
+</div>
+<dl class="docutils">
+<dt>def make_app(name, confd):</dt>
+<dd>/
+an attempt at an app_factory
+/
+open(&#8220;/tmp/log&#8221;, &#8220;a&#8221;).write(&#8220;APPFACTORYCALLED</dd>
+<dt>&#8221;)</dt>
+<dd><p class="first">app = Flask(name)
+app.config.update(confd)
+app.add_url_rule(&#8220;/&#8221;, view_func=index)
+app.add_url_rule(&#8220;/favicon&#8221;, view_func=favicon)
+app.add_url_rule(&#8220;/cms/&lt;path:path&gt;&#8221;, view_func=cms)</p>
+<p class="last">return app</p>
+</dd>
+</dl>
+<p>changes:</p>
+<ul>
+<li><p class="first">21 May 2013 - moving to avoid global app.
+We have been calling get_app which looks at the global in __init__
+I would rather use a push approach to giving individual modules config and the wsgiapp
+this will mean we can more easily run modules as standalone, more easily seperate out testing
+and fits my brain easier (this last is unlikely to apply to anyone else I admit!)</p>
+<p>currently views.py, __init__.py, run.py, auth.py have to have an wsgiapp in their global namespace</p>
+<p>By removing the &#64;route approach, and placing that, before and after requests, and the oid setup,
+in the initialisation phase of run, only run will need a wsgiapp in the global namespace, although auth.py will
+find it easier / avoid refactor of the openid approaches.</p>
+</li>
+</ul>
+<dl class="function">
+<dt id="rhaptos2.repo.run.get_app">
+<tt class="descclassname">rhaptos2.repo.run.</tt><tt class="descname">get_app</tt><big>(</big><em>opts</em>, <em>args</em>, <em>config</em>, <em>as_devserver=False</em>, <em>jslocation=None</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/run.html#get_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.run.get_app" title="Permalink to this definition">¶</a></dt>
+<dd><p>creates and sets up the app, <em>but does not run it through flask server unless told to</em>
+This intends to return a valid WSGI app to later be called by say gunicorn</p>
+<p>returns a Flask app.wsgi_app, which can be passed into wsgi chain</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.run.initialize_database">
+<tt class="descclassname">rhaptos2.repo.run.</tt><tt class="descname">initialize_database</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/run.html#initialize_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.run.initialize_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the database tables.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.run.parse_args">
+<tt class="descclassname">rhaptos2.repo.run.</tt><tt class="descname">parse_args</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/run.html#parse_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.run.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>dev server</dt>
+<dd>We have decided to put several wsgi functions into the options for the repo
+This will enable one python server to run several portions of the whole &#8220;ecosystem&#8221;
+such as the /upload/ server.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.run.wsgi_run">
+<tt class="descclassname">rhaptos2.repo.run.</tt><tt class="descname">wsgi_run</tt><big>(</big><em>app</em>, <em>opts</em>, <em>args</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/run.html#wsgi_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.run.wsgi_run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">run</a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.run"><tt class="docutils literal"><span class="pre">rhaptos2.repo.run</span></tt></a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="commonAPI.html"
+                        title="previous chapter">Common functionality</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="glossary.html"
+                        title="next chapter">Glossary</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/runAPI.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="glossary.html" title="Glossary"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="commonAPI.html" title="Common functionality"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

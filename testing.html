@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -9,7 +10,7 @@
     
     <title>Testing &mdash; rhaptos2 0.0.1 documentation</title>
     
-    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -25,21 +26,25 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
-   
-  
-  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
-
+    <link rel="next" title="Config" href="config.html" />
+    <link rel="prev" title="Rhaptos2.Repo - Documentation" href="index.html" /> 
   </head>
   <body>
-  
-  
-
     <div class="related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="config.html" title="Config"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Rhaptos2.Repo - Documentation"
+             accesskey="P">previous</a> |</li>
         <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -51,17 +56,55 @@
             
   <div class="section" id="testing">
 <h1>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h1>
-<p>We use nose.
-We have some conventions</p>
+<p>We have a WSGI app to be tested.</p>
+<p>I am using 3 approaches, which more or less marry up.</p>
+<ol class="arabic simple">
+<li>Doctests, and examples.</li>
+<li>nosetesting for webtest</li>
+<li>config passing for testing...</li>
+</ol>
 <ul class="simple">
 <li>standalone - should run with just python/rhaptos packages</li>
 <li>with network</li>
 <li>with selenium</li>
 </ul>
+<div class="section" id="to-test-locally">
+<h2>To test locally<a class="headerlink" href="#to-test-locally" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">We do not have sqllite working <a href="#id2"><span class="problematic" id="id3"><span id="id1"></span>[#]_</span></a> as a backend so <em>we must have netowrked postgres</em> working,</p>
+</li>
+<li><p class="first">apart from that run the tests as follows</p>
+</li>
+<li><p class="first">doctests:  each file individually should support testmod
+doctests can run in their own suite - they should not require netowrk access.
+This is not always true.</p>
+</li>
+<li><p class="first">functional testing of wsgi app:</p>
+<p>nosetests &#8211;tc-file=../../testing.ini runtests.py</p>
+</li>
+</ol>
+<p>This will use webtest to send requests <em>in-process</em> to the app - <em>no http calls
+are made</em>.  The app however does not know this and proceeds as if runing in a
+wsgi server.</p>
+<ol class="arabic" start="5">
+<li><p class="first">functional HTTP testing of wsgi app:</p>
+<div class="highlight-python"><pre>nosetests --tc-file=../../pbrian.ini  --tc=HTTPPROXY:http://localhost:8000/ runtests.py
+python run.py --config=../../pbrian.in</pre>
+</div>
+</li>
+</ol>
+<ol class="arabic simple" start="5">
+<li>example.txt - a demo / example of how the various bits fir together.  it is a
+doctest suite but needs integrated system</li>
+</ol>
+</div>
+<div class="section" id="config-passing">
+<h2>config passing<a class="headerlink" href="#config-passing" title="Permalink to this headline">¶</a></h2>
+<p>nose</p>
+</div>
 <div class="section" id="also">
 <h2>Also<a class="headerlink" href="#also" title="Permalink to this headline">¶</a></h2>
-<p>Use <cite>interlude &lt;&gt;_</cite>
-During development, copy the below into a doctest:</p>
+<p>Use <a class="reference external" href="http://bluedynamics.com/articles/jens/interlude-write-python-doctests-interactive">interlude</a> During development, copy the below into a doctest:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">interlude</span><span class="p">;</span> <span class="n">interlude</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
 </pre></div>
 </div>
@@ -77,6 +120,9 @@ Just use the shell to develop, check, test etc.  Its using locals() <em>in</em> 
 </table>
 <p><a class="reference external" href="http://ivory.idyll.org/articles/nose-intro.html">http://ivory.idyll.org/articles/nose-intro.html</a></p>
 </div>
+<div class="section" id="footnotes">
+<h2>footnotes<a class="headerlink" href="#footnotes" title="Permalink to this headline">¶</a></h2>
+</div>
 </div>
 
 
@@ -85,21 +131,23 @@ Just use the shell to develop, check, test etc.  Its using locals() <em>in</em> 
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="index.html">
-              <img class="logo" src="_static/rhaptos2userlogo.jpg" alt="Logo"/>
-            </a></p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Testing</a><ul>
+<li><a class="reference internal" href="#to-test-locally">To test locally</a></li>
+<li><a class="reference internal" href="#config-passing">config passing</a></li>
 <li><a class="reference internal" href="#also">Also</a></li>
+<li><a class="reference internal" href="#footnotes">footnotes</a></li>
 </ul>
 </li>
 </ul>
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Rhaptos2.Repo - Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="config.html"
+                        title="next chapter">Config</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/testing.txt"
@@ -122,10 +170,27 @@ Just use the shell to develop, check, test etc.  Its using locals() <em>in</em> 
       </div>
       <div class="clearer"></div>
     </div>
-  <div class="footer">
-    &copy; Copyright 2012, Paul Brian.
-    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
-  </div>
-  
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="config.html" title="Config"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Rhaptos2.Repo - Documentation"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
   </body>
 </html>

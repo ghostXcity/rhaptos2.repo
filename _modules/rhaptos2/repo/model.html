@@ -1,0 +1,695 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.model &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.model</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">###</span>
+<span class="c"># Copyright (c) Rice University 2012-13</span>
+<span class="c"># This software is subject to</span>
+<span class="c"># the provisions of the GNU Affero General</span>
+<span class="c"># Public License version 3 (AGPLv3).</span>
+<span class="c"># See LICENCE.txt for details.</span>
+<span class="c">###</span>
+
+
+<span class="sd">&quot;&quot;&quot;dbase-backed models for content on unpub repositories</span>
+<span class="sd">-----------------------------------------------------</span>
+
+<span class="sd">This module provides the class defintions for</span>
+
+<span class="sd">* :class:`Module`</span>
+<span class="sd">* :class:`Folder`</span>
+<span class="sd">* :class:`Collection`</span>
+
+<span class="sd">These are backd onto SQLAlchemy foundations and then onto PostgresQL</span>
+<span class="sd">database.  An explcit use of the ARRAY datatype in postgres limits the</span>
+<span class="sd">ability to swap out backends.</span>
+
+<span class="sd">Security</span>
+<span class="sd">--------</span>
+
+<span class="sd">We expect to receive a HTTP HEADER (REMOTE_USER / X-Fake-CNXUser) with</span>
+<span class="sd">a user-uri</span>
+
+<span class="sd">A cnx user-uri is in the glossary (!)</span>
+
+<span class="sd">.. todo::</span>
+<span class="sd">   We may need to write a custom handfler for sqlite3 to deal</span>
+<span class="sd">   with ARRAY typoes to make on local dev machine testing easier.</span>
+
+
+
+
+<span class="sd">models:  I am trying to keep things simple.  This may not be a good idea.</span>
+
+<span class="sd">each model is a class, based on a SQLAlchemy foundation with :class:CNXBase</span>
+<span class="sd">as a extra inheritence.  This CNXBase gives us to and from json capabilities,</span>
+<span class="sd">but each model has to manually override to and from json calls if</span>
+
+
+<span class="sd">What is the same about each model / class</span>
+
+<span class="sd">1. They have only themselves - there are no child tables needing</span>
+<span class="sd">   hierarchialcly handling.  If this was needed we should look at</span>
+<span class="sd">   rhaptos2.user for the approach - pretty simple, just modiufy the</span>
+<span class="sd">   from and to dict calls</span>
+
+<span class="sd">2. They are representing *resources* - that is a entity we want to</span>
+<span class="sd">   have some form of access control over.  So we use the generic-ish</span>
+<span class="sd">   approach of userroles - see below.</span>
+
+
+<span class="sd">3. THey are all ID&#39;d by URI</span>
+
+
+<span class="sd">Note on json - the obvious generic approach, of traversing the SQLA</span>
+<span class="sd">model and converting to/from JSON automagically has so far failed.</span>
+<span class="sd">There are no sensible approaches &quot;out there&quot;, seemingly because the</span>
+<span class="sd">obvious approaches (iter) have already been hijacked by SQLA and</span>
+<span class="sd">the edge cases are producing weird effects.</span>
+
+
+<span class="sd">So, this basically implies a protocol for objects / classes</span>
+
+<span class="sd">1. support creater_uri= in your constructor</span>
+<span class="sd">2. override fomr and to json SQLA where needed</span>
+<span class="sd">3. Support ACLs</span>
+<span class="sd">4. err ....</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ForeignKey</span><span class="p">,</span>
+                        <span class="n">Column</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span>
+                        <span class="n">Enum</span><span class="p">,</span> <span class="n">DateTime</span><span class="p">,</span>
+                        <span class="n">UniqueConstraint</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">relationship</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="kn">import</span> <span class="n">ARRAY</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">cnxbase</span> <span class="kn">import</span> <span class="n">CNXBase</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">dolog</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo.backend</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db_session</span>
+<span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Rhaptos2Error</span><span class="p">,</span>
+                 <span class="n">Rhaptos2SecurityError</span><span class="p">,</span>
+                 <span class="n">Rhaptos2AccessNotAllowedError</span><span class="p">,</span>
+                 <span class="n">Rhaptos2HTTPStatusError</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">abort</span>
+
+<span class="c">################## COLLECTIONS #############################</span>
+
+
+<div class="viewcode-block" id="UserRoleCollection"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.UserRoleCollection">[docs]</a><span class="k">class</span> <span class="nc">UserRoleCollection</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The roles and users assigned for a given folder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;userrole_collection&#39;</span>
+    <span class="n">collection_uuid</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;cnxcollection.id_&#39;</span><span class="p">),</span>
+                             <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">user_uri</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">role_type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Enum</span><span class="p">(</span><span class="s">&#39;aclrw&#39;</span><span class="p">,</span> <span class="s">&#39;aclro&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;cnxrole_type&quot;</span><span class="p">),</span>
+                       <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">beginDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">endDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>  <span class="c"># noqa</span>
+    <span class="n">UniqueConstraint</span><span class="p">(</span><span class="n">collection_uuid</span><span class="p">,</span> <span class="n">user_uri</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;uniq_collection_user&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">role_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_uri</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Collection"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.Collection">[docs]</a><span class="k">class</span> <span class="nc">Collection</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;cnxcollection&#39;</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">subType</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">subjects</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">keywords</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">authors</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">maintainers</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">copyrightHolders</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">acl</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+
+    <span class="n">body</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">mediaType</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+
+    <span class="n">userroles</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s">&quot;UserRoleCollection&quot;</span><span class="p">,</span>
+                             <span class="n">backref</span><span class="o">=</span><span class="s">&quot;cnxcollection&quot;</span><span class="p">,</span>
+                             <span class="n">cascade</span><span class="o">=</span><span class="s">&quot;all, delete-orphan&quot;</span><span class="p">)</span>
+    
+    <span class="c">### cheat to ensure can use a CNXBase function instead of 3 repeted code chunks</span>
+    <span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleCollection</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">creator_uuid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleCollection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mediaType</span> <span class="o">=</span> <span class="s">&quot;application/vnd.org.cnx.collection&quot;</span>
+        <span class="k">if</span> <span class="n">creator_uuid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="n">UserRoleCollection</span><span class="p">,</span>
+                             <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">creator_uuid</span><span class="p">,</span> <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
+                             <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">creator_uuid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Foldersmust be created with a creator UUID &quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">id_</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="s">&quot;cnxcollection:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utcnow</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Col:(</span><span class="si">%s</span><span class="s">)-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+
+    <span class="c"># def set_acls(self, owner_uuid, aclsd):</span>
+    <span class="c">#     &quot;&quot;&quot;allow each Folder / collection class to have a set_acls</span>
+    <span class="c">#     call, but catch here and then pass generic function the right</span>
+    <span class="c">#     UserRoleX klass.  Still want to find way to generically follow</span>
+    <span class="c">#     sqla</span>
+
+    <span class="c">#     &quot;&quot;&quot;</span>
+
+    <span class="c">#     super(Collection, self).set_acls(owner_uuid, aclsd,</span>
+    <span class="c">#                                      UserRoleCollection)</span>
+    <span class="c">#     db_session.add(self)</span>
+    <span class="c">#     db_session.commit()</span>
+
+
+        
+
+<span class="c">################# Modules ##################################</span>
+</div>
+<div class="viewcode-block" id="UserRoleModule"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.UserRoleModule">[docs]</a><span class="k">class</span> <span class="nc">UserRoleModule</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;The roles and users assigned for a given folder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;userrole_module&#39;</span>
+    <span class="n">module_uri</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;cnxmodule.id_&#39;</span><span class="p">),</span>
+                        <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">user_uri</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">role_type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Enum</span><span class="p">(</span><span class="s">&#39;aclrw&#39;</span><span class="p">,</span> <span class="s">&#39;aclro&#39;</span><span class="p">,</span>
+                            <span class="n">name</span><span class="o">=</span><span class="s">&quot;cnxrole_type&quot;</span><span class="p">),</span>
+                       <span class="p">)</span>
+    <span class="n">beginDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">endDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>  <span class="c"># noqa</span>
+    <span class="n">UniqueConstraint</span><span class="p">(</span><span class="n">module_uri</span><span class="p">,</span> <span class="n">user_uri</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;uniq_mod_user&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">role_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_uri</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Module"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.Module">[docs]</a><span class="k">class</span> <span class="nc">Module</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    &gt;&gt;&gt; #test we can autogen a uuid</span>
+<span class="sd">    &gt;&gt;&gt; m = Module(id_=None, creator_uuid=&quot;cnxuser:1234&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; m.mediaType</span>
+<span class="sd">    &#39;application/vnd.org.cnx.module&#39;</span>
+<span class="sd">    &gt;&gt;&gt; j = m.jsonify(&quot;cnxuser:1234&quot;)</span>
+<span class="sd">    {...</span>
+<span class="sd">    &gt;&gt;&gt; d = json.loads(j)</span>
+<span class="sd">    &gt;&gt;&gt; assert &#39;id&#39; in d.keys()</span>
+<span class="sd">    &gt;&gt;&gt; assert &#39;mediaType&#39; in d.keys()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;cnxmodule&#39;</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">authors</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">maintainers</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">copyrightHolders</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">acl</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">subType</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">subjects</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">keywords</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+
+    <span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">mediaType</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+
+    <span class="n">userroles</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s">&quot;UserRoleModule&quot;</span><span class="p">,</span>
+                             <span class="n">backref</span><span class="o">=</span><span class="s">&quot;cnxmodule&quot;</span><span class="p">,</span>
+                             <span class="n">cascade</span><span class="o">=</span><span class="s">&quot;all, delete-orphan&quot;</span><span class="p">)</span>
+    <span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleModule</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">creator_uuid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        setup a Module - validate given ID, extract data from db if needed</span>
+<span class="sd">        add role for owner, create id if needed (ie new Module) and</span>
+<span class="sd">        then save the lot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleModule</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mediaType</span> <span class="o">=</span> <span class="s">&quot;application/vnd.org.cnx.module&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">validateid</span><span class="p">(</span><span class="n">id_</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s"> not valid id&quot;</span> <span class="o">%</span> <span class="n">id_</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">creator_uuid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="n">UserRoleModule</span><span class="p">,</span>
+                             <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">creator_uuid</span><span class="p">,</span> <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
+                             <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">creator_uuid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Modules need owner provided at init &quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">id_</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="s">&quot;cnxmodule:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utcnow</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span><span class="c">#trigger all SQLA Base calss inits.</span>
+        <span class="c">#self.save(db_session) #SAve to disk.</span>
+        
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Module:(</span><span class="si">%s</span><span class="s">)-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+
+    <span class="c"># def set_acls(self, owner_uuid, aclsd):</span>
+    <span class="c">#     &quot;&quot;&quot;allow each Module class to have a set_acls call, but catch</span>
+    <span class="c">#         here and then pass generic function the right UserRoleX</span>
+    <span class="c">#         klass.  Still want to find way to generically follow</span>
+    <span class="c">#         sqla</span>
+
+    <span class="c">#     &quot;&quot;&quot;</span>
+
+    <span class="c">#     super(Module, self).set_acls(owner_uuid, aclsd, UserRoleModule)</span>
+    <span class="c">#     db_session.add(self)</span>
+    <span class="c">#     db_session.commit()</span>
+
+
+<span class="c">################## FOLDERS #################################</span>
+</div>
+<div class="viewcode-block" id="UserRoleFolder"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.UserRoleFolder">[docs]</a><span class="k">class</span> <span class="nc">UserRoleFolder</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The roles and users assigned for a given folder</span>
+
+<span class="sd">    We have following Roles: Owner, Maintainer, XXX</span>
+
+
+<span class="sd">    :todo: storing timezones naively here needs fixing</span>
+
+
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;userrole_folder&#39;</span>
+    <span class="n">folder_uuid</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;cnxfolder.id_&#39;</span><span class="p">),</span>
+                         <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">user_uri</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">role_type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Enum</span><span class="p">(</span><span class="s">&#39;aclrw&#39;</span><span class="p">,</span> <span class="s">&#39;aclro&#39;</span><span class="p">,</span>
+                       <span class="n">name</span><span class="o">=</span><span class="s">&quot;cnxrole_type&quot;</span><span class="p">),</span>
+                       <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">beginDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">endDateUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">UniqueConstraint</span><span class="p">(</span><span class="n">folder_uuid</span><span class="p">,</span> <span class="n">user_uri</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;uniq_fldr_user&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">role_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_uri</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Folder"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.Folder">[docs]</a><span class="k">class</span> <span class="nc">Folder</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">CNXBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;FOlder Class inheriting from SQLAlchemy and from a CNXBase</span>
+<span class="sd">    class to get a few generic functions.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&#39;cnxfolder&#39;</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+    <span class="n">mediaType</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">)</span>
+    <span class="n">acl</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">String</span><span class="p">))</span>
+    <span class="n">userroles</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s">&quot;UserRoleFolder&quot;</span><span class="p">,</span>
+                             <span class="n">backref</span><span class="o">=</span><span class="s">&quot;cnxfolder&quot;</span><span class="p">,</span>
+                             <span class="n">cascade</span><span class="o">=</span><span class="s">&quot;all, delete-orphan&quot;</span><span class="p">)</span>
+    
+    <span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleFolder</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">creator_uuid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+        <span class="c">### A cheat really - need to access this later on and not sure how to extrac t from SQLA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span> <span class="o">=</span> <span class="n">UserRoleFolder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mediaType</span> <span class="o">=</span> <span class="s">&quot;application/vnd.org.cnx.folder&quot;</span>
+
+        <span class="k">if</span> <span class="n">creator_uuid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="n">UserRoleFolder</span><span class="p">,</span>
+                             <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">creator_uuid</span><span class="p">,</span> <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
+                             <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">creator_uuid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Foldersmust be created with a creator UUID &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">id_</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="s">&quot;cnxfolder:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utcnow</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Folder:(</span><span class="si">%s</span><span class="s">)-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+
+    <span class="c"># def set_acls(self, owner_uuid, aclsd):</span>
+    <span class="c">#     &quot;&quot;&quot;allow each Folder / collection class to have a set_acls</span>
+    <span class="c">#     call, but catch here and then pass generic function the right</span>
+    <span class="c">#     UserRoleX klass.  Still want to find way to generically follow</span>
+    <span class="c">#     sqla.</span>
+
+    <span class="c">#     &quot;&quot;&quot;</span>
+    <span class="c">#     super(Folder, self).set_acls(owner_uuid, aclsd, UserRoleFolder)</span>
+    <span class="c">#     db_session.add(self)</span>
+    <span class="c">#     db_session.commit()</span>
+
+         
+
+            
+    <span class="k">def</span> <span class="nf">__complex__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">softform</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;overwrite the std __complex__, and become recursive</span>
+
+<span class="sd">        The &quot;body&quot; of a folder is a array of uris to other items (list of</span>
+<span class="sd">        pointers) we only care at this point</span>
+
+<span class="sd">        softform = returning not only the list of pointers, but also data</span>
+<span class="sd">                   about the items pointed to (ie title, mediatype)</span>
+
+<span class="sd">                   This is the default for a folder, and is private</span>
+<span class="sd">                   to indicate we have no plans to change this for now.</span>
+
+
+<span class="sd">        CURRENTLY NOT RECURSIVE - folders are limited to one level by policy.</span>
+<span class="sd">        If this was a collection, and collections did not store body as &#39;li&#39;</span>
+<span class="sd">        then would a recursive descnet beyond one level be appropriate?  FIXME -</span>
+<span class="sd">        implement a recursive base class that folder and collection use.</span>
+
+<span class="sd">        NB - the shortform exhibits *surprising* behaviour</span>
+<span class="sd">        If it encounters a missing link (ie folder links to a module that not exist)</span>
+<span class="sd">        it will drop it on the floor - hence its possible for database to hold 6 mdoules in a folder</span>
+<span class="sd">        and none will be returned.</span>
+
+<span class="sd">        FIXME - this really needs a debate.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">softform</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Folder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">softform</span><span class="p">)</span>
+
+        <span class="n">short_format_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">urn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">subfolder</span> <span class="o">=</span> <span class="n">obj_from_urn</span><span class="p">(</span><span class="n">urn</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+                    <span class="n">short_format_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;id&quot;</span><span class="p">:</span> <span class="n">subfolder</span><span class="o">.</span><span class="n">id_</span><span class="p">,</span>
+                                              <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="n">subfolder</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                                              <span class="s">&quot;mediaType&quot;</span><span class="p">:</span> <span class="n">subfolder</span><span class="o">.</span><span class="n">mediaType</span><span class="p">})</span>
+                    <span class="c">### exceptions: if you cannot read a single child item</span>
+                    <span class="c">### we still want to return rest of the folder</span>
+                <span class="k">except</span> <span class="n">Rhaptos2SecurityError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Error thrown in folder recursion </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">Rhaptos2Error</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Error thrown in folder recursion </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="c"># todo: should we be ignoring bnroken links??</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="c">## so get the object as a json-suitable python object</span>
+        <span class="c">## now alter the body to be the result of recursive ouutpu</span>
+        <span class="n">fldr</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Folder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+        <span class="n">fldr</span><span class="p">[</span><span class="s">&#39;body&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">short_format_list</span>
+        <span class="k">return</span> <span class="n">fldr</span>
+
+</div>
+<div class="viewcode-block" id="klass_from_uri"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.klass_from_uri">[docs]</a><span class="k">def</span> <span class="nf">klass_from_uri</span><span class="p">(</span><span class="n">URI</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the callable klass that corresponds to a URI</span>
+
+<span class="sd">    &gt;&gt;&gt; c = klass_from_uri(&quot;cnxfolder:1234&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; c</span>
+<span class="sd">    &lt;class &#39;__main__.Folder&#39;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; c = klass_from_uri(&quot;cnxfolder:&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; c</span>
+<span class="sd">    &lt;class &#39;__main__.Folder&#39;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; c = klass_from_uri(&quot;cnxfolder:1234/acl/cnxuser:123456&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; c</span>
+<span class="sd">    &lt;class &#39;__main__.Folder&#39;&gt;</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mapper</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;cnxfolder&quot;</span><span class="p">:</span> <span class="n">Folder</span><span class="p">,</span>
+              <span class="s">&quot;cnxcollection&quot;</span><span class="p">:</span> <span class="n">Collection</span><span class="p">,</span>
+              <span class="s">&quot;cnxmodule&quot;</span><span class="p">:</span> <span class="n">Module</span><span class="p">,</span>
+              <span class="c">#              &quot;cnxuser&quot;: User,</span>
+              <span class="p">}</span>
+    <span class="c">## get first part of uri even if :folder: or folfer:</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">URI</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="s">&quot;&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">mapper</span><span class="p">[</span><span class="n">val</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="obj_from_urn"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.obj_from_urn">[docs]</a><span class="k">def</span> <span class="nf">obj_from_urn</span><span class="p">(</span><span class="n">URN</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">klass</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    THis is the refactored version of get_by_id</span>
+
+<span class="sd">    URN</span>
+<span class="sd">      cnxmodule:1234-5678</span>
+
+<span class="sd">    requesting_user_urn</span>
+<span class="sd">      cnxuser:1234-5678</span>
+
+<span class="sd">    I have reservations about encoding the type in the ID string.</span>
+<span class="sd">    But not many.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">klass</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">klass</span> <span class="o">=</span> <span class="n">klass_from_uri</span><span class="p">(</span><span class="n">URN</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Failed getting klass </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">URN</span><span class="p">)</span>
+            <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">q</span> <span class="o">=</span> <span class="n">db_session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">klass</span><span class="o">.</span><span class="n">id_</span> <span class="o">==</span> <span class="n">URN</span><span class="p">)</span>
+    <span class="n">rs</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;ID Not found in this repo&quot;</span><span class="p">)</span>
+    <span class="c">### There is  a uniq constraint on the table, but anyway...</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Too many matches&quot;</span><span class="p">)</span>
+
+    <span class="n">newu</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">change_approval</span><span class="p">(</span><span class="n">newu</span><span class="p">,</span> <span class="p">{},</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="s">&quot;GET&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2AccessNotAllowedError</span><span class="p">(</span><span class="s">&quot;user </span><span class="si">%s</span><span class="s"> not allowed access to </span><span class="si">%s</span><span class="s">&quot;</span>
+                                            <span class="o">%</span> <span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">,</span>
+                                                <span class="n">URN</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">newu</span>
+
+
+<span class="c"># def get_by_id(klass, ID, useruri):</span>
+<span class="c">#     &quot;&quot;&quot;</span>
+
+<span class="c">#     refactoring:</span>
+<span class="c">#     ID -&gt; uri</span>
+<span class="c">#     Then use uri -&gt; klass to get klass needed</span>
+<span class="c">#     Then do not abort but raise capturable error.</span>
+<span class="c">#     THen pass useruri all way through.</span>
+
+<span class="c">#     &quot;&quot;&quot;</span>
+<span class="c">#     q = db_session.query(klass)</span>
+<span class="c">#     q = q.filter(klass.id_ == ID)</span>
+<span class="c">#     rs = q.all()</span>
+<span class="c">#     if len(rs) == 0:</span>
+<span class="c"># #        raise Rhaptos2Error(&quot;ID Not found in this repo&quot;)</span>
+<span class="c">#         abort(404)</span>
+<span class="c">#     ### There is a uniq constraint on the table, but anyway...</span>
+<span class="c">#     if len(rs) &gt; 1:</span>
+<span class="c">#         raise Rhaptos2Error(&quot;Too many matches&quot;)</span>
+
+<span class="c">#     newu = rs[0]</span>
+<span class="c">#     if not change_approval(newu, {}, useruri, &quot;GET&quot;):</span>
+<span class="c">#         abort(403)</span>
+<span class="c">#     return newu</span>
+
+</div>
+<div class="viewcode-block" id="post_o"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.post_o">[docs]</a><span class="k">def</span> <span class="nf">post_o</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">incomingd</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a dict representing the complete set</span>
+<span class="sd">    of fields then create a new user and those fields</span>
+
+<span class="sd">    I am getting a dictionary direct form Flask request object - want</span>
+<span class="sd">    to handle that myself with parser.</span>
+
+<span class="sd">    returns User object, for later saveing to DB&quot;&quot;&quot;</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">klass</span><span class="p">(</span><span class="n">creator_uuid</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+
+    <span class="c"># parser = verify_schema_version(None)</span>
+    <span class="c"># incomingd = parser(json_str)</span>
+    <span class="n">u</span><span class="o">.</span><span class="n">populate_self</span><span class="p">(</span><span class="n">incomingd</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">change_approval</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">incomingd</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="s">&quot;POST&quot;</span><span class="p">):</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">403</span><span class="p">)</span>
+    <span class="n">u</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">db_session</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">u</span>
+
+
+<span class="c"># def acl_setter(klass, uri, requesting_user_uri, acls_list):</span>
+<span class="c">#     &quot;&quot;&quot; &quot;&quot;&quot;</span>
+<span class="c">#     obj = get_by_id(klass, uri, requesting_user_uri)</span>
+<span class="c">#     if not change_approval(obj, None, requesting_user_uri, &quot;PUT&quot;):</span>
+<span class="c">#         abort(403)</span>
+<span class="c">#     obj.set_acls(requesting_user_uri, acls_list)</span>
+<span class="c">#     return obj</span>
+
+</div>
+<div class="viewcode-block" id="put_o"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.put_o">[docs]</a><span class="k">def</span> <span class="nf">put_o</span><span class="p">(</span><span class="n">jsond</span><span class="p">,</span> <span class="n">klass</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a user_id, and a json_str representing the &quot;Updated&quot; fields</span>
+<span class="sd">       then update those fields for that user_id &quot;&quot;&quot;</span>
+
+    <span class="n">uobj</span> <span class="o">=</span> <span class="n">obj_from_urn</span><span class="p">(</span><span class="n">ID</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">change_approval</span><span class="p">(</span><span class="n">uobj</span><span class="p">,</span> <span class="n">jsond</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="s">&quot;PUT&quot;</span><span class="p">):</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Failed change approval </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ID</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">))</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">403</span><span class="p">)</span>
+    <span class="c">#.. todo:: parser = verify_schema_version(None)</span>
+    <span class="n">uobj</span><span class="o">.</span><span class="n">populate_self</span><span class="p">(</span><span class="n">jsond</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+    <span class="n">uobj</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">db_session</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">uobj</span>
+
+</div>
+<div class="viewcode-block" id="delete_o"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.delete_o">[docs]</a><span class="k">def</span> <span class="nf">delete_o</span><span class="p">(</span><span class="n">resource_uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+    <span class="n">fldr</span> <span class="o">=</span> <span class="n">obj_from_urn</span><span class="p">(</span><span class="n">resource_uri</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">change_approval</span><span class="p">(</span><span class="n">fldr</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="s">&quot;DELETE&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2AccessNotAllowedError</span><span class="p">(</span>
+            <span class="s">&quot;User </span><span class="si">%s</span><span class="s"> cannot delete </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">,</span>
+                                          <span class="n">resource_uri</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fldr</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">db_session</span><span class="p">)</span>
+
+</div>
+<span class="k">def</span> <span class="nf">close_session</span><span class="p">():</span>
+    <span class="n">db_session</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="change_approval"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.change_approval">[docs]</a><span class="k">def</span> <span class="nf">change_approval</span><span class="p">(</span><span class="n">uobj</span><span class="p">,</span> <span class="n">jsond</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">requesttype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    is the change valid for the given ACL context?</span>
+<span class="sd">    returns True / False</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">uobj</span><span class="o">.</span><span class="n">is_action_auth</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="n">requesttype</span><span class="p">,</span>
+                               <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="workspace_by_user"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.model.workspace_by_user">[docs]</a><span class="k">def</span> <span class="nf">workspace_by_user</span><span class="p">(</span><span class="n">user_uri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Its at times like these I just want to pass SQL in... &quot;&quot;&quot;</span>
+
+    <span class="n">qm</span> <span class="o">=</span> <span class="n">db_session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Module</span><span class="p">)</span>
+    <span class="n">qm</span> <span class="o">=</span> <span class="n">qm</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Module</span><span class="o">.</span><span class="n">userroles</span><span class="p">)</span>
+    <span class="n">qm</span> <span class="o">=</span> <span class="n">qm</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">UserRoleModule</span><span class="o">.</span><span class="n">user_uri</span> <span class="o">==</span> <span class="n">user_uri</span><span class="p">)</span>
+    <span class="n">rs1</span> <span class="o">=</span> <span class="n">qm</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">qf</span> <span class="o">=</span> <span class="n">db_session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Folder</span><span class="p">)</span>
+    <span class="n">qf</span> <span class="o">=</span> <span class="n">qf</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Folder</span><span class="o">.</span><span class="n">userroles</span><span class="p">)</span>
+    <span class="n">qf</span> <span class="o">=</span> <span class="n">qf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">UserRoleFolder</span><span class="o">.</span><span class="n">user_uri</span> <span class="o">==</span> <span class="n">user_uri</span><span class="p">)</span>
+    <span class="n">rs2</span> <span class="o">=</span> <span class="n">qf</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">qc</span> <span class="o">=</span> <span class="n">db_session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Collection</span><span class="p">)</span>
+    <span class="n">qc</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Collection</span><span class="o">.</span><span class="n">userroles</span><span class="p">)</span>
+    <span class="n">qc</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">UserRoleCollection</span><span class="o">.</span><span class="n">user_uri</span> <span class="o">==</span> <span class="n">user_uri</span><span class="p">)</span>
+    <span class="n">rs3</span> <span class="o">=</span> <span class="n">qc</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">rs1</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rs2</span><span class="p">)</span>
+    <span class="n">rs1</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rs3</span><span class="p">)</span>
+    <span class="n">db_session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>  <span class="c"># hail mary...</span>
+    <span class="k">return</span> <span class="n">rs1</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span>
+        <span class="n">optionflags</span><span class="o">=</span><span class="n">doctest</span><span class="o">.</span><span class="n">REPORT_ONLY_FIRST_FAILURE</span> <span class="o">|</span> <span class="n">doctest</span><span class="o">.</span><span class="n">ELLIPSIS</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

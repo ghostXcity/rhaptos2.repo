@@ -1,0 +1,269 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Session Management &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Documenting JSON flow of repo API" href="jsonflow.html" />
+    <link rel="prev" title="Config" href="config.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="jsonflow.html" title="Documenting JSON flow of repo API"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="config.html" title="Config"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="session-management">
+<h1>Session Management<a class="headerlink" href="#session-management" title="Permalink to this headline">¶</a></h1>
+</div>
+<div class="section" id="summary">
+<h1>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h1>
+<p>Session management in the repo has been poor for a long time, and it
+has made testing of the various functionalities more awkward and
+requiring more brain use by developer and test suite than needed.</p>
+<p>There is a branch (session-cookie-approach) that hopefully fixes this.</p>
+<p>We shall provide sensible, secure session management (to decide if a browser has
+previously authenticated) and linked to that flow-control that makes decisions
+based on the session management such as presenting a login screen, a
+registration screen or whatever we need.</p>
+<div class="section" id="what-is-a-session">
+<h2>What is a session?<a class="headerlink" href="#what-is-a-session" title="Permalink to this headline">¶</a></h2>
+<p>A session here is a defined period of time in which a CNX server will accept
+a random number string as a <em>password-replacement/proxy</em> for each HTTP request received.</p>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The session shall be activated after a registered user logs in to the repo (via
+openid) and the session will be assigned a UUID, which shall be stored on the
+users browser as a cookie, and also cached in a postgres dbase where the users
+details will be the value to the UUID key.</p>
+<p>Every time the user represents their cookie we shall look up the user details in
+the cache, take any appropriate flow-control action (session timed out ?
+relogin?) and then store the user details in the request for later use.</p>
+<p>Issues such as deleting sessions, retrieving the correct dicts etc are also handled, with some known issues (see below).</p>
+<div class="section" id="sessions">
+<h3>Sessions<a class="headerlink" href="#sessions" title="Permalink to this headline">¶</a></h3>
+<p>Please see <tt class="xref py py-mod docutils literal"><span class="pre">sessioncache</span></tt> for details.</p>
+</div>
+</div>
+<div class="section" id="authentication-flow-and-sessions">
+<h2>Authentication flow and sessions.<a class="headerlink" href="#authentication-flow-and-sessions" title="Permalink to this headline">¶</a></h2>
+<p>Sessions are just a convenient way of allowing a user to signon once only.
+The flow of authentication is a little more convulited</p>
+<p>please see <a class="reference internal" href="authenticationAPI.html#rhaptos2.repo.auth.handle_user_authentication" title="rhaptos2.repo.auth.handle_user_authentication"><tt class="xref py py-func docutils literal"><span class="pre">rhaptos2.repo.auth.handle_user_authentication()</span></tt></a></p>
+</div>
+<div class="section" id="difference-between-session-sign-on-and-single-sign-on">
+<h2>Difference between <tt class="docutils literal"><span class="pre">session</span> <span class="pre">sign</span> <span class="pre">on</span></tt> and <tt class="docutils literal"><span class="pre">Single</span> <span class="pre">Sign</span> <span class="pre">On</span></tt><a class="headerlink" href="#difference-between-session-sign-on-and-single-sign-on" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">repo</span></tt> manages its own login (openid) and sessions (sessioncache) The user
+will sign in once and then be given a sessionid.  We will lookup the user from
+the the id as long as the session is valid.</p>
+<p>If another service (<tt class="docutils literal"><span class="pre">transformations</span></tt>) receives a request from the user how
+should we validate the user request - should the session cookie be tested
+against the repo session cache locally?</p>
+<p>What if the repo calls the transformation serivce to act on behalf of the user
+- what should we send from repo to transformations - the sessionid? Another api
+token created alongside sseession? Where does the lookup occur.</p>
+<p>THere are two main phases</p>
+<ul class="simple">
+<li>validate already set-up sessions and proceed correctly</li>
+<li>Create and destroy sessions, existing or none (ie login and out)</li>
+</ul>
+</div>
+</div>
+<div class="section" id="known-issues">
+<h1>Known issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>I am not handling the situation of user signing in twice.</li>
+<li>I am not handling registraftion (co-ordinate with michael)</li>
+<li>I am not setting cookie expires ...</li>
+<li>I <em>am</em> setting httponly</li>
+<li>&#8216;SSL&#8217; * 443</li>
+</ul>
+<div class="section" id="what-is-wrong-with-current-setup">
+<h2>What is wrong with current setup?<a class="headerlink" href="#what-is-wrong-with-current-setup" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>NO session cache, which was to be redis but never came in.  We are storing
+the users OpenID identifier.  This is a massive security hole.</li>
+<li>reliance on Flask security session implementation.  THere are a number of
+reasons to be disatissfied with this, the first is the secret key is a single
+phrase, in config.</li>
+<li>No clear migration away from Flask.</li>
+<li>The awful temptation to put more and more stuff in session cookies for &#8220;ease&#8221; and &#8220;scalbility&#8221;.</li>
+</ol>
+<p>Primarily I am frustrated in testing ACLs, and in creating /resources/ - whoch would be again reliant on a broken session implementation.</p>
+</div>
+<div class="section" id="what-about-api-tokens">
+<h2>What about API Tokens?<a class="headerlink" href="#what-about-api-tokens" title="Permalink to this headline">¶</a></h2>
+<p>Did we not discuss these at the Sprint?
+Yes.  &#8220;Single Sign On&#8221; is better decribed as &#8220;Once Only Sign On, many systems&#8221;
+A session is a once-only sign on for a single (local) system.
+We shall need to have an alternative API token approach for other systems
+taht want to use the same sign on as authentication.  Examples wanted.</p>
+</div>
+<div class="section" id="testing-issues">
+<h2>Testing issues<a class="headerlink" href="#testing-issues" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">Creation of a &#8220;fake-login-API&#8221;. During testing <em>only</em> (ie a flag set)
+we can visit a API page, and get a valid session cookie for one of a
+number of pre-defined users.</p>
+<p>This now exists as <tt class="docutils literal"><span class="pre">/autosession</span></tt>.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="why-do-you-not-encrypt-the-session-id-in-the-cookie">
+<h2>Why do you not encrypt the session ID in the cookie?<a class="headerlink" href="#why-do-you-not-encrypt-the-session-id-in-the-cookie" title="Permalink to this headline">¶</a></h2>
+<p>Mostly because I know bupkiss about encryption.  No really I can do AES with
+OpenSSH just fine, but did I do it right? Did I rotate my encryption keys with
+each user? Did I use cyclic or block level encryption? Which one is which again?
+Am I handing out an oracle? (The last one is yes)</p>
+<p>Here is a simple argument - I contend that to correctly and securely encrypt
+anything sent client side, when any one client could be an attacker, one should have a salt/key unique to each user.</p>
+<p>This simple and reasonable request destroys the main argument for sticking
+session details like isAdmin and UserName into a encrypted cookie - that it
+simplifies distributed architecture (I can let client connect to any web server,
+and I will still have the session state in the cookie, <em>no need for a database
+lookup</em>)</p>
+<p>Well the minute we need to get a unique salt for a user, we are back to database
+lookups, and just as frequently as session lookups.</p>
+<p>Anyway, enough round the houses, I don&#8217;t know enough about securing encrypted
+services with part of the service under complete control of the attacker, to be
+sure I have not screwed it up.  So I wont do it till I do, and even then <em>all we
+should store</em> is the session ID.</p>
+<div class="section" id="a-neat-trick">
+<h3>A neat trick<a class="headerlink" href="#a-neat-trick" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes it is desireable to set a cookie in your browser - chrome enables us
+to do this as follows:</p>
+<ol class="arabic simple">
+<li>navigate to the domain &amp; path desired (i.e. &#8220;/&#8221; in most cases)</li>
+<li>enter <tt class="docutils literal"><span class="pre">javascript:document.cookie=&quot;name=value&quot;</span></tt> in the address bar &amp; return</li>
+<li>you should then revisit the domain, and hey presto you have a cookie</li>
+</ol>
+<p>Thanks to <a class="reference external" href="http://blog.nategood.com/quickly-add-and-edit-cookies-in-chrome">http://blog.nategood.com/quickly-add-and-edit-cookies-in-chrome</a></p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Session Management</a></li>
+<li><a class="reference internal" href="#summary">Summary</a><ul>
+<li><a class="reference internal" href="#what-is-a-session">What is a session?</a></li>
+<li><a class="reference internal" href="#overview">Overview</a><ul>
+<li><a class="reference internal" href="#sessions">Sessions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#authentication-flow-and-sessions">Authentication flow and sessions.</a></li>
+<li><a class="reference internal" href="#difference-between-session-sign-on-and-single-sign-on">Difference between <tt class="docutils literal"><span class="pre">session</span> <span class="pre">sign</span> <span class="pre">on</span></tt> and <tt class="docutils literal"><span class="pre">Single</span> <span class="pre">Sign</span> <span class="pre">On</span></tt></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#known-issues">Known issues</a><ul>
+<li><a class="reference internal" href="#what-is-wrong-with-current-setup">What is wrong with current setup?</a></li>
+<li><a class="reference internal" href="#what-about-api-tokens">What about API Tokens?</a></li>
+<li><a class="reference internal" href="#testing-issues">Testing issues</a></li>
+<li><a class="reference internal" href="#why-do-you-not-encrypt-the-session-id-in-the-cookie">Why do you not encrypt the session ID in the cookie?</a><ul>
+<li><a class="reference internal" href="#a-neat-trick">A neat trick</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="config.html"
+                        title="previous chapter">Config</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="jsonflow.html"
+                        title="next chapter">Documenting JSON flow of repo API</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/session-mgmt.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="jsonflow.html" title="Documenting JSON flow of repo API"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="config.html" title="Config"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

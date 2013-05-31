@@ -1,0 +1,490 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.cnxbase &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.cnxbase</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">###</span>
+<span class="c"># Copyright (c) Rice University 2012-13</span>
+<span class="c"># This software is subject to</span>
+<span class="c"># the provisions of the GNU Affero General</span>
+<span class="c"># Public License version 3 (AGPLv3).</span>
+<span class="c"># See LICENCE.txt for details.</span>
+<span class="c">###</span>
+
+
+<span class="sd">&quot;&quot;&quot;THis exists solely to provide less typing for a &quot;leaf node&quot; in a</span>
+<span class="sd">simple realtional schema (1:M and 1:M-N:1) when used with SQLAlchemy</span>
+
+<span class="sd">SA does not support class based inheritence in the normal Python way</span>
+<span class="sd">for objects inheriting from Base.  Thus we have those objects perform</span>
+<span class="sd">multiple inheritence...</span>
+
+<span class="sd">security issues</span>
+
+<span class="sd">Discussion</span>
+
+<span class="sd">I see each resource (folder, module, collection) as a individual resource</span>
+<span class="sd">with individually managed permissions.</span>
+
+<span class="sd">Each function (GET PUT POST DELETE) should be requested through the API with</span>
+<span class="sd">a security &quot;thing&quot; (useruri).  This is to try and keep stateless end to end</span>
+<span class="sd">(ie not have to worry how we are handling sessions from the request point through the</span>
+<span class="sd">backend)</span>
+
+
+
+<span class="sd">Security use cases</span>
+
+<span class="sd">folder</span>
+
+<span class="sd">1. User has RW permission set on Folder F and children C1,C2</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">dolog</span>  <span class="c"># depednacy?</span>
+
+
+<div class="viewcode-block" id="CNXBase"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase">[docs]</a><span class="k">class</span> <span class="nc">CNXBase</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    The resources we use (Folder, Collection, Module) all adhere to a common</span>
+<span class="sd">    access protocol that is defined in :class:CNXBase.</span>
+
+<span class="sd">    Where incomingjsond is a python representation of a json object that</span>
+<span class="sd">    meets a folder jsonschema</span>
+
+<span class="sd">    &gt; f2 = model.Folder(creator_uuid=user_urn)</span>
+<span class="sd">    &gt; f2.populate_self(incomingjsond)</span>
+<span class="sd">    f2 will now be populated</span>
+
+<span class="sd">    &gt; f2.to_dict(requesting_user_urn)</span>
+<span class="sd">    Here I am getting the object to return as python std types,</span>
+<span class="sd">    so they can be easily jsonified at the last possible minute.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="CNXBase.validateid"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.validateid">[docs]</a>    <span class="k">def</span> <span class="nf">validateid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Given a id_ check it is of correct uri format</span>
+
+<span class="sd">        .. todo::</span>
+<span class="sd">           validateid check really needs improving</span>
+
+<span class="sd">        &gt;&gt;&gt; C = CNXBase()</span>
+<span class="sd">        &gt;&gt;&gt; C.validateid(&quot;cnxuser:1234&quot;)</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; C.validateid(&quot;1234&quot;)</span>
+<span class="sd">        False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">id_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="n">id_</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="CNXBase.populate_self"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.populate_self">[docs]</a>    <span class="k">def</span> <span class="nf">populate_self</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CNXBase.from_dict"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userprofile_dict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        given a dict, derived from either test fixture or json POST</span>
+<span class="sd">        populate the object.</span>
+
+<span class="sd">        setattr is valid as a means of internally updating</span>
+<span class="sd">        a sqlalchemy object, and will correctly pass the diamond lookup.</span>
+
+<span class="sd">        &gt;&gt;&gt; m = model.Module(creator_uuid=&quot;test&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; d = {&quot;totalfake&quot;:100}</span>
+<span class="sd">        &gt;&gt;&gt; m.populate_self(d)</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ... Tried to set attr totalfake when no ...</span>
+
+<span class="sd">        [correct usage would be as:]</span>
+<span class="sd">        &gt;&gt; d = {&quot;title&quot;:&quot;testtitle&quot;}</span>
+<span class="sd">        &gt;&gt; m.populate_self(d)</span>
+<span class="sd">        &gt;&gt; m.save(db_session)</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;id_&#39;</span><span class="p">,</span> <span class="p">]</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">userprofile_dict</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">idnames</span> <span class="ow">and</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c"># do not assign a id of None to the internal id</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__table__</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
+                    <span class="s">&quot;Tried to set attr </span><span class="si">%s</span><span class="s"> when no matching table column&quot;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s">&quot;acl&quot;</span><span class="p">:</span>
+                <span class="c">## convert acls into userrole assignments</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_userroles</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;acl&#39;</span><span class="p">],</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;acl&#39;</span><span class="p">])</span>                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="CNXBase.jsonify"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.jsonify">[docs]</a>    <span class="k">def</span> <span class="nf">jsonify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">softform</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        public method to return the object as a JSON formatted string.</span>
+
+
+<span class="sd">        form.  There are two types we *shall* support.  softform and hardform</span>
+<span class="sd">        A resource only contains links (pointers) to other resources - so</span>
+<span class="sd">        a container-type resource (folder, collection) will hold links only</span>
+<span class="sd">        such as</span>
+<span class="sd">         body = [&quot;/folder/1234&quot;, &quot;/module/5678&quot;]</span>
+
+<span class="sd">        However if we returned that resource to the client, it would then need</span>
+<span class="sd">        to perform *n* more requests to get the title of each.</span>
+
+<span class="sd">        To avoid this we return a softform</span>
+
+<span class="sd">         body = [{&#39;id&#39;: &#39;/folder/1234&#39;, &#39;title&#39;: &#39;foo&#39;, &#39;mediatype&#39;:&#39;application/vnd.org.cnx.folder&#39;},</span>
+<span class="sd">                 {&#39;id&#39;: &#39;/module/5678&#39;, &#39;title&#39;: &#39;bar&#39;, &#39;mediatype&#39;:&#39;application/vnd.org.cnx.module&#39;},</span>
+
+<span class="sd">        This however needs us to descend into the container, and requiores a security check at each</span>
+<span class="sd">        resource.  It also requires a flag for whih form.</span>
+
+<span class="sd">        At the moment only folder has any need for a softform approach and it is the default here</span>
+
+<span class="sd">        .. discussion::</span>
+<span class="sd">           There seems to be two distinctions, softform/hardform where a object must descend into</span>
+<span class="sd">           its own hierarchy and produce short-form versions of its children</span>
+<span class="sd">           And a short-form long-form approach that needs to produce either the whole object</span>
+<span class="sd">           or just a few items (title, id etc)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># get self as a (non-recursive) list of python types (ie json</span>
+        <span class="c"># encodaeable)</span>
+        <span class="n">self_as_complex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__complex__</span><span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">softform</span><span class="p">)</span>
+        <span class="n">jsonstr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">self_as_complex</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonstr</span>
+</div>
+    <span class="k">def</span> <span class="nf">__complex__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">,</span> <span class="n">softform</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return self as a dict, suitable for jsonifying     &quot;&quot;&quot;</span>
+
+        <span class="c"># softform and hardform have no distinction if there are</span>
+        <span class="c"># no child nodes</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_action_auth</span><span class="p">(</span><span class="s">&quot;GET&quot;</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2AccessNotAllowedError</span><span class="p">(</span><span class="s">&quot;user </span><span class="si">%s</span><span class="s"> not allowed access to </span><span class="si">%s</span><span class="s">&quot;</span>
+                                                <span class="o">%</span> <span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">,</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">id_</span><span class="p">))</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__table__</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safe_type_out</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s">&quot;id_&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+<div class="viewcode-block" id="CNXBase.safe_type_out"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.safe_type_out">[docs]</a>    <span class="k">def</span> <span class="nf">safe_type_out</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return the value of a coulmn field safely for json</span>
+<span class="sd">        This is essentially a JSONEncoder sublclass inside object - ...</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># XXX cannot get isinstance match on sqlalchem types</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="s">&quot;DATETIME&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">outstr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">outstr</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outstr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outstr</span>
+        </div>
+<div class="viewcode-block" id="CNXBase.prep_delete_userrole"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.prep_delete_userrole">[docs]</a>    <span class="k">def</span> <span class="nf">prep_delete_userrole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_uri</span><span class="p">,</span> <span class="n">role_type</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;policy: we are ignoring role type for now.  Any delete will delete</span>
+<span class="sd">        the user, there should only be one roletype per user, and one user per</span>
+<span class="sd">        resource.  This is policy not enforced</span>
+
+<span class="sd">       *editing* a user&#39;s role is not transaction supported (del then add in one</span>
+<span class="sd">        trans).  If we ever change policy we need to fix that</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">usr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">usr</span><span class="o">.</span><span class="n">user_uri</span> <span class="o">==</span> <span class="n">user_uri</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">usr</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="CNXBase.set_acls"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.set_acls">[docs]</a>    <span class="k">def</span> <span class="nf">set_acls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">setter_user_uri</span><span class="p">,</span> <span class="n">acllist</span><span class="p">,</span> <span class="n">userrole_klass</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;set the user acls on this object.</span>
+
+<span class="sd">        inheriting from CNXBase implies we are modelling</span>
+<span class="sd">        a resource, and we want to control Read?write of the resource</span>
+<span class="sd">        through ACLs - which are represented in dbase as userrole_&lt;resource&gt;</span>
+
+<span class="sd">        NB whilst practical to use one userrole table and preferable</span>
+<span class="sd">        SQLAlchemy seems to place limits on it. and I dont want to</span>
+<span class="sd">        muck about.</span>
+
+<span class="sd">        SOme, not all objects that inherit form CNXBase (!)</span>
+<span class="sd">        will have a relatred user_roles table.</span>
+<span class="sd">        This will map the object ID to a acl type and a user</span>
+
+
+<span class="sd">        [{&#39;dateLastModifiedUTC&#39;: None,</span>
+<span class="sd">          &#39;dateCreatedUTC&#39;: None,</span>
+<span class="sd">          &#39;user_uri&#39;: u&#39;Testuser1&#39;,</span>
+<span class="sd">          &#39;role_type&#39;: &#39;author&#39;},</span>
+<span class="sd">         {&#39;dateLastModifiedUTC&#39;: None,</span>
+<span class="sd">          &#39;dateCreatedUTC&#39;: None,</span>
+<span class="sd">          &#39;user_uri&#39;: u&#39;testuser2&#39;,</span>
+<span class="sd">          &#39;role_type&#39;: &#39;author&#39;}]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># is this authorised? - sep function?</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">setter_user_uri</span><span class="p">,</span> <span class="s">&quot;aclrw&quot;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">u</span><span class="o">.</span><span class="n">user_uri</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">role_type</span><span class="p">)</span>
+           <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;http:401&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">usrdict</span> <span class="ow">in</span> <span class="n">acllist</span><span class="p">:</span>
+                <span class="c"># I am losing modified info...</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="n">userrole_klass</span><span class="p">,</span> <span class="n">usrdict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">setter_user_uri</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CNXBase.update_userroles"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.update_userroles">[docs]</a>    <span class="k">def</span> <span class="nf">update_userroles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proposed_acl_list</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given a list of (valid) user uris, add them to SQLA list</span>
+
+<span class="sd">        The proposed list is *always* accurate, *except* if it leaves off the</span>
+<span class="sd">        current requesting_user_uri, which is always added. (This may lead to some</span>
+<span class="sd">        strange behaviour or test issues so be flexible)</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c">#: We assume one auth check will suffice as there is by policy one</span>
+        <span class="c">#: acl only (aclrw).  More fine grained policy will need more checks.</span>
+        <span class="n">proceed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_action_auth</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s">&quot;PUT&quot;</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">proceed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Action forbidden for user </span><span class="si">%s</span><span class="s"> cannot update userroles&quot;</span> <span class="o">%</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+        
+        <span class="n">set_curr_uris</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">)</span>
+        <span class="n">set_proposed_uris</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">proposed_acl_list</span><span class="p">)</span>
+        <span class="n">del_uris</span> <span class="o">=</span> <span class="n">set_curr_uris</span> <span class="o">-</span> <span class="n">set_proposed_uris</span>
+        <span class="n">add_uris</span> <span class="o">=</span> <span class="n">set_proposed_uris</span> <span class="o">-</span> <span class="n">set_curr_uris</span>
+
+        <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">add_uris</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span><span class="p">,</span>
+                              <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">user_uri</span><span class="p">,</span>
+                               <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
+                               <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">del_uris</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prep_delete_userrole</span><span class="p">(</span><span class="n">user_uri</span><span class="p">)</span>
+            
+
+
+                </div>
+<div class="viewcode-block" id="CNXBase.adduserrole"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.adduserrole">[docs]</a>    <span class="k">def</span> <span class="nf">adduserrole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userrole_klass</span><span class="p">,</span> <span class="n">usrdict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; keeping a common funciton in one place</span>
+
+<span class="sd">        Given a usr_uuid and a role_type, update a UserRole object</span>
+
+<span class="sd">        I am checking setter_user is authorised in calling function.</span>
+
+<span class="sd">        The requesting_user_uri merry-go-round</span>
+<span class="sd">        I am pushing the user name all over the place - I think because</span>
+<span class="sd">        userrole.from_dict is in cnbxbase which is not exclusive as base for userrole module.</span>
+<span class="sd">        SO have cnxbase klass for userroles as well. ToDO</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utcnow</span><span class="p">()</span>
+
+        <span class="c"># why not pass around USerROle objects??</span>
+        <span class="n">user_uri</span> <span class="o">=</span> <span class="n">usrdict</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span>
+        <span class="n">role_type</span> <span class="o">=</span> <span class="n">usrdict</span><span class="p">[</span><span class="s">&#39;role_type&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">user_uri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">user_uri</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">]:</span>
+            <span class="c"># UserID is not in any assoc. role - add a new one</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">userrole_klass</span><span class="p">()</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">usrdict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">dateCreatedUTC</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">user_uri</span><span class="p">,</span> <span class="n">role_type</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">u</span><span class="o">.</span><span class="n">user_uri</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">role_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span>
+                                           <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">]:</span>
+            <span class="c"># UserID has got a role, so *update*</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">userrole_klass</span><span class="p">()</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">usrdict</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># user is there, user and role type is there, this is duplicate</span>
+            <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="CNXBase.parse_json"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.parse_json">[docs]</a>    <span class="k">def</span> <span class="nf">parse_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jsonstr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Given a json-formatted string representing a folder, return a dict</span>
+
+<span class="sd">        There is a lot todo here.</span>
+<span class="sd">        We should have version handling (see online discussions)</span>
+<span class="sd">        We should check that the json is actually valid for a folder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">jsond</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonstr</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Error converting json to dict&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsond</span>
+</div>
+<div class="viewcode-block" id="CNXBase.get_utcnow"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.get_utcnow">[docs]</a>    <span class="k">def</span> <span class="nf">get_utcnow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Eventually we shall handle TZones here too&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="CNXBase.save"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbase_session</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assumes we are working with sqlalchemy dbsessions</span>
+
+<span class="sd">        This is a naive implementation of the dateModified field.</span>
+<span class="sd">        More sensitive approaches would include taking the timestamp of</span>
+<span class="sd">        a request as the point of all changes. FIXME</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dateLastModifiedUTC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utcnow</span><span class="p">()</span>
+        <span class="n">dbase_session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">dbase_session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="CNXBase.delete"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbase_session</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assumes we are working with sqlalchemy dbsessions</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dbase_session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">dbase_session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="CNXBase.is_action_auth"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase.is_action_auth">[docs]</a>    <span class="k">def</span> <span class="nf">is_action_auth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                       <span class="n">requesting_user_uri</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Given a user and a action type, determine if it is</span>
+<span class="sd">            authorised on this object</span>
+
+
+
+<span class="sd">        #unittest not available as setup is large.</span>
+<span class="sd">        &gt;&gt; C = CNXBase()</span>
+<span class="sd">        &gt;&gt; C.is_action_auth(action=&quot;PUT&quot;, requesting_user_uri=&quot;Fake1&quot;)</span>
+<span class="sd">        *** [u&#39;Fake1&#39;]</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt; C.is_action_auth(action=&quot;PUT&quot;, requesting_user_uri=&quot;ff&quot;)</span>
+<span class="sd">        *** [u&#39;Fake1&#39;]</span>
+<span class="sd">        False</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s">&quot;***AUTHATTEMPT:&quot;</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">requesting_user_uri</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;GET&quot;</span><span class="p">,</span> <span class="s">&quot;HEAD&quot;</span><span class="p">,</span> <span class="s">&quot;OPTIONS&quot;</span><span class="p">):</span>
+            <span class="n">valid_user_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">user_uri</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span>
+                               <span class="k">if</span> <span class="n">u</span><span class="o">.</span><span class="n">role_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;aclro&quot;</span><span class="p">,</span> <span class="s">&quot;aclrw&quot;</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;POST&quot;</span><span class="p">,</span> <span class="s">&quot;PUT&quot;</span><span class="p">,</span> <span class="s">&quot;DELETE&quot;</span><span class="p">):</span>
+            <span class="n">valid_user_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">user_uri</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">userroles</span>
+                               <span class="k">if</span> <span class="n">u</span><span class="o">.</span><span class="n">role_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;aclrw&quot;</span><span class="p">,)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAILED - Unknown action type  </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">action</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">if</span> <span class="n">requesting_user_uri</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAILED - None user supplied&quot;</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">requesting_user_uri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_user_list</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAIL - user not in valid list </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">valid_user_list</span><span class="p">)</span>
+                <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># At last!</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;SUCCESS user in valid list </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">valid_user_list</span><span class="p">)</span>
+                <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">True</span>
+
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

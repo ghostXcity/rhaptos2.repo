@@ -1,0 +1,184 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.log &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.log</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">###</span>
+<span class="c"># Copyright (c) Rice University 2012-13</span>
+<span class="c"># This software is subject to</span>
+<span class="c"># the provisions of the GNU Affero General</span>
+<span class="c"># Public License version 3 (AGPLv3).</span>
+<span class="c"># See LICENCE.txt for details.</span>
+<span class="c">###</span>
+
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Provide common logging facilites for all rhaptos2 components.</span>
+
+
+
+<span class="sd">We expect to create two log *handlers* in the application</span>
+
+<span class="sd">1. to log audit messages to stderr</span>
+<span class="sd">2. to fire off statsd events</span>
+
+<span class="sd">We combine both into one logger, I think that is the best approach.</span>
+
+<span class="sd">See set_logger in rhaptos2.repo for useage</span>
+
+<span class="sd">Changelog:</span>
+
+<span class="sd">2012-09-13 : removed the get_logger facility, basically each app is</span>
+<span class="sd">             responsible for setting up its own logger.  This merely</span>
+<span class="sd">             supplies a custom Handler for statsd</span>
+
+
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">StreamHandler</span>
+<span class="kn">import</span> <span class="nn">statsd</span>
+
+
+<div class="viewcode-block" id="StatsdHandler"><a class="viewcode-back" href="../../../commonAPI.html#rhaptos2.repo.log.StatsdHandler">[docs]</a><span class="k">class</span> <span class="nc">StatsdHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Logging Handler class that emits statsd calls to graphite, then stdout</span>
+
+<span class="sd">    It *only* does incr logs, ie event counting.</span>
+<span class="sd">    Thats probably appropriate for most all log related stats</span>
+
+<span class="sd">    issues - we init with host and port, probably a bad idea.</span>
+<span class="sd">    Just do not want to muck around with config mdule for logging yet.</span>
+
+<span class="sd">    &gt;&gt;&gt; lg = logging.getLogger(&quot;doctest&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; h = StatsdHandler(&quot;localhost&quot;, 2222, True)</span>
+<span class="sd">    &gt;&gt;&gt; lg.addHandler(h)</span>
+<span class="sd">    &gt;&gt;&gt; lg.warn(&quot;an error&quot;, extra={&quot;statsd&quot;: [&#39;a.b&#39;, &#39;e.f&#39;]})</span>
+<span class="sd">    Firing a.b</span>
+<span class="sd">    Firing e.f</span>
+
+<span class="sd">    So we take it on trust that statsd fired.</span>
+<span class="sd">    This is a unsolved problem with statsd.</span>
+
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats_client</span> <span class="o">=</span> <span class="n">statsd</span><span class="o">.</span><span class="n">StatsClient</span><span class="p">(</span>
+            <span class="n">host</span><span class="p">,</span>
+            <span class="n">port</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+
+<div class="viewcode-block" id="StatsdHandler.emit"><a class="viewcode-back" href="../../../commonAPI.html#rhaptos2.repo.log.StatsdHandler.emit">[docs]</a>    <span class="k">def</span> <span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;given a LogRecord r, extract the dotted names if any and fire off</span>
+
+<span class="sd">        Hmm, testing this in doctest (in anything) is hard....</span>
+<span class="sd">        So A totally contrived test</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s">&quot;statsd&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">pass</span>  <span class="c"># hmmm no logging in the logger?</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">statsd</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stats_client</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="s">&quot;Firing </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">s</span>
+
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,744 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.auth &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.auth</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">###</span>
+<span class="c"># Copyright (c) Rice University 2012-13</span>
+<span class="c"># This software is subject to</span>
+<span class="c"># the provisions of the GNU Affero General</span>
+<span class="c"># Public License version 3 (AGPLv3).</span>
+<span class="c"># See LICENCE.txt for details.</span>
+<span class="c">###</span>
+
+<span class="sd">&quot;&quot;&quot;:module:`auth` supplies the logic to authenticate users and then store that authentication</span>
+<span class="sd">for later requests.</span>
+<span class="sd">It is strongly linked with :module:`sessioncache`.</span>
+
+<span class="sd">Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however</span>
+<span class="sd">the logic over authorisation will remain.</span>
+
+
+<span class="sd">Overview</span>
+
+<span class="sd">auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session</span>
+<span class="sd">or the user is unable to authenticate</span>
+
+<span class="sd">after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt</span>
+
+
+<span class="sd">known issues</span>
+<span class="sd">~~~~~~~~~~~~</span>
+
+<span class="sd">requesting_user_uri This is passed around a lot This is suboptimal, and I think</span>
+<span class="sd">should be replaced with passing around the environ dict as a means of linking</span>
+<span class="sd">functions with the request calling them</span>
+
+<span class="sd">I am still passing around the userd in ``g.`` This is fairly silly</span>
+<span class="sd">but seems consistent for flask. Will need rethink.</span>
+
+<span class="sd">secure (https) - desired future toggle</span>
+
+<span class="sd">further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</span>
+
+
+<span class="sd">userdict example::</span>
+
+<span class="sd">    {&quot;interests&quot;: null, &quot;identifiers&quot;: [{&quot;identifierstring&quot;: &quot;https://michaelmulich.myopenid.com&quot;, &quot;user_id&quot;: &quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;, &quot;identifiertype&quot;: &quot;openid&quot;}], &quot;user_id&quot;: &quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;, &quot;suffix&quot;: null, &quot;firstname&quot;: null, &quot;title&quot;: null, &quot;middlename&quot;: null, &quot;lastname&quot;: null, &quot;imageurl&quot;: null, &quot;otherlangs&quot;: null, &quot;affiliationinstitution_url&quot;: null, &quot;email&quot;: null, &quot;version&quot;: null, &quot;location&quot;: null, &quot;recommendations&quot;: null, &quot;preferredlang&quot;: null, &quot;fullname&quot;: &quot;Michael Mulich&quot;, &quot;homepage&quot;: null, &quot;affiliationinstitution&quot;: null, &quot;biography&quot;: null}</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">statsd</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pprint</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo.err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span><span class="p">,</span> <span class="n">Rhaptos2NoSessionCookieError</span>
+<span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">get_app</span><span class="p">,</span> <span class="n">sessioncache</span>
+<span class="kn">import</span> <span class="nn">flask</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">redirect</span>
+<span class="kn">from</span> <span class="nn">flaskext.openid</span> <span class="kn">import</span> <span class="n">OpenID</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">webob</span> <span class="kn">import</span> <span class="n">Request</span>
+
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;authmodule&quot;</span><span class="p">)</span>
+
+<span class="c">### This is a temporary log fix</span>
+<span class="c">### The full fix is in branch fix-logging-importing</span>
+<span class="c">### THis is a temp workaround to handle the circular import</span>
+
+
+<span class="k">def</span> <span class="nf">dolog</span><span class="p">(</span><span class="n">lvl</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="c">### global namespace placeholder</span>
+<span class="n">app</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c">##########</span>
+<span class="c">### Module startup</span>
+<span class="c">##########</span>
+
+<div class="viewcode-block" id="setup_auth"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.setup_auth">[docs]</a><span class="k">def</span> <span class="nf">setup_auth</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    As part of drive to remove app setup from the import process,</span>
+<span class="sd">    have moved to calls into this function.  This is driving</span>
+<span class="sd">    a circular import cycle, which while temp solved will only</span>
+<span class="sd">    be fixed by changing logging process.</span>
+
+<span class="sd">    So to ensure docs work, and as a nod towards cleaning up the</span>
+<span class="sd">    import-time work happening here, this needs to be called by run.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">global</span> <span class="n">app</span>
+    <span class="kn">import</span> <span class="nn">views</span>
+
+    <span class="n">app</span> <span class="o">=</span> <span class="n">get_app</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="n">SECRET_KEY</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;openid_secretkey&#39;</span><span class="p">],</span>
+        <span class="n">DEBUG</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">debug</span>
+    <span class="p">)</span>
+
+    <span class="c"># setup flask-openid</span>
+    <span class="c">#: we setup the loginhandler and after_login callbacks here</span>
+    <span class="c">#: flesh out docs</span>
+    <span class="n">oid</span> <span class="o">=</span> <span class="n">OpenID</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="c"># views - why here and not in __init</span>
+    <span class="n">oid</span><span class="o">.</span><span class="n">loginhandler</span><span class="p">(</span><span class="n">login</span><span class="p">)</span>
+    <span class="n">oid</span><span class="o">.</span><span class="n">after_login</span><span class="p">(</span><span class="n">create_or_login</span><span class="p">)</span>
+
+
+<span class="c">########################</span>
+<span class="c"># User Auth flow</span>
+<span class="c">########################</span>
+
+<span class="c">### this is key found in all session cookies</span>
+<span class="c">### It is hardcoded here not config.</span></div>
+<span class="n">CNXSESSIONID</span> <span class="o">=</span> <span class="s">&quot;cnxsessionid&quot;</span>
+
+
+<div class="viewcode-block" id="redirect_to_login"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.redirect_to_login">[docs]</a><span class="k">def</span> <span class="nf">redirect_to_login</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    On first hitting the site, the user will have no cookie</span>
+<span class="sd">    If we issued a 301, the browser would issue another request,</span>
+<span class="sd">    which would have no cookie, which would issue a 301...</span>
+
+<span class="sd">    By presenting this HTML when the user hits the login server,</span>
+<span class="sd">    we avoid this.  Clearly templating is needed.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tmpl</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;&lt;p&gt;Hello It seems your session has expired.</span>
+<span class="s">    &lt;p&gt;Please &lt;a href=&quot;/login&quot;&gt;login again.&lt;/a&gt;</span>
+<span class="s">    &lt;p&gt;Developers can &lt;a href=&quot;/autosession&quot;&gt;autosession&lt;/a&gt; &quot;&quot;&quot;</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">make_response</span><span class="p">(</span><span class="n">tmpl</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="store_userdata_in_request"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.store_userdata_in_request">[docs]</a><span class="k">def</span> <span class="nf">store_userdata_in_request</span><span class="p">(</span><span class="n">userd</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    given a userdict, keep it in the request cycle for later reference.</span>
+<span class="sd">    Best practise here will depend on web framework.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">### For now keep ``g`` the source of data on current thread-local request.</span>
+    <span class="c">### later we transfer to putting it all on environ for extra portability</span>
+    <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_id&#39;</span><span class="p">]</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="o">=</span> <span class="n">userd</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">sessionid</span> <span class="o">=</span> <span class="n">sessionid</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;SESSION LINKER, sessionid:</span><span class="si">%s</span><span class="s">::user_uri:</span><span class="si">%s</span><span class="s">::requestid:</span><span class="si">%s</span><span class="s">::&quot;</span> <span class="o">%</span>
+         <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">sessionid</span><span class="p">,</span> <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">],</span> <span class="n">g</span><span class="o">.</span><span class="n">requestid</span><span class="p">))</span>
+    <span class="c">### Now flask actually calls __call__</span>
+
+</div>
+<div class="viewcode-block" id="handle_user_authentication"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.handle_user_authentication">[docs]</a><span class="k">def</span> <span class="nf">handle_user_authentication</span><span class="p">(</span><span class="n">flask_request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Correctly perform all authentication workflows</span>
+
+<span class="sd">    We have 16 options for different user states such as IsLoggedIn, NotRegistered.</span>
+<span class="sd">    The states are listed below.</span>
+
+<span class="sd">    THis function is where *eventually* all 16 will be handled.  For the moment</span>
+<span class="sd">    only a limited number are.</span>
+
+<span class="sd">    :param flask_request: request object of pococo flavour.</span>
+<span class="sd">    :returns: No return is good because it allows the onward rpocessing of requests.</span>
+<span class="sd">    Otherwise we return a login page.</span>
+
+
+<span class="sd">    This gets called on ``before_request`` (which is *after* processing of HTTP headers</span>
+<span class="sd">    but *before* __call__ on wsgi.)</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        All the functions in sessioncache, and auth, should be called from here</span>
+<span class="sd">        (possibly in a chain) and raise errors or other signals to allow this function</span>
+<span class="sd">        to take action, not to presume on some action (like a redirect)</span>
+<span class="sd">        themselves. (todo-later: such late decisions are well suited for deferred</span>
+<span class="sd">        callbacks)</span>
+
+
+<span class="sd">    ====   ===  =========  ==============  ====================================  =================</span>
+<span class="sd">    Auth   Reg  InSession  ProfileCookie   Next Action / RoleType                Handled Here</span>
+<span class="sd">    ====   ===  =========  ==============  ====================================  =================</span>
+<span class="sd">    Y      Y    Y          Y               Go                                    Y</span>
+<span class="sd">    Y      Y    Y          N               set_profile_cookie                    Y</span>
+<span class="sd">    Y      Y    N          Y               set_session                           Y</span>
+<span class="sd">    Y      Y    N          N               FirstTimeOK</span>
+
+<span class="sd">    Y      N    Y          Y               ErrorA</span>
+<span class="sd">    Y      N    Y          N               ErrorB</span>
+<span class="sd">    Y      N    N          Y               ErrorC</span>
+<span class="sd">    Y      N    N          N               NeedToRegister</span>
+
+<span class="sd">    N      N    Y          Y               AnonymousGo</span>
+<span class="sd">    N      N    Y          N               set_profile_cookie</span>
+<span class="sd">    N      N    N          Y               LongTimeNoSee</span>
+<span class="sd">    N      N    N          N               FreshMeat</span>
+
+<span class="sd">    N      Y    Y          Y               Conflict with anonymous and reg?</span>
+<span class="sd">    N      Y    Y          N               Err-SetProfile-AskForLogin</span>
+<span class="sd">    N      Y    N          Y               NotArrivedYet</span>
+<span class="sd">    N      Y    N          N               CouldBeAnyone</span>
+<span class="sd">    ====   ===  =========  ==============  ====================================  =================</span>
+
+
+<span class="sd">    All the final 4 are problematic because if the user has not authorised</span>
+<span class="sd">    how do we know they are registered? Trust the profile cookie?</span>
+
+
+<span class="sd">    we examine the request, find session cookie,</span>
+<span class="sd">    register any logged in user, or redirect to login pages</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># clear down storage area.</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">sessionid</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="c">### if someone is trying to login, it is the *only* time they should</span>
+    <span class="c">### hit this wsgi app and *not* get bounced out for bad session</span>
+    <span class="c">### FIXME - while this is the *only* exception I dont like the hardcoded manner</span>
+    <span class="c">### options: have /login served by another app - ala Velruse?</span>
+    <span class="k">if</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">path</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;/login&quot;</span><span class="p">,</span> <span class="s">&quot;/favicon.ico&quot;</span><span class="p">,</span> <span class="s">&quot;/autosession&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Auth test for </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c">### convert the cookie to a registered users details</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span> <span class="o">=</span> <span class="n">session_to_user</span><span class="p">(</span>
+            <span class="n">flask_request</span><span class="o">.</span><span class="n">cookies</span><span class="p">,</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Rhaptos2NoSessionCookieError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span>
+            <span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Session Lookup returned NoCookieError, so redirect to login&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect_to_login</span><span class="p">()</span>
+        <span class="c"># We end here for now - later we shall fix tempsessions</span>
+        <span class="c"># userdata = set_temp_session()</span>
+
+    <span class="c"># We are at start of request cycle, so tell everything downstream who User</span>
+    <span class="c"># is.</span>
+    <span class="k">if</span> <span class="n">userdata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">dolog</span><span class="p">(</span>
+            <span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Session Lookup returned None User, so redirect to login&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect_to_login</span><span class="p">()</span>
+
+<span class="c">##########################</span>
+<span class="c">## Session Cookie Handling</span>
+<span class="c">##########################</span>
+
+</div>
+<div class="viewcode-block" id="session_to_user"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.session_to_user">[docs]</a><span class="k">def</span> <span class="nf">session_to_user</span><span class="p">(</span><span class="n">flask_request_cookiedict</span><span class="p">,</span> <span class="n">flask_request_environ</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a request environment and cookie</span>
+
+
+
+<span class="sd">    &gt;&gt;&gt; cookies = {&quot;cnxsessionid&quot;: &quot;00000000-0000-0000-0000-000000000000&quot;,}</span>
+<span class="sd">    &gt;&gt;&gt; env = {}</span>
+<span class="sd">    &gt;&gt;&gt; userd = session_to_user(cookies, env)</span>
+<span class="sd">    &gt;&gt;&gt; outenv[&quot;fullname&quot;]</span>
+<span class="sd">    &#39;pbrian&#39;</span>
+
+<span class="sd">    :params flask_request_cookiedict: the cookiejar sent over as a dict(-like obj).</span>
+<span class="sd">    :params flask_request_environ: a dict like object representing WSGI environ</span>
+
+<span class="sd">    :returns: Err if lookup fails, userdict if not</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">CNXSESSIONID</span> <span class="ow">in</span> <span class="n">flask_request_cookiedict</span><span class="p">:</span>
+        <span class="n">sessid</span> <span class="o">=</span> <span class="n">flask_request_cookiedict</span><span class="p">[</span><span class="n">CNXSESSIONID</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2NoSessionCookieError</span><span class="p">(</span><span class="s">&quot;NO SESSION - REDIRECT TO LOGIN&quot;</span><span class="p">)</span>
+    <span class="n">userdata</span> <span class="o">=</span> <span class="n">lookup_session</span><span class="p">(</span><span class="n">sessid</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">userdata</span><span class="p">,</span> <span class="n">sessid</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="lookup_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.lookup_session">[docs]</a><span class="k">def</span> <span class="nf">lookup_session</span><span class="p">(</span><span class="n">sessid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    As this will be called on *every* request and is a network lookup</span>
+<span class="sd">    we should *storngly* look into redis-style lcoal disk cacheing</span>
+<span class="sd">    performance monitoring of request life cycle?</span>
+
+<span class="sd">    returns python dict of ``user_dict`` format.</span>
+<span class="sd">            or None if no session ID in cache</span>
+<span class="sd">            or Error if lookup failed for other reason.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;begin look up sessid </span><span class="si">%s</span><span class="s"> in cache&quot;</span> <span class="o">%</span> <span class="n">sessid</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">userd</span> <span class="o">=</span> <span class="n">sessioncache</span><span class="o">.</span><span class="n">get_session</span><span class="p">(</span><span class="n">sessid</span><span class="p">)</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;we got this from session lookup </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">userd</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">userd</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache SUCCESS&quot;</span> <span class="o">%</span>
+                  <span class="n">sessid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">userd</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED&quot;</span> <span class="o">%</span>
+                  <span class="n">sessid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED with Err </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="n">sessid</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="n">e</span>
+
+</div>
+<div class="viewcode-block" id="authenticated_identifier_to_registered_user_details"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details">[docs]</a><span class="k">def</span> <span class="nf">authenticated_identifier_to_registered_user_details</span><span class="p">(</span><span class="n">ai</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an ``authenticated_identifier (ai)`` request full user details from</span>
+<span class="sd">    the ``user service``</span>
+
+<span class="sd">    returns dict of userdetails (success),</span>
+<span class="sd">            None (user not registerd)</span>
+<span class="sd">            or error (user service down).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;user&#39;</span><span class="p">:</span> <span class="n">ai</span><span class="p">}</span>
+    <span class="c">### Fixme - the whole app global thing is annoying me now.</span>
+    <span class="n">user_server_url</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span>
+        <span class="s">u&#39;userserver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;/user&quot;</span><span class="p">,</span> <span class="s">&quot;/openid&quot;</span><span class="p">)</span>
+
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;user info - from url </span><span class="si">%s</span><span class="s"> and query string </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+                  <span class="p">(</span><span class="n">user_server_url</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">payload</span><span class="p">)))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_server_url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+        <span class="n">userdetails</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c">#.. todo:: not sure what to do here ... the user dbase is down</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">userdetails</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Got back </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">userdetails</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">userdetails</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">userdetails</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Not a known user&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="create_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.create_session">[docs]</a><span class="k">def</span> <span class="nf">create_session</span><span class="p">(</span><span class="n">userdata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A ``closure`` function that is stored and called at end of response,</span>
+<span class="sd">    allowing us to set a cookie, with correct uuid, before response obj</span>
+<span class="sd">    has been created (before request is processed !)</span>
+
+<span class="sd">    :param: userdata - a ``userdict`` format.</span>
+<span class="sd">    :returns: sessionid</span>
+
+<span class="sd">    cookie settings:</span>
+
+<span class="sd">    * cnxsessionid - a fixed key string that is constant</span>
+<span class="sd">    * expires - we want a cookie that will live even if user</span>
+<span class="sd">    shutsdown browser.  However do not live forever ...?</span>
+<span class="sd">    * httponly - prevent easy CSRF, however allow AJAX to request browser</span>
+<span class="sd">    to send cookie.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sessionid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">begin_session</span><span class="p">(</span><span class="n">resp</span><span class="p">):</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s">&#39;cnxsessionid&#39;</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">,</span>
+                        <span class="n">httponly</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                        <span class="n">expires</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">+</span><span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="k">def</span> <span class="nf">begin_profile</span><span class="p">(</span><span class="n">resp</span><span class="p">):</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s">&#39;cnxprofile&#39;</span><span class="p">,</span> <span class="n">userdata</span><span class="p">[</span><span class="s">&#39;fullname&#39;</span><span class="p">],</span>
+                        <span class="n">httponly</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                        <span class="n">expires</span><span class="o">=-</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="n">g</span><span class="o">.</span><span class="n">deferred_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">begin_session</span><span class="p">)</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">deferred_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">begin_profile</span><span class="p">)</span>
+    <span class="n">sessioncache</span><span class="o">.</span><span class="n">set_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="n">userdata</span><span class="p">)</span>
+    <span class="c">### Now at end of request we will call begin_session() and its closure will</span>
+    <span class="c">### set sessionid correctly.</span>
+    <span class="k">return</span> <span class="n">sessionid</span>
+
+</div>
+<div class="viewcode-block" id="delete_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.delete_session">[docs]</a><span class="k">def</span> <span class="nf">delete_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    request browser temove cookie from client, remove from</span>
+<span class="sd">    session-cache dbase.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">end_session</span><span class="p">(</span><span class="n">resp</span><span class="p">):</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s">&#39;cnxsessionid&#39;</span><span class="p">,</span> <span class="s">&quot;SessionExpired&quot;</span><span class="p">,</span>
+                        <span class="n">expires</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">httponly</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="n">g</span><span class="o">.</span><span class="n">deferred_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end_session</span><span class="p">)</span>
+    <span class="n">sessioncache</span><span class="o">.</span><span class="n">delete_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">)</span>
+    <span class="c">### Now at end of request we will call end_session() and its closure will</span>
+    <span class="c">### set an invalid cookie, thus removeing the cookie in most cases.</span>
+
+</div>
+<div class="viewcode-block" id="set_autosession"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.set_autosession">[docs]</a><span class="k">def</span> <span class="nf">set_autosession</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a convenience function for development</span>
+<span class="sd">    It should fail in production</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">app</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;autosession should fail in prod.&quot;</span><span class="p">)</span>
+
+    <span class="c"># check if session already live for this user?</span>
+    <span class="c"># Hmm I have not written such code yet - seems a problem</span>
+    <span class="c"># only likely to occur here...</span>
+
+    <span class="c"># FIXME get the real userdict template</span>
+    <span class="n">standarduser</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;fullname&#39;</span><span class="p">:</span> <span class="s">&#39;Paul Brian&#39;</span><span class="p">,</span> <span class="s">&#39;user_id&#39;</span><span class="p">:</span> <span class="s">&#39;cnxuser:1234&#39;</span><span class="p">}</span>
+    <span class="n">sessionid</span> <span class="o">=</span> <span class="n">create_session</span><span class="p">(</span><span class="n">standarduser</span><span class="p">)</span>
+    <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">standarduser</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
+    <span class="c">### fake in three users of id 0001 002 etc</span>
+    <span class="n">sessioncache</span><span class="o">.</span><span class="n">_fakesessionusers</span><span class="p">(</span><span class="n">sessiontype</span><span class="o">=</span><span class="s">&#39;fixed&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">standarduser</span>
+
+</div>
+<div class="viewcode-block" id="set_temp_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.set_temp_session">[docs]</a><span class="k">def</span> <span class="nf">set_temp_session</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A temopriary session is not yet fully implemented</span>
+<span class="sd">    A temporary session is to allow a unregistered and unauthorised user to</span>
+<span class="sd">    vist the site, acquire a temporary userid and a normal session.</span>
+
+<span class="sd">    Then they will be able to work as normal, the workspace and acls set to the just invented</span>
+<span class="sd">    temporary id.</span>
+
+<span class="sd">    However work saved will be irrecoverable after session expires...</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">useruri</span> <span class="o">=</span> <span class="n">create_temp_user</span><span class="p">(</span>
+        <span class="s">&quot;temporary&quot;</span><span class="p">,</span> <span class="s">&quot;http:/openid.cnx.org/</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
+    <span class="n">tempuserdict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;fullname&#39;</span><span class="p">:</span> <span class="s">&quot;temporary user&quot;</span><span class="p">,</span> <span class="s">&#39;user_id&#39;</span><span class="p">:</span> <span class="n">useruri</span><span class="p">}</span>
+    <span class="n">create_session</span><span class="p">(</span><span class="n">tempuserdict</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tempuserdict</span>
+
+</div>
+<div class="viewcode-block" id="create_temp_user"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.create_temp_user">[docs]</a><span class="k">def</span> <span class="nf">create_temp_user</span><span class="p">(</span><span class="n">identifiertype</span><span class="p">,</span> <span class="n">identifierstring</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    We should ping to user service and create a temporary userid</span>
+<span class="sd">    linked to a made up identifier.  This can then be linked to the</span>
+<span class="sd">    unregistered user when they finally register.</span>
+
+<span class="sd">    FIXME - needs to actually talk to userservice.</span>
+<span class="sd">    THis is however a asynchronous problem, solve under session id</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">### vist the user dbase, get back a user_uri</span>
+    <span class="n">stubbeduri</span> <span class="o">=</span> <span class="s">&quot;cnxuser:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">stubbeduri</span>
+
+</div>
+<div class="viewcode-block" id="after_authentication"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.after_authentication">[docs]</a><span class="k">def</span> <span class="nf">after_authentication</span><span class="p">(</span><span class="n">authenticated_identifier</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Called after a user has provided a validated ID (openid or peresons)</span>
+
+<span class="sd">    This would be an ``endpoint`` in Valruse.</span>
+
+<span class="sd">    method either openid, or persona</span>
+
+<span class="sd">    :parms: authenticated_identifier</span>
+
+<span class="sd">    pass on responsibility to</span>
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;openid&#39;</span><span class="p">,</span> <span class="s">&#39;persona&#39;</span><span class="p">,</span> <span class="s">&#39;temporary&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Incorrect method of authenticating ID&quot;</span><span class="p">)</span>
+
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;in after auth - </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">authenticated_identifier</span><span class="p">,</span> <span class="n">method</span><span class="p">))</span>
+    <span class="n">userdetails</span> <span class="o">=</span> <span class="n">authenticated_identifier_to_registered_user_details</span><span class="p">(</span>
+        <span class="n">authenticated_identifier</span><span class="p">)</span>
+    <span class="n">create_session</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">userdetails</span>
+
+</div>
+<div class="viewcode-block" id="whoami"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.whoami">[docs]</a><span class="k">def</span> <span class="nf">whoami</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    based on session cookie</span>
+<span class="sd">    returns userd dict of user details, equivalent to mediatype from service / session</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span>
+
+</div>
+<div class="viewcode-block" id="apply_cors"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.apply_cors">[docs]</a><span class="k">def</span> <span class="nf">apply_cors</span><span class="p">(</span><span class="n">resp</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;  &#39;&#39;&#39;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Credentials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;true&quot;</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="add_location_header_to_response"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.add_location_header_to_response">[docs]</a><span class="k">def</span> <span class="nf">add_location_header_to_response</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;add Location: header</span>
+
+<span class="sd">        from: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html</span>
+<span class="sd">        For 201 (Created) responses, the Location is that of the new</span>
+<span class="sd">        resource which was created by the request</span>
+
+
+<span class="sd">    decorator that assumes we are getting a flask response object</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">fn</span><span class="p">()</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;URL NEEDED FROM HASHID&quot;</span>
+
+
+<span class="c">#@property ## need to evolve a class here I feel...</span></div>
+<div class="viewcode-block" id="userspace"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.userspace">[docs]</a><span class="k">def</span> <span class="nf">userspace</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39; &#39;&#39;&#39;</span>
+    <span class="n">userspace</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;repodir&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">userspace</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">userspace</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">userspace</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">userspace</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&#39;cannot create repo </span><span class="se">\</span>
+<span class="s">                                or userspace </span><span class="si">%s</span><span class="s"> - </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">userspace</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="callstatsd"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.callstatsd">[docs]</a><span class="k">def</span> <span class="nf">callstatsd</span><span class="p">(</span><span class="n">dottedcounter</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; &#39;&#39;&#39;</span>
+    <span class="c"># Try to call logging. If not connected to a network this throws</span>
+    <span class="c"># &quot;socket.gaierror: [Errno 8] nodename nor servname provided, or not known&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">statsd</span><span class="o">.</span><span class="n">StatsClient</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_host&#39;</span><span class="p">],</span>
+                               <span class="nb">int</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_port&#39;</span><span class="p">]))</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">dottedcounter</span><span class="p">)</span>
+        <span class="c"># todo: really return c and keep elsewhere for efficieny I suspect</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="c"># zombie code</span>
+
+</div>
+<div class="viewcode-block" id="asjson"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.asjson">[docs]</a><span class="k">def</span> <span class="nf">asjson</span><span class="p">(</span><span class="n">pyobj</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;just placeholder</span>
+
+
+<span class="sd">    &gt;&gt;&gt; x = {&#39;a&#39;:1}</span>
+<span class="sd">    &gt;&gt;&gt; asjson(x)</span>
+<span class="sd">    &#39;{&quot;a&quot;: 1}&#39;</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pyobj</span><span class="p">)</span>
+
+</div>
+<span class="k">def</span> <span class="nf">gettime</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+
+<span class="c">################ openid views - from flask</span>
+
+
+<div class="viewcode-block" id="temp_openid_image_url"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.temp_openid_image_url">[docs]</a><span class="k">def</span> <span class="nf">temp_openid_image_url</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Provides a (temporary) fix for the openid images used</span>
+<span class="sd">    on the login page.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Gets around http://openid-selector.googlecode.com quickly</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="s">&#39;/static/img/openid-providers-en.png&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span>
+
+</div>
+<div class="viewcode-block" id="login"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.login">[docs]</a><span class="k">def</span> <span class="nf">login</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Does the login via OpenID.  Has to call into `auth.oid.try_login`</span>
+<span class="sd">    to start the OpenID .</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># if we are already logged in, go back to were we came from</span>
+    <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Were at /login with g.user_uri of </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">g</span><span class="o">.</span><span class="n">user_uri</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">get_next_url</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">openid</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;openid&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">openid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">try_login</span><span class="p">(</span><span class="n">openid</span><span class="p">,</span> <span class="n">ask_for</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;email&#39;</span><span class="p">,</span> <span class="s">&#39;fullname&#39;</span><span class="p">,</span>
+                                                       <span class="s">&#39;nickname&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;login.html&#39;</span><span class="p">,</span> <span class="nb">next</span><span class="o">=</span><span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">get_next_url</span><span class="p">(),</span>
+                           <span class="n">error</span><span class="o">=</span><span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">fetch_error</span><span class="p">(),</span>
+                           <span class="n">confd</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="create_or_login"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.create_or_login">[docs]</a><span class="k">def</span> <span class="nf">create_or_login</span><span class="p">(</span><span class="n">resp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is called when login with OpenID succeeded and it&#39;s not</span>
+<span class="sd">    necessary to figure out if this is the users&#39;s first login or not.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;OpenID worked, now set server to believe this is logged in&quot;</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">after_authentication</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">identity_url</span><span class="p">,</span> <span class="s">&#39;openid&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">get_next_url</span><span class="p">())</span>
+
+</div>
+<div class="viewcode-block" id="logout"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.logout">[docs]</a><span class="k">def</span> <span class="nf">logout</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    kill the session in cache, remove the cookie from client</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">delete_session</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">sessionid</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">oid</span><span class="o">.</span><span class="n">get_next_url</span><span class="p">())</span>
+
+<span class="c">##############</span>
+
+</div>
+<span class="k">def</span> <span class="nf">logoutpersona</span><span class="p">():</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;logoutpersona&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">&quot;Yes&quot;</span>
+
+
+<div class="viewcode-block" id="loginpersona"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.loginpersona">[docs]</a><span class="k">def</span> <span class="nf">loginpersona</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Taken mostly from mozilla quickstart &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;loginpersona&quot;</span><span class="p">)</span>
+    <span class="c"># The request has to have an assertion for us to verify</span>
+    <span class="k">if</span> <span class="s">&#39;assertion&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+
+    <span class="c"># Send the assertion to Mozilla&#39;s verifier service.</span>
+    <span class="n">audience</span> <span class="o">=</span> <span class="s">&quot;http://</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;www_server_name&#39;</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;assertion&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s">&#39;assertion&#39;</span><span class="p">],</span> <span class="s">&#39;audience&#39;</span><span class="p">:</span> <span class="n">audience</span><span class="p">}</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+        <span class="s">&#39;https://verifier.login.persona.org/verify&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="c"># Did the verifier respond?</span>
+    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+        <span class="c"># Parse the response</span>
+        <span class="n">verification_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Verified persona:</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">verification_data</span><span class="p">))</span>
+
+        <span class="c"># Check if the assertion was valid</span>
+        <span class="k">if</span> <span class="n">verification_data</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;okay&#39;</span><span class="p">:</span>
+            <span class="c"># Log the user in by setting a secure session cookie</span>
+<span class="c">#            session.update({&#39;email&#39;: verification_data[&#39;email&#39;]})</span>
+            <span class="n">after_authentication</span><span class="p">(</span><span class="n">verification_data</span><span class="p">[</span><span class="s">&#39;email&#39;</span><span class="p">],</span> <span class="s">&#39;persona&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">resp</span><span class="o">.</span><span class="n">content</span>
+
+    <span class="c"># Oops, something failed. Abort.</span>
+    <span class="n">abort</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

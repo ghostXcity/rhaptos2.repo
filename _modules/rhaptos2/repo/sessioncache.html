@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.sessioncache &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.sessioncache</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">### Copyright Rice University</span>
+
+<span class="c"># This program is licensed under the terms of the</span>
+<span class="c"># GNU General Affero License version 3 (or later).  Please see</span>
+<span class="c"># LICENSE.txt for details</span>
+
+<span class="c">###</span>
+
+<span class="sd">&quot;&quot;&quot;:mod:`sessioncache` is a standalone module providing the ability to</span>
+<span class="sd">control persistent-session client cookies and profile-cookies.</span>
+
+<span class="sd">:mod:`sessioncache.py` is a &quot;low-level&quot; piece, and is expected to be used</span>
+<span class="sd">in conjunction with lower-level *authentication* systems such as OpenID</span>
+<span class="sd">and with &quot;higher-level&quot; *authorisation* systems such as the flow-control in</span>
+<span class="sd">:mod:`auth.py`</span>
+
+<span class="sd">persistent-session</span>
+<span class="sd">    This is the period of time during which a web server will</span>
+<span class="sd">    accept a id-number presented as part of an HTTP request as a replacement for</span>
+<span class="sd">    an actual valid form of authentication.  (we remember that someone</span>
+<span class="sd">    authenticated a while ago, and assume no-one is able to impersonate them in</span>
+<span class="sd">    the intervening time period)</span>
+
+<span class="sd">persistent-session cookie</span>
+<span class="sd">    This is a cookie set on a client browser that stores a</span>
+<span class="sd">    id number pertaining to a persistant-session.  It will last beyond a browser</span>
+<span class="sd">    shutdown, and is expected to be sent as a HTTP header as part of each</span>
+<span class="sd">    request to the server.</span>
+
+
+
+
+<span class="sd">Why? Because I was getting confused with lack of fine control over sessions</span>
+<span class="sd">and because the Flask implementation relied heavily on encryption which</span>
+<span class="sd">seems to be the wrong direction.</span>
+<span class="sd">So we needed a server-side session cookie impl. with fairly fine control.</span>
+
+<span class="sd">I intend to replace the existing SqlAlchemy based services</span>
+<span class="sd">with pure psycopg2 implementations, but for now I will be content</span>
+<span class="sd">not adding another feature to SA</span>
+
+<span class="sd">Session Cache</span>
+<span class="sd">~~~~~~~~~~~~~</span>
+
+<span class="sd">The session cache needs to be a fast, distributed lookup system for</span>
+<span class="sd">matching a random ID to a dict of user details.</span>
+
+<span class="sd">We shall store the user details in the tabl;e session_cache</span>
+
+
+
+
+<span class="sd">Discussion</span>
+<span class="sd">~~~~~~~~~~</span>
+
+<span class="sd">Caches are hard.  They need to be very very fast, and in this case</span>
+<span class="sd">distributable.  Distributed caches are very very hard because we need to ensure</span>
+<span class="sd">they are synched.</span>
+
+<span class="sd">I feel redis makes an excellent cache choice in many circumstances - it is</span>
+<span class="sd">blazingly fast for key-value lookups, it is simple, it is threadsafe (as in</span>
+<span class="sd">threads in the main app do not maintain any pooling or thread issues other than</span>
+<span class="sd">opening a socket or keeping it open) and it has decent synching options.</span>
+
+<span class="sd">However the synching is serious concern, and as such using a centralised, fast,</span>
+<span class="sd">database will allow us to move to production with a secure solution, without the</span>
+<span class="sd">immediate reliance on cache-invalidation strategies.</span>
+
+
+<span class="sd">Overview</span>
+<span class="sd">~~~~~~~~</span>
+
+<span class="sd">We have one single table, ``session_cache``.  This stores a json string (as a string, not 9.3 JSON type)</span>
+<span class="sd">as value in a key value pair.  The key is a UUID-formatted string, passed in from the application.</span>
+<span class="sd">It is expected we will never see a collission.</span>
+
+<span class="sd">We have three commands:</span>
+
+<span class="sd">* :meth:`set_session`</span>
+
+<span class="sd">* :meth:`get_session`</span>
+
+<span class="sd">* :meth:`delete_session`</span>
+
+<span class="sd">With this we can test the whole lifecyle as below</span>
+
+
+
+<span class="sd">Example Usage</span>
+<span class="sd">~~~~~~~~~~~~~</span>
+
+<span class="sd">We firstly pass in a badly formed id.::</span>
+
+
+<span class="sd">&gt;&gt;&gt; sid = &quot;Dr. Evil&quot;</span>
+<span class="sd">&gt;&gt;&gt; get_session(sid)</span>
+<span class="sd">Traceback (most recent call last):</span>
+<span class="sd">     ...</span>
+<span class="sd">Rhaptos2Error: Incorrect UUID format for sessionid...</span>
+
+
+<span class="sd">OK, now lets use a properly formatted (but unlikely) UUID</span>
+
+
+<span class="sd">&gt;&gt;&gt; sid = &quot;00000000-0000-0000-0000-000000000001&quot;</span>
+<span class="sd">&gt;&gt;&gt; set_session(sid, {&quot;name&quot;:&quot;Paul&quot;})</span>
+<span class="sd">True</span>
+<span class="sd">&gt;&gt;&gt; userd = get_session(sid)</span>
+<span class="sd">&gt;&gt;&gt; print userd[0]</span>
+<span class="sd">00000000-0000-0000-0000-000000000001</span>
+<span class="sd">&gt;&gt;&gt; delete_session(userd[0])</span>
+
+
+<span class="sd">To do</span>
+<span class="sd">-----</span>
+
+<span class="sd">* greenlets &amp; conn pooling</span>
+<span class="sd">* wrap returned recordset in dict.</span>
+<span class="sd">* pg&#39;s UUID type?</span>
+
+
+<span class="sd">Standalone usage</span>
+<span class="sd">----------------</span>
+<span class="sd">::</span>
+
+<span class="sd">    minimalconfd = {&quot;app&quot;: {&#39;pghost&#39;:&#39;127.0.0.1&#39;,</span>
+<span class="sd">                            &#39;pgusername&#39;:&#39;repo&#39;,</span>
+<span class="sd">                            &#39;pgpassword&#39;:&#39;CHANGEME&#39;,</span>
+<span class="sd">                            &#39;pgdbname&#39;:&#39;dbtest&#39;}</span>
+<span class="sd">                   }</span>
+
+<span class="sd">    import sessioncache</span>
+<span class="sd">    sessioncache.set_config(minimalconfd)</span>
+<span class="sd">    sessioncache.initdb()</span>
+<span class="sd">    sessioncache._fakesessionusers()</span>
+<span class="sd">    sessioncache.get_session(&quot;00000000-0000-0000-0000-000000000000&quot;)</span>
+<span class="sd">    {u&#39;interests&#39;: None, u&#39;user_id&#39;: u&#39;cnxuser:75e06194-baee-4395-8e1a-566b656f6920&#39;, ...}</span>
+<span class="sd">&gt;&gt;&gt;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span><span class="p">,</span>  <span class="n">Rhaptos2NoSessionCookieError</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;sessmodule&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">dolog</span><span class="p">(</span><span class="n">lvl</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="c">#### (set to one hour for now)</span>
+<span class="n">FIXED_SESSIONDURATION_SECS</span> <span class="o">=</span> <span class="mi">3600</span>
+<span class="c">#### We fix this here, not in .ini files, as this is a security issue</span>
+<span class="c">#### as much as a config so should be changed with caution.</span>
+
+
+<span class="c">############</span>
+<span class="c">### CONFIG - module level global able to be set during start up.</span>
+<span class="c">############</span>
+
+<span class="n">CONFD</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c"># module level global to be setup</span>
+
+
+<div class="viewcode-block" id="set_config"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.set_config">[docs]</a><span class="k">def</span> <span class="nf">set_config</span><span class="p">(</span><span class="n">confd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">CONFD</span>
+    <span class="n">CONFD</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">confd</span><span class="p">)</span>
+
+<span class="c">#####</span>
+<span class="c">## Helper methods</span>
+<span class="c">#####</span>
+
+</div>
+<div class="viewcode-block" id="validate_uuid_format"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.validate_uuid_format">[docs]</a><span class="k">def</span> <span class="nf">validate_uuid_format</span><span class="p">(</span><span class="n">uuidstr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a string, try to ensure it is of type UUID.</span>
+
+
+<span class="sd">    &gt;&gt;&gt; validate_uuid_format(&quot;75e06194-baee-4395-8e1a-566b656f6920&quot;)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; validate_uuid_format(&quot;FooBar&quot;)</span>
+<span class="sd">    False</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">uuidstr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;-&quot;</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">l</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="o">==</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">12</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+<span class="c">##############</span>
+<span class="c">### Database functions</span>
+<span class="c">##############</span>
+
+</div>
+<div class="viewcode-block" id="getconn"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.getconn">[docs]</a><span class="k">def</span> <span class="nf">getconn</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;returns a connection object based on global confd.</span>
+
+<span class="sd">    This is, at the moment, not a pooled connection getter.</span>
+
+<span class="sd">    We do not want the ThreadedPool here, as it is designed for</span>
+<span class="sd">    &quot;real&quot; threads, and listens to their states, which will be &#39;awkward&#39;</span>
+<span class="sd">    in moving to greenlets.</span>
+
+<span class="sd">    We want a pool that will relinquish</span>
+<span class="sd">    control back using gevent calls</span>
+
+<span class="sd">    https://bitbucket.org/denis/gevent/src/5f6169fc65c9/examples/psycopg2_pool.py</span>
+<span class="sd">    http://initd.org/psycopg/docs/pool.html</span>
+
+<span class="sd">    :return ``psycopg2 connection obj``: conn obj</span>
+<span class="sd">    :return psycopg2.Error:              or Err</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;CONFD is </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">CONFD</span><span class="p">))</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pghost&#39;</span><span class="p">],</span>
+                                <span class="n">database</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgdbname&#39;</span><span class="p">],</span>
+                                <span class="n">user</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgusername&#39;</span><span class="p">],</span>
+                                <span class="n">password</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgpassword&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Error making pg conn - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">return</span> <span class="n">conn</span>
+
+</div>
+<div class="viewcode-block" id="run_query"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.run_query">[docs]</a><span class="k">def</span> <span class="nf">run_query</span><span class="p">(</span><span class="n">insql</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;trivial ability to run a query outside SQLAlchemy.</span>
+
+<span class="sd">    :param insql: A correctly parameterised SQL stmt ready for psycopg driver.</span>
+<span class="sd">    :param params: iterable of parameters to be inserted into insql</span>
+
+<span class="sd">    :return a dbapi recordset: (list of tuples)</span>
+
+<span class="sd">    run_query(conn, &quot;SELECT * FROM tbl where id = %s;&quot;, (15,))</span>
+
+<span class="sd">    issues: lots.</span>
+
+<span class="sd">    * No fetch_iterator.</span>
+<span class="sd">    * connection per query(see above)</span>
+<span class="sd">    * We should at least return a dict per row with fields as keys.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">getconn</span><span class="p">()</span>
+    <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">rs</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">connection_refresh</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rs</span>
+
+</div>
+<div class="viewcode-block" id="exec_stmt"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.exec_stmt">[docs]</a><span class="k">def</span> <span class="nf">exec_stmt</span><span class="p">(</span><span class="n">insql</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    trivial ability to run a *dm* query outside SQLAlchemy.</span>
+
+<span class="sd">    :param insql: A correctly parameterised SQL stmt ready for psycopg driver.</span>
+<span class="sd">    :param params: iterable of parameters to be inserted into insql</span>
+
+<span class="sd">    :return a dbapi recordset: (list of tuples)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">getconn</span><span class="p">()</span>
+    <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">connection_refresh</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>  <span class="c"># I can rollback here, its a SELECT</span>
+
+</div>
+<div class="viewcode-block" id="connection_refresh"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.connection_refresh">[docs]</a><span class="k">def</span> <span class="nf">connection_refresh</span><span class="p">(</span><span class="n">conn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connections should be pooled and returned here.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="c">#######</span>
+<span class="c">### Main functions</span>
+<span class="c">#######</span>
+
+</div>
+<div class="viewcode-block" id="set_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.set_session">[docs]</a><span class="k">def</span> <span class="nf">set_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="n">userd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a sessionid (generated according to ``cnxsessionid spec``</span>
+<span class="sd">    elsewhere) and a ``userdict`` store in session cache with appropriate</span>
+<span class="sd">    timeouts.</span>
+
+<span class="sd">    :param sessionid: a UUID, that is to be the new sessionid</span>
+<span class="sd">    :param userd:     python dict of format cnx-user-dict.</span>
+<span class="sd">    :returns:         True on successful setting.</span>
+<span class="sd">    Can raise Rhaptos2Errors</span>
+
+<span class="sd">    TIMESTAMPS.  We are comparing the time now, with the expirytime of the</span>
+<span class="sd">    cookie *in the database* This reduces the portability.</span>
+
+<span class="sd">    This beats the previous solution of passing in python formatted UTC and then</span>
+<span class="sd">    comparing on database.</span>
+
+<span class="sd">    FIXME: bring comaprison into python for portability across cache stores.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s">&quot;sessioncache-setsession&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_uuid_format</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
+            <span class="s">&quot;Incorrect UUID format for sessionid </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sessionid</span><span class="p">)</span>
+
+    <span class="n">SQL</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;INSERT INTO session_cache (sessionid</span>
+<span class="s">                                        , userdict</span>
+<span class="s">                                        , session_startutc</span>
+<span class="s">                                        , session_endutc)</span>
+<span class="s">             VALUES                    (</span><span class="si">%s</span><span class="s"></span>
+<span class="s">                                        , </span><span class="si">%s</span><span class="s"></span>
+<span class="s">                                        , CURRENT_TIMESTAMP</span>
+<span class="s">                                        , CURRENT_TIMESTAMP + INTERVAL &#39;</span><span class="si">%s</span><span class="s"> SECONDS&#39;);&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s">&quot;sessioncache - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">userd</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="p">[</span><span class="n">sessionid</span><span class="p">,</span>
+                        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">userd</span><span class="p">),</span>
+                        <span class="n">FIXED_SESSIONDURATION_SECS</span>
+                        <span class="p">])</span>
+    <span class="k">except</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">IntegrityError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c">### This should never happen, but does in testing enough to trap.</span>
+        <span class="c">### if it does, I guess the session is underattack, close it</span>
+        <span class="n">delete_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">True</span>
+
+</div>
+<div class="viewcode-block" id="delete_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.delete_session">[docs]</a><span class="k">def</span> <span class="nf">delete_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remve from session_cache an existing but no longer wanted session(id)</span>
+<span class="sd">    for whatever reason we want to end a session.</span>
+
+<span class="sd">    :param sessionid: Sessionid from cookie</span>
+<span class="sd">    :returns nothing if success.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_uuid_format</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
+            <span class="s">&quot;Incorrect UUID format for sessionid </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sessionid</span><span class="p">)</span>
+    <span class="n">SQL</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;DELETE FROM session_cache WHERE sessionid = </span><span class="si">%s</span><span class="s">;&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="p">[</span><span class="n">sessionid</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">IntegrityError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c">### Why did we try to close a non-existent session?</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="get_session"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.get_session">[docs]</a><span class="k">def</span> <span class="nf">get_session</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a sessionid, if it exists, and is &quot;in date&quot; then</span>
+<span class="sd">       return userdict (oppostie of set_session)</span>
+
+<span class="sd">    Otherwise return None</span>
+<span class="sd">    (We do not error out on id not found)</span>
+
+<span class="sd">    NB this depends heavily on co-ordinating the incoming TZ</span>
+<span class="sd">    of the DB and the python app server - I am soley runnig the</span>
+<span class="sd">    check on the dbase, which avoids that but does make it less portable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_uuid_format</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
+            <span class="s">&quot;Incorrect UUID format for sessionid </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sessionid</span><span class="p">)</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;lookup </span><span class="si">%s</span><span class="s"> type </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">sessionid</span><span class="p">)))</span>
+
+    <span class="n">SQL</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;SELECT userdict FROM session_cache WHERE sessionid = </span><span class="si">%s</span><span class="s"></span>
+<span class="s">             AND CURRENT_TIMESTAMP BETWEEN</span>
+<span class="s">                  session_startutc AND session_endutc;&quot;&quot;&quot;</span>
+    <span class="n">rs</span> <span class="o">=</span> <span class="n">run_query</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="p">[</span><span class="n">sessionid</span><span class="p">,</span> <span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_fakesessionusers</span><span class="p">(</span><span class="n">sessiontype</span><span class="o">=</span><span class="s">&#39;fixed&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;a mechainsims to help with testing.</span>
+<span class="sd">    :param:`sessiontype` can be either ``floating`` or ``fixed``</span>
+
+<span class="sd">    ``fixed`` will set three sessionids of type all zeros + 1 / 2 and assign</span>
+<span class="sd">    them three test users as below</span>
+
+<span class="sd">    ``floating`` will randomly choose a &quot;normal&quot; uuid, and will always set</span>
+<span class="sd">    edwoodward and will then have ed as a &quot;real logged in user&quot;.  THis is</span>
+<span class="sd">    expected to be for testing without faking openid logins.</span>
+
+
+<span class="sd">    usage:</span>
+<span class="sd">&gt;&gt; import sessioncache, json</span>
+<span class="sd">&gt;&gt; userd = sessioncache.get_session(&quot;00000000-0000-0000-0000-000000000002&quot;)</span>
+<span class="sd">&gt;&gt;&gt; userd.keys()</span>
+<span class="sd">[u&#39;interests&#39;, u&#39;user_id&#39;, u&#39;suffix&#39;, u&#39;firstname&#39;, u&#39;title&#39;, u&#39;middlename&#39;, u&#39;lastname&#39;, u&#39;imageurl&#39;, u&#39;identifiers&#39;, u&#39;affiliationinstitution_url&#39;, u&#39;email&#39;, u&#39;version&#39;, u&#39;location&#39;, u&#39;recommendations&#39;, u&#39;preferredlang&#39;, u&#39;affiliationinstitution&#39;, u&#39;otherlangs&#39;, u&#39;homepage&#39;, u&#39;fullname&#39;, u&#39;biography&#39;]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">print</span> <span class="s">&quot;Calling fake sessioon&quot;</span>
+    <span class="n">developertmpl</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;{&quot;interests&quot;: null,</span>
+<span class="s">                        &quot;identifiers&quot;: [{&quot;identifierstring&quot;:  &quot;https://</span><span class="si">%(name)s</span><span class="s">.myopenid.com&quot;,</span>
+<span class="s">                                         &quot;user_id&quot;: &quot;</span><span class="si">%(uri)s</span><span class="s">&quot;,</span>
+<span class="s">                                         &quot;identifiertype&quot;: &quot;openid&quot;}],</span>
+<span class="s">                        &quot;user_id&quot;: &quot;</span><span class="si">%(uri)s</span><span class="s">&quot;,</span>
+<span class="s">                        &quot;suffix&quot;: null, &quot;firstname&quot;: null, &quot;title&quot;: null,</span>
+<span class="s">                        &quot;middlename&quot;: null, &quot;lastname&quot;: null, &quot;imageurl&quot;: null,</span>
+<span class="s">                        &quot;otherlangs&quot;: null, &quot;affiliationinstitution_url&quot;: null,</span>
+<span class="s">                        &quot;email&quot;: null, &quot;version&quot;: null, &quot;location&quot;: null,</span>
+<span class="s">                        &quot;recommendations&quot;: null, &quot;preferredlang&quot;: null,</span>
+<span class="s">                        &quot;fullname&quot;: &quot;</span><span class="si">%(name)s</span><span class="s">&quot;, &quot;homepage&quot;: null,</span>
+<span class="s">                        &quot;affiliationinstitution&quot;: null, &quot;biography&quot;: null}&quot;&quot;&quot;</span>
+
+    <span class="n">developers</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;pbrian&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6920&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;fakesessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+                   <span class="p">},</span>
+                  <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;rossreedstrm&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6921&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;fakesessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000001&quot;</span>
+                   <span class="p">},</span>
+                  <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;edwoodward&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6922&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;fakesessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000002&quot;</span>
+                   <span class="p">}</span>
+                  <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">sessiontype</span> <span class="o">==</span> <span class="s">&#39;fixed&#39;</span><span class="p">:</span>
+        <span class="c"># clear down the cache - only use this in testing anyway</span>
+        <span class="n">exec_stmt</span><span class="p">(</span><span class="s">&quot;&quot;&quot;DELETE from session_cache WHERE sessionid in</span>
+<span class="s">                  (&#39;00000000-0000-0000-0000-000000000000&#39;,</span>
+<span class="s">                   &#39;00000000-0000-0000-0000-000000000001&#39;,</span>
+<span class="s">                   &#39;00000000-0000-0000-0000-000000000002&#39;);&quot;&quot;&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">dev</span> <span class="ow">in</span> <span class="n">developers</span><span class="p">:</span>
+            <span class="n">js</span> <span class="o">=</span> <span class="n">developertmpl</span> <span class="o">%</span> <span class="n">dev</span>
+            <span class="n">tmpdict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">js</span><span class="p">)</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="n">dev</span><span class="p">[</span><span class="s">&#39;fakesessionid&#39;</span><span class="p">]</span>
+            <span class="n">set_session</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">tmpdict</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">sessiontype</span> <span class="o">==</span> <span class="s">&#39;floating&#39;</span><span class="p">:</span>
+        <span class="n">js</span> <span class="o">=</span> <span class="n">developertmpl</span> <span class="o">%</span> <span class="n">developers</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+        <span class="n">set_session</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">js</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;sessiontype Must be &#39;floating&#39; or &#39;fixed&#39;&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="initdb"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.initdb">[docs]</a><span class="k">def</span> <span class="nf">initdb</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function for creating the session table</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">SQL0</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;DROP TABLE session_cache;&quot;&quot;&quot;</span>
+
+    <span class="n">SQL1</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;CREATE TABLE session_cache(</span>
+<span class="s">   sessionid  character varying NOT NULL,</span>
+<span class="s">   userdict   character varying NOT NULL,</span>
+<span class="s">   session_startUTC timestamptz,</span>
+<span class="s">   session_endUTC timestamptz);&quot;&quot;&quot;</span>
+
+    <span class="n">SQL2</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;ALTER TABLE ONLY session_cache</span>
+<span class="s">    ADD CONSTRAINT session_cache_pkey PRIMARY KEY (sessionid);&quot;&quot;&quot;</span>
+
+    <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL0</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL1</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL2</span><span class="p">,</span> <span class="p">{})</span>
+
+</div>
+<div class="viewcode-block" id="maintenance_batch"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.sessioncache.maintenance_batch">[docs]</a><span class="k">def</span> <span class="nf">maintenance_batch</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A holdng location for ways to clean up the session cache over time.</span>
+<span class="sd">    These will need improvement and testing.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">SQL</span> <span class="o">=</span> <span class="s">&quot;REINDEX session_cache;&quot;</span>
+    <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="p">{})</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">ELLIPSIS</span><span class="o">+</span><span class="n">doctest</span><span class="o">.</span><span class="n">REPORT_ONLY_FIRST_FAILURE</span> <span class="o">+</span> \
+        <span class="n">doctest</span><span class="o">.</span><span class="n">IGNORE_EXCEPTION_DETAIL</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span><span class="n">optionflags</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,867 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Authentication API &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Common functionality" href="commonAPI.html" />
+    <link rel="prev" title="API for Views and models" href="viewmodelAPI.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="commonAPI.html" title="Common functionality"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="viewmodelAPI.html" title="API for Views and models"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="authentication-api">
+<h1>Authentication API<a class="headerlink" href="#authentication-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>We make use of session cookies, a local cache and some logic flow
+to ensure users can work easily with minimal interruptions</p>
+</div>
+<div class="section" id="module-rhaptos2.repo.auth">
+<span id="rhaptos2-repo-auth"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.auth" title="rhaptos2.repo.auth"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.auth</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.auth" title="Permalink to this headline">¶</a></h2>
+<p><a href="#id1"><span class="problematic" id="id2">:module:`auth`</span></a> supplies the logic to authenticate users and then store that authentication
+for later requests.
+It is strongly linked with <a href="#id3"><span class="problematic" id="id4">:module:`sessioncache`</span></a>.</p>
+<p>Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however
+the logic over authorisation will remain.</p>
+<p>Overview</p>
+<p>auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session
+or the user is unable to authenticate</p>
+<p>after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt</p>
+<div class="section" id="known-issues">
+<h3>known issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h3>
+<p>requesting_user_uri This is passed around a lot This is suboptimal, and I think
+should be replaced with passing around the environ dict as a means of linking
+functions with the request calling them</p>
+<p>I am still passing around the userd in <tt class="docutils literal"><span class="pre">g.</span></tt> This is fairly silly
+but seems consistent for flask. Will need rethink.</p>
+<p>secure (https) - desired future toggle</p>
+<p>further notes at <a class="reference external" href="http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html">http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</a></p>
+<p>userdict example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&quot;interests&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;identifiers&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s">&quot;identifierstring&quot;</span><span class="p">:</span> <span class="s">&quot;https://michaelmulich.myopenid.com&quot;</span><span class="p">,</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span> <span class="s">&quot;identifiertype&quot;</span><span class="p">:</span> <span class="s">&quot;openid&quot;</span><span class="p">}],</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span> <span class="s">&quot;suffix&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;firstname&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;middlename&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;lastname&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;imageurl&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;otherlangs&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;affiliationinstitution_url&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;email&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;version&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;location&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;recommendations&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;preferredlang&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;fullname&quot;</span><span class="p">:</span> <span class="s">&quot;Michael Mulich&quot;</span><span class="p">,</span> <span class="s">&quot;homepage&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;affiliationinstitution&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;biography&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">}</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="rhaptos2.repo.auth.add_location_header_to_response">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">add_location_header_to_response</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#add_location_header_to_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.add_location_header_to_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>add Location: header</p>
+<blockquote>
+<div>from: <a class="reference external" href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html">http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html</a>
+For 201 (Created) responses, the Location is that of the new
+resource which was created by the request</div></blockquote>
+<p>decorator that assumes we are getting a flask response object</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.after_authentication">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">after_authentication</tt><big>(</big><em>authenticated_identifier</em>, <em>method</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#after_authentication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.after_authentication" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called after a user has provided a validated ID (openid or peresons)</p>
+<p>This would be an <tt class="docutils literal"><span class="pre">endpoint</span></tt> in Valruse.</p>
+<p>method either openid, or persona</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parms :</th><td class="field-body">authenticated_identifier</td>
+</tr>
+</tbody>
+</table>
+<p>pass on responsibility to</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.apply_cors">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">apply_cors</tt><big>(</big><em>resp</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#apply_cors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.apply_cors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.asjson">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">asjson</tt><big>(</big><em>pyobj</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#asjson"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.asjson" title="Permalink to this definition">¶</a></dt>
+<dd><p>just placeholder</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;a&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">asjson</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">&#39;{&quot;a&quot;: 1}&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">authenticated_identifier_to_registered_user_details</tt><big>(</big><em>ai</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#authenticated_identifier_to_registered_user_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an <tt class="docutils literal"><span class="pre">authenticated_identifier</span> <span class="pre">(ai)</span></tt> request full user details from
+the <tt class="docutils literal"><span class="pre">user</span> <span class="pre">service</span></tt></p>
+<dl class="docutils">
+<dt>returns dict of userdetails (success),</dt>
+<dd>None (user not registerd)
+or error (user service down).</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.callstatsd">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">callstatsd</tt><big>(</big><em>dottedcounter</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#callstatsd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.callstatsd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.create_or_login">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">create_or_login</tt><big>(</big><em>resp</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#create_or_login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.create_or_login" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is called when login with OpenID succeeded and it&#8217;s not
+necessary to figure out if this is the users&#8217;s first login or not.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.create_session">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">create_session</tt><big>(</big><em>userdata</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#create_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.create_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <tt class="docutils literal"><span class="pre">closure</span></tt> function that is stored and called at end of response,
+allowing us to set a cookie, with correct uuid, before response obj
+has been created (before request is processed !)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Param :</th><td class="field-body">userdata - a <tt class="docutils literal"><span class="pre">userdict</span></tt> format.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">sessionid</td>
+</tr>
+</tbody>
+</table>
+<p>cookie settings:</p>
+<ul class="simple">
+<li>cnxsessionid - a fixed key string that is constant</li>
+<li>expires - we want a cookie that will live even if user</li>
+</ul>
+<p>shutsdown browser.  However do not live forever ...?
+* httponly - prevent easy CSRF, however allow AJAX to request browser
+to send cookie.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.create_temp_user">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">create_temp_user</tt><big>(</big><em>identifiertype</em>, <em>identifierstring</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#create_temp_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.create_temp_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>We should ping to user service and create a temporary userid
+linked to a made up identifier.  This can then be linked to the
+unregistered user when they finally register.</p>
+<p>FIXME - needs to actually talk to userservice.
+THis is however a asynchronous problem, solve under session id</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.delete_session">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">delete_session</tt><big>(</big><em>sessionid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#delete_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.delete_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>request browser temove cookie from client, remove from
+session-cache dbase.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.handle_user_authentication">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">handle_user_authentication</tt><big>(</big><em>flask_request</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#handle_user_authentication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.handle_user_authentication" title="Permalink to this definition">¶</a></dt>
+<dd><p>Correctly perform all authentication workflows</p>
+<p>We have 16 options for different user states such as IsLoggedIn, NotRegistered.
+The states are listed below.</p>
+<p>THis function is where <em>eventually</em> all 16 will be handled.  For the moment
+only a limited number are.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>flask_request</strong> &#8211; request object of pococo flavour.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">No return is good because it allows the onward rpocessing of requests.</td>
+</tr>
+</tbody>
+</table>
+<p>Otherwise we return a login page.</p>
+<p>This gets called on <tt class="docutils literal"><span class="pre">before_request</span></tt> (which is <em>after</em> processing of HTTP headers
+but <em>before</em> __call__ on wsgi.)</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">All the functions in sessioncache, and auth, should be called from here
+(possibly in a chain) and raise errors or other signals to allow this function
+to take action, not to presume on some action (like a redirect)
+themselves. (todo-later: such late decisions are well suited for deferred
+callbacks)</p>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="4%" />
+<col width="11%" />
+<col width="17%" />
+<col width="43%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Auth</th>
+<th class="head">Reg</th>
+<th class="head">InSession</th>
+<th class="head">ProfileCookie</th>
+<th class="head">Next Action / RoleType</th>
+<th class="head">Handled Here</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>Go</td>
+<td>Y</td>
+</tr>
+<tr class="row-odd"><td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>set_profile_cookie</td>
+<td>Y</td>
+</tr>
+<tr class="row-even"><td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>Y</td>
+<td>set_session</td>
+<td>Y</td>
+</tr>
+<tr class="row-odd"><td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>FirstTimeOK</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>Y</td>
+<td>N</td>
+<td>Y</td>
+<td>Y</td>
+<td>ErrorA</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>Y</td>
+<td>N</td>
+<td>Y</td>
+<td>N</td>
+<td>ErrorB</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>Y</td>
+<td>ErrorC</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>N</td>
+<td>NeedToRegister</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>N</td>
+<td>N</td>
+<td>Y</td>
+<td>Y</td>
+<td>AnonymousGo</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>N</td>
+<td>N</td>
+<td>Y</td>
+<td>N</td>
+<td>set_profile_cookie</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>N</td>
+<td>N</td>
+<td>N</td>
+<td>Y</td>
+<td>LongTimeNoSee</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>N</td>
+<td>N</td>
+<td>N</td>
+<td>N</td>
+<td>FreshMeat</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>N</td>
+<td>Y</td>
+<td>Y</td>
+<td>Y</td>
+<td>Conflict with anonymous and reg?</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>N</td>
+<td>Y</td>
+<td>Y</td>
+<td>N</td>
+<td>Err-SetProfile-AskForLogin</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>N</td>
+<td>Y</td>
+<td>N</td>
+<td>Y</td>
+<td>NotArrivedYet</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>N</td>
+<td>Y</td>
+<td>N</td>
+<td>N</td>
+<td>CouldBeAnyone</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p>All the final 4 are problematic because if the user has not authorised
+how do we know they are registered? Trust the profile cookie?</p>
+<p>we examine the request, find session cookie,
+register any logged in user, or redirect to login pages</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.login">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">login</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does the login via OpenID.  Has to call into <cite>auth.oid.try_login</cite>
+to start the OpenID .</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.loginpersona">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">loginpersona</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#loginpersona"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.loginpersona" title="Permalink to this definition">¶</a></dt>
+<dd><p>Taken mostly from mozilla quickstart</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.logout">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">logout</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#logout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.logout" title="Permalink to this definition">¶</a></dt>
+<dd><p>kill the session in cache, remove the cookie from client</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.lookup_session">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">lookup_session</tt><big>(</big><em>sessid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#lookup_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.lookup_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>As this will be called on <em>every</em> request and is a network lookup
+we should <em>storngly</em> look into redis-style lcoal disk cacheing
+performance monitoring of request life cycle?</p>
+<dl class="docutils">
+<dt>returns python dict of <tt class="docutils literal"><span class="pre">user_dict</span></tt> format.</dt>
+<dd>or None if no session ID in cache
+or Error if lookup failed for other reason.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.redirect_to_login">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">redirect_to_login</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#redirect_to_login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.redirect_to_login" title="Permalink to this definition">¶</a></dt>
+<dd><p>On first hitting the site, the user will have no cookie
+If we issued a 301, the browser would issue another request,
+which would have no cookie, which would issue a 301...</p>
+<p>By presenting this HTML when the user hits the login server,
+we avoid this.  Clearly templating is needed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.session_to_user">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">session_to_user</tt><big>(</big><em>flask_request_cookiedict</em>, <em>flask_request_environ</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#session_to_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.session_to_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a request environment and cookie</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">cookies</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;cnxsessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000000&quot;</span><span class="p">,}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">env</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">userd</span> <span class="o">=</span> <span class="n">session_to_user</span><span class="p">(</span><span class="n">cookies</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">outenv</span><span class="p">[</span><span class="s">&quot;fullname&quot;</span><span class="p">]</span>
+<span class="go">&#39;pbrian&#39;</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Params flask_request_cookiedict:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">the cookiejar sent over as a dict(-like obj).</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Params flask_request_environ:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">a dict like object representing WSGI environ</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Err if lookup fails, userdict if not</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.set_autosession">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">set_autosession</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#set_autosession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.set_autosession" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a convenience function for development
+It should fail in production</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.set_temp_session">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">set_temp_session</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#set_temp_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.set_temp_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>A temopriary session is not yet fully implemented
+A temporary session is to allow a unregistered and unauthorised user to
+vist the site, acquire a temporary userid and a normal session.</p>
+<p>Then they will be able to work as normal, the workspace and acls set to the just invented
+temporary id.</p>
+<p>However work saved will be irrecoverable after session expires...</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.setup_auth">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">setup_auth</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#setup_auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.setup_auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>As part of drive to remove app setup from the import process,
+have moved to calls into this function.  This is driving
+a circular import cycle, which while temp solved will only
+be fixed by changing logging process.</p>
+<p>So to ensure docs work, and as a nod towards cleaning up the
+import-time work happening here, this needs to be called by run.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.store_userdata_in_request">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">store_userdata_in_request</tt><big>(</big><em>userd</em>, <em>sessionid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#store_userdata_in_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.store_userdata_in_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>given a userdict, keep it in the request cycle for later reference.
+Best practise here will depend on web framework.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.temp_openid_image_url">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">temp_openid_image_url</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#temp_openid_image_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.temp_openid_image_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides a (temporary) fix for the openid images used
+on the login page.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.userspace">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">userspace</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#userspace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.userspace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.auth.whoami">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">whoami</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#whoami"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.whoami" title="Permalink to this definition">¶</a></dt>
+<dd><p>based on session cookie
+returns userd dict of user details, equivalent to mediatype from service / session</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-rhaptos2.repo.sessioncache">
+<span id="rhaptos2-repo-sessioncache"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.sessioncache" title="rhaptos2.repo.sessioncache"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.sessioncache</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.sessioncache" title="Permalink to this headline">¶</a></h2>
+<p><tt class="xref py py-mod docutils literal"><span class="pre">sessioncache</span></tt> is a standalone module providing the ability to
+control persistent-session client cookies and profile-cookies.</p>
+<p><tt class="xref py py-mod docutils literal"><span class="pre">sessioncache.py</span></tt> is a &#8220;low-level&#8221; piece, and is expected to be used
+in conjunction with lower-level <em>authentication</em> systems such as OpenID
+and with &#8220;higher-level&#8221; <em>authorisation</em> systems such as the flow-control in
+<tt class="xref py py-mod docutils literal"><span class="pre">auth.py</span></tt></p>
+<dl class="docutils">
+<dt>persistent-session</dt>
+<dd>This is the period of time during which a web server will
+accept a id-number presented as part of an HTTP request as a replacement for
+an actual valid form of authentication.  (we remember that someone
+authenticated a while ago, and assume no-one is able to impersonate them in
+the intervening time period)</dd>
+<dt>persistent-session cookie</dt>
+<dd>This is a cookie set on a client browser that stores a
+id number pertaining to a persistant-session.  It will last beyond a browser
+shutdown, and is expected to be sent as a HTTP header as part of each
+request to the server.</dd>
+</dl>
+<p>Why? Because I was getting confused with lack of fine control over sessions
+and because the Flask implementation relied heavily on encryption which
+seems to be the wrong direction.
+So we needed a server-side session cookie impl. with fairly fine control.</p>
+<p>I intend to replace the existing SqlAlchemy based services
+with pure psycopg2 implementations, but for now I will be content
+not adding another feature to SA</p>
+<div class="section" id="session-cache">
+<h3>Session Cache<a class="headerlink" href="#session-cache" title="Permalink to this headline">¶</a></h3>
+<p>The session cache needs to be a fast, distributed lookup system for
+matching a random ID to a dict of user details.</p>
+<p>We shall store the user details in the tabl;e session_cache</p>
+</div>
+<div class="section" id="discussion">
+<h3>Discussion<a class="headerlink" href="#discussion" title="Permalink to this headline">¶</a></h3>
+<p>Caches are hard.  They need to be very very fast, and in this case
+distributable.  Distributed caches are very very hard because we need to ensure
+they are synched.</p>
+<p>I feel redis makes an excellent cache choice in many circumstances - it is
+blazingly fast for key-value lookups, it is simple, it is threadsafe (as in
+threads in the main app do not maintain any pooling or thread issues other than
+opening a socket or keeping it open) and it has decent synching options.</p>
+<p>However the synching is serious concern, and as such using a centralised, fast,
+database will allow us to move to production with a secure solution, without the
+immediate reliance on cache-invalidation strategies.</p>
+</div>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<p>We have one single table, <tt class="docutils literal"><span class="pre">session_cache</span></tt>.  This stores a json string (as a string, not 9.3 JSON type)
+as value in a key value pair.  The key is a UUID-formatted string, passed in from the application.
+It is expected we will never see a collission.</p>
+<p>We have three commands:</p>
+<ul class="simple">
+<li><a class="reference internal" href="#rhaptos2.repo.sessioncache.set_session" title="rhaptos2.repo.sessioncache.set_session"><tt class="xref py py-meth docutils literal"><span class="pre">set_session()</span></tt></a></li>
+<li><a class="reference internal" href="#rhaptos2.repo.sessioncache.get_session" title="rhaptos2.repo.sessioncache.get_session"><tt class="xref py py-meth docutils literal"><span class="pre">get_session()</span></tt></a></li>
+<li><a class="reference internal" href="#rhaptos2.repo.sessioncache.delete_session" title="rhaptos2.repo.sessioncache.delete_session"><tt class="xref py py-meth docutils literal"><span class="pre">delete_session()</span></tt></a></li>
+</ul>
+<p>With this we can test the whole lifecyle as below</p>
+</div>
+<div class="section" id="example-usage">
+<h3>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this headline">¶</a></h3>
+<p>We firstly pass in a badly formed id.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sid</span> <span class="o">=</span> <span class="s">&quot;Dr. Evil&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_session</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>Traceback (most recent call last):</dt>
+<dd>...</dd>
+</dl>
+<p>Rhaptos2Error: Incorrect UUID format for sessionid...</p>
+<p>OK, now lets use a properly formatted (but unlikely) UUID</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sid</span> <span class="o">=</span> <span class="s">&quot;00000000-0000-0000-0000-000000000001&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">set_session</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span><span class="s">&quot;Paul&quot;</span><span class="p">})</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">userd</span> <span class="o">=</span> <span class="n">get_session</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">userd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">00000000-0000-0000-0000-000000000001</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delete_session</span><span class="p">(</span><span class="n">userd</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="section" id="to-do">
+<h4>To do<a class="headerlink" href="#to-do" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li>greenlets &amp; conn pooling</li>
+<li>wrap returned recordset in dict.</li>
+<li>pg&#8217;s UUID type?</li>
+</ul>
+</div>
+<div class="section" id="standalone-usage">
+<h4>Standalone usage<a class="headerlink" href="#standalone-usage" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-python"><pre>minimalconfd = {"app": {'pghost':'127.0.0.1',
+                        'pgusername':'repo',
+                        'pgpassword':'CHANGEME',
+                        'pgdbname':'dbtest'}
+               }
+
+import sessioncache
+sessioncache.set_config(minimalconfd)
+sessioncache.initdb()
+sessioncache._fakesessionusers()
+sessioncache.get_session("00000000-0000-0000-0000-000000000000")
+{u'interests': None, u'user_id': u'cnxuser:75e06194-baee-4395-8e1a-566b656f6920', ...}</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.connection_refresh">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">connection_refresh</tt><big>(</big><em>conn</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#connection_refresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.connection_refresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connections should be pooled and returned here.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.delete_session">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">delete_session</tt><big>(</big><em>sessionid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#delete_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.delete_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remve from session_cache an existing but no longer wanted session(id)
+for whatever reason we want to end a session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sessionid</strong> &#8211; Sessionid from cookie</td>
+</tr>
+</tbody>
+</table>
+<p>:returns nothing if success.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.exec_stmt">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">exec_stmt</tt><big>(</big><em>insql</em>, <em>params</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#exec_stmt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.exec_stmt" title="Permalink to this definition">¶</a></dt>
+<dd><p>trivial ability to run a <em>dm</em> query outside SQLAlchemy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>insql</strong> &#8211; A correctly parameterised SQL stmt ready for psycopg driver.</li>
+<li><strong>params</strong> &#8211; iterable of parameters to be inserted into insql</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return a dbapi recordset:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">(list of tuples)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.get_session">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">get_session</tt><big>(</big><em>sessionid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#get_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.get_session" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Given a sessionid, if it exists, and is &#8220;in date&#8221; then</dt>
+<dd>return userdict (oppostie of set_session)</dd>
+</dl>
+<p>Otherwise return None
+(We do not error out on id not found)</p>
+<p>NB this depends heavily on co-ordinating the incoming TZ
+of the DB and the python app server - I am soley runnig the
+check on the dbase, which avoids that but does make it less portable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.getconn">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">getconn</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#getconn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.getconn" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a connection object based on global confd.</p>
+<p>This is, at the moment, not a pooled connection getter.</p>
+<p>We do not want the ThreadedPool here, as it is designed for
+&#8220;real&#8221; threads, and listens to their states, which will be &#8216;awkward&#8217;
+in moving to greenlets.</p>
+<p>We want a pool that will relinquish
+control back using gevent calls</p>
+<p><a class="reference external" href="https://bitbucket.org/denis/gevent/src/5f6169fc65c9/examples/psycopg2_pool.py">https://bitbucket.org/denis/gevent/src/5f6169fc65c9/examples/psycopg2_pool.py</a>
+<a class="reference external" href="http://initd.org/psycopg/docs/pool.html">http://initd.org/psycopg/docs/pool.html</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return psycopg2 connection obj<tt class="docutils literal"><span class="pre">psycopg2</span> <span class="pre">connection</span> <span class="pre">obj</span></tt>:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">conn obj</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return psycopg2.Error:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">or Err</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.initdb">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">initdb</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#initdb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.initdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper function for creating the session table</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.maintenance_batch">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">maintenance_batch</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#maintenance_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.maintenance_batch" title="Permalink to this definition">¶</a></dt>
+<dd><p>A holdng location for ways to clean up the session cache over time.
+These will need improvement and testing.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.run_query">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">run_query</tt><big>(</big><em>insql</em>, <em>params</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#run_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.run_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>trivial ability to run a query outside SQLAlchemy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>insql</strong> &#8211; A correctly parameterised SQL stmt ready for psycopg driver.</li>
+<li><strong>params</strong> &#8211; iterable of parameters to be inserted into insql</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return a dbapi recordset:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">(list of tuples)</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>run_query(conn, &#8220;SELECT * FROM tbl where id = %s;&#8221;, (15,))</p>
+<p>issues: lots.</p>
+<ul class="simple">
+<li>No fetch_iterator.</li>
+<li>connection per query(see above)</li>
+<li>We should at least return a dict per row with fields as keys.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.set_config">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">set_config</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#set_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.set_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.set_session">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">set_session</tt><big>(</big><em>sessionid</em>, <em>userd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#set_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.set_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a sessionid (generated according to <tt class="docutils literal"><span class="pre">cnxsessionid</span> <span class="pre">spec</span></tt>
+elsewhere) and a <tt class="docutils literal"><span class="pre">userdict</span></tt> store in session cache with appropriate
+timeouts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sessionid</strong> &#8211; a UUID, that is to be the new sessionid</li>
+<li><strong>userd</strong> &#8211; python dict of format cnx-user-dict.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True on successful setting.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Can raise Rhaptos2Errors</p>
+<p>TIMESTAMPS.  We are comparing the time now, with the expirytime of the
+cookie <em>in the database</em> This reduces the portability.</p>
+<p>This beats the previous solution of passing in python formatted UTC and then
+comparing on database.</p>
+<p>FIXME: bring comaprison into python for portability across cache stores.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.sessioncache.validate_uuid_format">
+<tt class="descclassname">rhaptos2.repo.sessioncache.</tt><tt class="descname">validate_uuid_format</tt><big>(</big><em>uuidstr</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/sessioncache.html#validate_uuid_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.sessioncache.validate_uuid_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a string, try to ensure it is of type UUID.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">validate_uuid_format</span><span class="p">(</span><span class="s">&quot;75e06194-baee-4395-8e1a-566b656f6920&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">validate_uuid_format</span><span class="p">(</span><span class="s">&quot;FooBar&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
+</div>
+<div class="section" id="future-developments">
+<h2>Future Developments<a class="headerlink" href="#future-developments" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>registration on user service</li>
+<li>API Tokens and user service</li>
+<li>reliance by other services on user service logged in (single Sign on)</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Authentication API</a><ul>
+<li><a class="reference internal" href="#summary">Summary</a></li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.auth"><tt class="docutils literal"><span class="pre">rhaptos2.repo.auth</span></tt></a><ul>
+<li><a class="reference internal" href="#known-issues">known issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.sessioncache"><tt class="docutils literal"><span class="pre">rhaptos2.repo.sessioncache</span></tt></a><ul>
+<li><a class="reference internal" href="#session-cache">Session Cache</a></li>
+<li><a class="reference internal" href="#discussion">Discussion</a></li>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#example-usage">Example Usage</a><ul>
+<li><a class="reference internal" href="#to-do">To do</a></li>
+<li><a class="reference internal" href="#standalone-usage">Standalone usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#future-developments">Future Developments</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="viewmodelAPI.html"
+                        title="previous chapter">API for Views and models</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="commonAPI.html"
+                        title="next chapter">Common functionality</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/authenticationAPI.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="commonAPI.html" title="Common functionality"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="viewmodelAPI.html" title="API for Views and models"
+             >previous</a> |</li>
+        <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
