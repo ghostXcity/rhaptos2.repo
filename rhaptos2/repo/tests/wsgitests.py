@@ -132,6 +132,20 @@ USERHOST = "http://127.0.0.1:8000/"
 GOODUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
 OTHERUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
 BADUSERSESSIONID = "00000000-0000-0000-0000-000000000002"
+
+developers = [{"name": "pbrian",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000000"
+                   },
+                  {"name": "rossreedstrm",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000001"
+                   },
+                  {"name": "edwoodward",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000002"
+                   }
+                  ]
 ########################
 
 def get_cookie_hdr(fakesessionid):
@@ -319,13 +333,22 @@ def test_post_module():
 
 def test_put_module():
     data = decl.declarationdict['module']
-    data['acl'] = [OTHERUSERSESSIONID,]
+    data['acl'] = ["cnxuser:75e06194-baee-4395-8e1a-566b656f6921",]
     data['body'] = "<p> Shortened body in test_put_module"
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
-    assert OTHERUSERSESSIONID in resp.json['acl'] 
+    assert "cnxuser:75e06194-baee-4395-8e1a-566b656f6921" in resp.json['acl'] 
 
     ### So, user 0002 (ed) is RW on this module
     
+def test_put_module_by_otheruser():
+    data = decl.declarationdict['module']
+    data['body'] = "<p> OTHERUSERSESSIONID has set this"
+    resp = wapp_put(TESTAPP, "module", data, OTHERUSERSESSIONID, MODULEURI)
+    assert "OTHERUSERSESSIONID" in resp.json['body'] 
+
+    ### So, user 0002 (ed) is RW on this module
+
+
     
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[

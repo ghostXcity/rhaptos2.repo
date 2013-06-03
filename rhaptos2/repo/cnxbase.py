@@ -251,18 +251,27 @@ class CNXBase():
         proceed = self.is_action_auth(action="PUT", requesting_user_uri=requesting_user_uri)
         if not proceed:
             raise Rhaptos2Error("Action forbidden for user %s cannot update userroles" % requesting_user_uri)
+
+
+        ### am i not matching sessons to useruris?
         
         set_curr_uris = set(self.userroles)
         set_proposed_uris = set(proposed_acl_list)
         del_uris = set_curr_uris - set_proposed_uris
         add_uris = set_proposed_uris - set_curr_uris
 
+        dolog("INFO", str(set_proposed_uris))
+        dolog("INFO", str(set_curr_uris))        
+
+        
         for user_uri in add_uris:
+            dolog("INFO", "will add following: %s" % str(add_uris))
             self.adduserrole(self.userroleklass,
                               {'user_uri': user_uri,
                                'role_type': 'aclrw'},
                                requesting_user_uri=requesting_user_uri)
         for user_uri in del_uris:
+            dolog("INFO", "will deelte following: %s" % str(del_uris))
             self.prep_delete_userrole(user_uri)
             
 
