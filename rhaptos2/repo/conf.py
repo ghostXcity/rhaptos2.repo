@@ -22,7 +22,7 @@ This should be acceptable (sed basically)
 
 ::
 
-  from rhaptos2.common import conf
+  from rhaptos2.repo import conf
   confd = conf.get_config("/ini/file/path")
 
 We now have a python dict, named confd, holding all the namesapced
