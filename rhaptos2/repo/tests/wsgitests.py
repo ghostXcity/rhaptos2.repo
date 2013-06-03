@@ -133,19 +133,22 @@ GOODUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
 OTHERUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
 BADUSERSESSIONID = "00000000-0000-0000-0000-000000000002"
 
-developers = [{"name": "pbrian",
+developers = {"GOODUSER":
+                   {"name": "pbrian",
                    "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
                    "fakesessionid": "00000000-0000-0000-0000-000000000000"
                    },
+              "OTHERUSER":
                   {"name": "rossreedstrm",
                    "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
                    "fakesessionid": "00000000-0000-0000-0000-000000000001"
                    },
+              "BADUSER":
                   {"name": "edwoodward",
                    "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
                    "fakesessionid": "00000000-0000-0000-0000-000000000002"
                    }
-                  ]
+                  }
 ########################
 
 def get_cookie_hdr(fakesessionid):
@@ -333,12 +336,12 @@ def test_post_module():
 
 def test_put_module():
     data = decl.declarationdict['module']
-    data['acl'] = ["cnxuser:75e06194-baee-4395-8e1a-566b656f6921",]
+    data['acl'] = [developers['OTHERUSER']['uri'],]
     data['body'] = "<p> Shortened body in test_put_module"
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
-    assert "cnxuser:75e06194-baee-4395-8e1a-566b656f6921" in resp.json['acl'] 
+    assert developers['OTHERUSER']['uri'] in resp.json['acl'] 
 
-    ### So, user 0002 (ed) is RW on this module
+    ### So, user 0002 (ross) is RW on this module
     
 def test_put_module_by_otheruser():
     data = decl.declarationdict['module']
@@ -346,7 +349,7 @@ def test_put_module_by_otheruser():
     resp = wapp_put(TESTAPP, "module", data, OTHERUSERSESSIONID, MODULEURI)
     assert "OTHERUSERSESSIONID" in resp.json['body'] 
 
-    ### So, user 0002 (ed) is RW on this module
+    ### So, user 0002 (ross) is allowed to put on this module
 
 
     
@@ -397,7 +400,7 @@ def test_get_collection():
 def test_put_collection_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
-    resp = wapp_put(TESTAPP, "collection", data, OTHERUSERSESSIONID, COLLECTIONURI)
+    resp = wapp_put(TESTAPP, "collection", data, BADUSERSESSIONID, COLLECTIONURI)
     assert resp.status_int == 403
 
 
@@ -413,10 +416,10 @@ def test_dateModifiedStamp():
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
     
-def ntest_put_module_rouser():
+def test_put_module_rouser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
-    resp = wapp_put(TESTAPP, "module", data, OTHERUSERSESSIONID, MODULEURI)
+    resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
     assert resp.status_int == 403
 
 
@@ -429,28 +432,14 @@ def ntest_put_module_baduser():
 
 
 
-def ntest_put_folder_ro():
+def test_put_folder_ro():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
-    resp = wapp_put(TESTAPP, "folder", data, OTHERUSERSESSIONID, FOLDERURI)
-    assert resp.status_int == 403
-
-
-def ntest_put_folder_bad():
-    data = decl.declarationdict['folder']
-    data['body'] = ["BADUSER", ]
     resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, FOLDERURI)
     assert resp.status_int == 403
 
 
-def ntest_put_module_acl():
-    data = decl.acllist
-    resp = wapp_put(TESTAPP, "module_acl", data, GOODUSERSESSIONID, MODULEURI)
-    assert resp.status_int == 200
-
-
-    
-def ntest_read_module_rouser():
+def test_read_module_rouser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
     assert resp.status_int == 200
 
@@ -458,8 +447,7 @@ def test_read_folder_gooduser():
     resp = wapp_get(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
-
-def ntest_read_module_baduser():
+def test_read_module_baduser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403
     
@@ -473,14 +461,10 @@ def test_get_workspace_good():
     
 ###############    
 
-def ntest_delete_module_baduser():
+def test_delete_module_baduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403
 
-
-def ntest_delete_module_rouser():
-    resp = wapp_delete(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
-    assert resp.status_int == 403
 
 def test_delete_module_good():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, GOODUSERSESSIONID)
@@ -488,13 +472,8 @@ def test_delete_module_good():
 
 ###
     
-def ntest_delete_collection_baduser():
+def test_delete_collection_baduser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
-    assert resp.status_int == 403
-
-
-def ntest_delete_collection_rouser():
-    resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, OTHERUSERSESSIONID)
     assert resp.status_int == 403
 
 
@@ -504,15 +483,9 @@ def test_delete_collection_good():
 
 ###
     
-def ntest_delete_folder_baduser():
+def test_delete_folder_baduser():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, BADUSERSESSIONID)
     assert resp.status_int == 403
-
-
-def ntest_delete_folder_rouser():
-    resp = wapp_delete(TESTAPP, "folder", FOLDERURI, OTHERUSERSESSIONID)
-    assert resp.status_int == 403
-
 
 def test_delete_folder_good():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
