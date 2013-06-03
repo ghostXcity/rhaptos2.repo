@@ -3,34 +3,33 @@ Rhaptos2.Repo - Documentation
 
 Welcome to the docs for Rhaptos2.repo.
 
-These docs will need filling out - however a number of the modules 
-are internally documented and are laid out below
-
-
-.. toctree::
-   :maxdepth: 2
-
-   testing
-   config
-   
-API
----
-
-.. toctree::
-   :maxdepth: 2
-
-   allmodules
-   
-
-Json Schema and examples
-------------------------
+Some documentation is hand-written as below, and some is API further below
 
 .. toctree::
    :maxdepth: 1
 
+   testing
+   config
+   session-mgmt   
    jsonflow
+   specindex
 
 
+
+API
+===
+
+These documents come directly from source code as API docs (ala epydoc), 
+but are divided up and commented in reasonable order below.
+
+.. toctree::
+   :maxdepth: 1
+
+   viewmodelAPI
+   authenticationAPI
+   commonAPI
+   runAPI
+   
 
 
 Misc.
@@ -38,6 +37,12 @@ Misc.
 
 Here are misc notes that need to be better incorporated into the body of the
 docs.
+
+
+
+.. toctree::
+
+   glossary
 
 
 

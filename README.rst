@@ -50,6 +50,8 @@ settings (do not use these same instructions for a production install)::
 These commands setup a Postgres user named ``rhaptos2repo`` and made
 it the owner of the newly created ``rhaptos2repo`` database.
 
+
+
 Quick
 ~~~~~
 
@@ -166,6 +168,18 @@ has been installed::
     [app]
     atc_directory = <location you cloned to>
 
+Session Cache specific Issues
+
+You will need to build a table in the postgres backend.  This is 
+done as part of ``initdb`` but worth checking.
+
+I would also recommend running tests/cleardb.py as this will populate the
+session cache with three dummy accounts that can be claimed through /autosession
+
+Also ensure that user database is up and contains a mapping from your openid
+to a valid user uuid.
+
+
 Usage
 -----
 
@@ -180,6 +194,17 @@ project as the file named ``develop.ini``.
 
    rhaptos2repo-run --debug --config=develop.ini --port=8000
    * Running on http://127.0.0.1:8000/
+
+A development version is also written, here there is at least one extra 
+wsgi piece of middleware that will statically serve javascript etc.
+This is expected to be the function of nginx in production, and is there
+merely as a convenice for developers.
+
+::
+
+    $ python run.py --config=../../testing.ini --devserver --jslocation=/usr/home/pbrian/deploy/demo1/src/atc
+
+
 
 Deployment
 ----------
@@ -229,6 +254,9 @@ $ nosetests --tc-file=../../testing.ini runtests.py
 
 $ python run.py --config=../../testing.ini --host=0.0.0.0 --port=8000
 $ nosetests --tc-file=../../testing.ini --tc=HTTPPROXY:http://localhost:8000
+
+`run_inprocess.sh` and `run_http.sh` run the nose tests against inprocess wsgi server (ie all HTTP calls are passed between paste.WebTest and the app, and run_http.sh which expects a running HTTP server on port specified in sh file.
+
 
 License
 -------

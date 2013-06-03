@@ -19,12 +19,10 @@ use the `get_app` function.
 
 """
 import logging
-
 from flask import Flask, g
-
-from rhaptos2.common import log
-
+from rhaptos2.repo import log
 import pkg_resources
+
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
 
 APPTYPE = 'rhaptos2repo'
@@ -66,10 +64,11 @@ def make_app(config, as_standalone=False):
     # Set the application
     app = set_app(app)
 
-    if as_standalone:
-        from rhaptos2.repo import _standalone
-
     # Initialize the views
+    # This import circular avoidinace trick is horrible
+    # I will review log and import process and want to put it all in a single setup in run.
+    from rhaptos2.repo import auth  # noqa    
+    auth.setup_auth()
     from rhaptos2.repo import views  # noqa
 
     return app
@@ -136,31 +135,16 @@ def dolog(lvl, msg, caller=None, statsd=None):
 def set_up_logging(app):
     """Set up the logging within the application.
 
-    useage::
-        logger.warn("Help",
-                    extra={'statsd': ['rhaptos2.repo.module',
-                                      'bamboo.foo.bar']})
-
     """
     config = app.config
 
     # Define the logging handlers
-    statsd_host = config['globals']['bamboo_global']['statsd_host']
-    statsd_port = config['globals']['bamboo_global']['statsd_port']
-    statsd_handler = log.StatsdHandler(statsd_host, statsd_port)
     stream_handler = logging.StreamHandler()
 
-    # Define the log formatting. Reduced this as bug #39 prevents
-    #   extra being used.
-    # formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
-    #                               "- %(request_id)s - %(user_id)s "
-    #                               "- %(message)s")
+    # Define the log formatting.
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
                                   "- %(message)s")
-
-    statsd_handler.setFormatter(formatter)
     stream_handler.setFormatter(formatter)
-
     # Set the handlers on the application.
-    for handler in (statsd_handler, stream_handler,):
+    for handler in (stream_handler,):
         app.logger.addHandler(handler)

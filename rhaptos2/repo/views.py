@@ -58,42 +58,61 @@ from flask import (
 )
 
 from rhaptos2.repo import (get_app, dolog,
-                           auth,
-                           VERSION, model,
+                           auth, VERSION, model,
                            backend)
-from err import (Rhaptos2Error,
-                 Rhaptos2SecurityError,
-                 Rhaptos2HTTPStatusError)
-
+from rhaptos2.repo.err import (Rhaptos2Error,
+                               Rhaptos2SecurityError,
+                               Rhaptos2HTTPStatusError)
+########
+## module level globals -
+## FIXME: prefer to avoid this through urlmapping
+## unclear if can fix for SA
+########
 app = get_app()
 backend.initdb(app.config)
-
 
 @app.before_request
 def requestid():
     g.requestid = uuid.uuid4()
     g.request_id = g.requestid
-    g.user = auth.whoami()
+    g.deferred_callbacks = []
+    
+    ### Before the app.__call__ is called, perform processing of user auth
+    ### status.  If this throws err, we redirect or similar, else __call__ app
+    ### proceeds
+    try:
+        resp = auth.handle_user_authentication(request)
+    except Exception,e:
+        raise e
+    if resp is not None:
+        if hasattr(resp, "__call__") is True:
+            return resp
+    else:
+        pass
+    ## All good - carry on.
+        
+@app.after_request
+def call_after_request_callbacks(response):
+    for callback in getattr(g, 'deferred_callbacks', ()):
+        response = callback(response)
+    return response
+
 
 ########################### views
 
 
-def apply_cors(fn):
-    '''decorator to apply the correct CORS friendly header
+def apply_cors(resp_as_pytype):
+    '''A callable function (not decorator) to
+       take the output of a app_end and convert it to a Flask response
+       with appropriate Json-ified wrappings.
 
-       I am assuming all view functions return
-       just text ..  hmmm
+    
     '''
-    @wraps(fn)
-    def newfn(*args, **kwds):
-        resp = flask.make_response(fn(*args, **kwds))
-        resp.content_type = 'application/json; charset=utf-8'
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        resp.headers["Access-Control-Allow-Credentials"] = "true"
-        return resp
-
-    return newfn
-
+    resp = flask.make_response(resp_as_pytype)
+    resp.content_type = 'application/json; charset=utf-8'
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 @app.route('/')
 def index():
@@ -109,9 +128,35 @@ def index():
     TODO: either use a config value, or bring a index template in here
     """
     dolog("INFO", "THis is request %s" % g.requestid)
-    return redirect("/js/")
+    resp = flask.redirect('/js/')
+    return resp
+    
 
 
+
+@app.route("/me/", methods=['GET'])
+def whoamiGET():
+    '''
+    returns
+    Either 401 if OpenID not available or JSON document of form
+
+    {"openid_url": "https://www.google.com/accounts/o8/id?id=AItOawlWRa8JTK7NyaAvAC4KrGaZik80gsKfe2U",  # noqa
+     "email": "Not Implemented",
+     "name": "Not Implemented"}
+
+
+    '''
+    ### todo: return 401 code and let ajax client put up login.
+    userd = auth.whoami()#same as g.userd
+    
+    if userd:
+        jsond = auth.asjson(userd)#FIXME - zombie code again 
+        resp = apply_cors(jsond)
+        return resp
+    else:
+        return("Not logged in", 401)#FIXME - zombie code again 
+
+    
 # Content GET, POST (create), and PUT (change)
 @app.route("/workspace/", methods=['GET'])
 def workspaceGET():
@@ -120,13 +165,13 @@ def workspaceGET():
     ### yes the client should only expect to handle HTTP CODES
     ### compare on userID
 
-    identity = auth.whoami()
-    if not identity:
+    userd = auth.whoami()
+    if not userd:
         abort(403)
     else:
         wout = {}
-        dolog("INFO", "Calling workspace with %s" % identity.userID)
-        w = model.workspace_by_user(identity.userID)
+        dolog("INFO", "Calling workspace with %s" % userd['user_uri'])
+        w = model.workspace_by_user(userd['user_uri'])
         dolog("INFO", repr(w))
         ## w is a list of models (folders, cols etc).
         # it would require some flattening or a JSONEncoder but we just want
@@ -135,11 +180,8 @@ def workspaceGET():
             "id": i.id_, "title": i.title, "mediaType": i.mediaType} for i in w]
         flatten = json.dumps(short_format_list)
 
-    resp = flask.make_response(flatten)
-    resp.content_type = 'application/json; charset=utf-8'
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-
     auth.callstatsd('rhaptos2.e2repo.workspace.GET')
+    resp = apply_cors(flatten)
     return resp
 
 
@@ -177,31 +219,6 @@ def versionGET():
 
 
 ### Below are for test /dev only.
-@app.route("/crash/", methods=["GET"])
-def crash():
-    ''' '''
-    if app.debug:
-        dolog("INFO", 'crash command called', caller=crash, statsd=[
-              'rhaptos2.repo.crash', ])
-        raise Rhaptos2Error('Crashing on demand')
-    else:
-        abort(404)
-
-
-@app.route("/burn/", methods=["GET"])
-def burn():
-    ''' '''
-    if app.debug:
-        dolog(
-            "INFO", 'burn command called - dying hard with os._exit',
-            caller=crash, statsd=['rhaptos2.repo.crash', ])
-        # sys.exit(1)
-        # Flask traps sys.exit (threads?)
-        os._exit(1)  # trap _this_
-    else:
-        abort(404)
-
-
 @app.route("/admin/config/", methods=["GET", ])
 def admin_config():
     """View the config we are using
@@ -221,12 +238,22 @@ def admin_config():
     else:
         abort(403)
 
+@app.route("/autosession", methods=['GET'])
+def auto_session():
+    """
+    strictly for testing purposes
+    I want to fake three sessions with known ids.
+    Also generate a "real" session with a known user
+    FIXME - there has to be a better way
+    """
+    
+    sessionid = auth.set_autosession()
+
+    return "Session created - please see headers"
+        
 ################ openid views - from flask
 
 
-@app.after_request
-def after_request(response):
-    return response
 
 # XXX A temporary fix for the openid images.
 
@@ -245,16 +272,19 @@ def temp_openid_image_url():
 @auth.oid.loginhandler
 def login():
     """Does the login via OpenID.  Has to call into `auth.oid.try_login`
-    to start the OpenID machinery.
+    to start the OpenID .
     """
     # if we are already logged in, go back to were we came from
-    if g.user is not None:
+    if g.userd is not None:
+        dolog("INFO", "Were at /login with g.user_uri of %s" % g.user_uri)
         return redirect(auth.oid.get_next_url())
+        
     if request.method == 'POST':
         openid = request.form.get('openid')
         if openid:
             return auth.oid.try_login(openid, ask_for=['email', 'fullname',
                                                        'nickname'])
+            
     return render_template('login.html', next=auth.oid.get_next_url(),
                            error=auth.oid.fetch_error(),
                            confd=app.config)
@@ -266,7 +296,7 @@ def create_or_login(resp):
     necessary to figure out if this is the users's first login or not.
 
     """
-
+    dolog("INFO", "OpenID worked, now set server to believe this is logged in")
     auth.after_authentication(resp.identity_url, 'openid')
     return redirect(auth.oid.get_next_url())
 
@@ -274,13 +304,11 @@ def create_or_login(resp):
 @app.route('/logout')
 def logout():
     """
+    kill the session in cache, remove the cookie from client
 
-    TODO: It seems the local client cache holds data still.
-    It appears you are still logged in but no session info is held.
-    issue:#123
     """
-    session.pop('openid', None)
-    session.pop('authenticated_identifier', None)
+    
+    auth.delete_session(g.sessionid)
     return redirect(auth.oid.get_next_url())
 
 
@@ -351,7 +379,7 @@ def folder_router(folderuri):
     """
     """
     dolog("INFO", "In folder router, %s" % request.method)
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -390,7 +418,7 @@ def collection_router(collectionuri):
     """
     """
     dolog("INFO", "In collection router, %s" % request.method)
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -429,7 +457,7 @@ def module_router(moduleuri):
     """
     """
     dolog("INFO", "In module router, %s" % request.method)
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -476,8 +504,8 @@ def folder_get(folderuri, requesting_user_uri):
     (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes
         on backend.py
     """
-    fldr = model.obj_from_urn(folderuri, g.userID)
-    fldr_complex = fldr.__complex__(g.userID)
+    fldr = model.obj_from_urn(folderuri, g.userd['user_uri'])
+    fldr_complex = fldr.__complex__(g.userd['user_uri'])
 
     resp = flask.make_response(json.dumps(fldr_complex))
     resp.content_type = 'application/json; charset=utf-8'
@@ -535,7 +563,7 @@ def generic_delete(uri, requesting_user_uri):
 
 
 def generic_acl(klass, uri, acllist):
-    owner = g.userID
+    owner = g.userd['user_uri']
     fldr = model.get_by_id(klass, uri, owner)
     fldr.set_acls(owner, acllist)
     resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
@@ -548,7 +576,7 @@ def generic_acl(klass, uri, acllist):
            methods=['PUT', 'GET'])
 def collection_acl_put(collectionuri):
     """ """
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     if request.method == "PUT":
         jsond = request.json
         return generic_acl(model.Collection, collectionuri, jsond)
@@ -561,7 +589,7 @@ def collection_acl_put(collectionuri):
 @app.route('/folder/<path:uri>/acl/', methods=['PUT', 'GET'])
 def acl_folder_put(uri):
     """ """
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     if request.method == "PUT":
         jsond = request.json
         return generic_acl(model.Folder, uri, jsond)
@@ -574,7 +602,7 @@ def acl_folder_put(uri):
 @app.route('/module/<path:uri>/acl/', methods=['PUT', 'GET'])
 def acl_module_put(uri):
     """ """
-    requesting_user_uri = g.userID
+    requesting_user_uri = g.userd['user_uri']
     if request.method == "PUT":
         jsond = request.json
         return generic_acl(model.Module, uri, jsond)

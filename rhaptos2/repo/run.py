@@ -16,15 +16,11 @@ run.py - Launch the repo app.
 This is the suggested method for running a WSGI Server - we instantiate the repo
 app, and pass it to the waitress server (To be replaced by gunicorn)::
 
-  python run.py --config=../../testing.ini
-
-.. todo::
-   Michaels solution to include a sererate standalone module was much better.
-   Replicate it and pull much of the URLMap code out of here.
+  python run.py --config=../../testing.ini --devserver --jslocation=/path/to/atc
 
 """
 
-from rhaptos2.repo import make_app
+from rhaptos2.repo import make_app, sessioncache
 from rhaptos2.repo.configuration import Configuration
 from optparse import OptionParser
 import os
@@ -56,7 +52,8 @@ def get_app(opts, args, config, as_standalone = False, with_testuser = False):
 
     app = make_app(config)
     app.debug = True
-
+    sessioncache.set_config(config)
+    
     if as_standalone:
 
         if not os.path.isdir(opts.jslocation):

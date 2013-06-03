@@ -274,7 +274,7 @@ fldr = {"id_":      "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707",
 collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
               "title": "United States Declaration Of Independance",
               "language": "en",
-              "subtype":  "Other Report",
+              "subType":  "Other Report",
               "subjects": ["Social Sciences", ],
               "keywords": ["Life", "Liberty", "Happiness"],
               "summary": "No.",
@@ -329,14 +329,14 @@ users = {
 
 # added as extra people to every module etc.
 acllist = [
-    {'dateLastModifiedUTC': None,
-     'dateCreatedUTC': None,
-     'user_uri': users['phil'].useruri,
-     'role_type': 'aclrw'},
+    {'beginDateUTC': None,
+     'endDateUTC': None,
+     'user_uri': users['ross'].useruri,
+     'role_type': 'aclro'},
 
-    {'dateLastModifiedUTC': None,
-     'dateCreatedUTC': None,
-     'user_uri': users['ed'].useruri,
+    {'beginDateUTC': None,
+     'endDateUTC': None,
+     'user_uri': users['michael'].useruri,
      'role_type': 'aclro'}
 ]
 
