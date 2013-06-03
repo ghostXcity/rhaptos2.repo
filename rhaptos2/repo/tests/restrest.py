@@ -15,6 +15,9 @@ import webob
 import json
 import os
 from urlparse import urlparse
+import logging
+logging.basicConfig(level=logging.DEBUG)
+lgr = logging.getLogger(__name__)
 
 """
 restrest
@@ -40,7 +43,7 @@ Output is returned to you from restrest, do with it what you will.
 
 
 
-def sanestr(s, cutoff=40):
+def sanestr(s, cutoff=55):
     """When printing headers and content
        replace reams of text with ellipsis and otherwise neaten stuff up"""
 
@@ -96,8 +99,13 @@ def format_content(resp):
         d = resp.json()
         txt = json.dumps(d, sort_keys=True, indent=4)
     except:
-        #ok not json. Likely mass of html, so ellipiss
-        txt = resp.text[:40] + "..."
+        #ok not json. Likely mass of html, or non existent
+        try:
+            txt = resp.text[:55] + "..."
+        except AttributeError, e:
+            lgr.info("Failed to get text from response - %s" % str(e))
+            txt = "null"
+        
     return indenttxt(txt)
 
 

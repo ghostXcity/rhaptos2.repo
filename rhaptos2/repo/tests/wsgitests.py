@@ -55,7 +55,7 @@ def capture_conversation(webob_request, webob_response):
     
     restrest assumes you are sending in webob objects
     """
-    rst = restrest.restrest(webob_request, webob_response, shortformat=False)
+    rst = restrest.restrest(webob_request, webob_response, shortformat=True)
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
@@ -280,7 +280,7 @@ def wapp_post(wapp, resourcetype, data, test_session_id):
     req = TestRequest.blank(URL, method="POST",
                             body=data_as_json,
                             headers=headerd)
-    req.content_type="application/json"
+    req.content_type="application/json; charset=utf-8"
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
@@ -311,7 +311,7 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
     req = TestRequest.blank(URL, method="PUT",
                             body=data_as_json,
                             headers=headerd)
-    req.content_type="application/json"
+    req.content_type="application/json; charset=utf-8"
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
