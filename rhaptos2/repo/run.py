@@ -167,6 +167,10 @@ def initialize_database():
     from rhaptos2.repo.backend import initdb
     initdb(config)
 
+    from rhaptos2.repo.sessioncache import set_config, initdb
+    set_config(config)
+    initdb()
+
 
 if __name__ == '__main__':
     main()

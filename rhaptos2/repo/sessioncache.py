@@ -454,7 +454,7 @@ def initdb():
     A helper function for creating the session table
 
     """
-    SQL0 = """DROP TABLE session_cache;"""
+    SQL0 = """DROP TABLE IF EXISTS session_cache;"""
 
     SQL1 = """CREATE TABLE session_cache(
    sessionid  character varying NOT NULL,
