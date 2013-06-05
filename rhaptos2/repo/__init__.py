@@ -64,6 +64,7 @@ def assign_routing_rules(app):
         "/version/", view_func=views.versionGET, methods=['GET', ])
     app.add_url_rule(
         "/autosession", view_func=views.auto_session, methods=['GET', ])
+    app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
 
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[

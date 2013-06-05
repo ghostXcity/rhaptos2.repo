@@ -447,6 +447,34 @@ def logout():
     """kill the session in cache, remove the cookie from client"""
     raise NotImplementedError()
 
+############################
+# cnx-user communication API
+############################
+
+# cnx-user requires that a service have a /valid route to handle users when
+#   they return from authenticating.
+
+def valid():
+    """cnx-user /valid view for capturing valid authentication requests."""
+    user_token = request.args['token']
+    next_location = request.args.get('next', '/')
+
+    # Check with the service to verify authentication is valid.
+    user_service_url = get_app().config['cnx-user-url']
+    url = "%s/check" % user_service_url
+    try:
+        resp = requests.post(url, data={'token': user_token})
+    except requests.exceptions.RequestException as exc:
+        raise Rhaptos2Error("Invalid authentication token")
+    user_id = resp.text
+
+    # Now that we have the user's authenticated id, we can associate the user
+    #   with the system and any previous session.
+    raise NotImplementedError()
+
+    redirect(next_location)
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
