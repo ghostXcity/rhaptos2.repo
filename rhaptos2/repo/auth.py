@@ -461,11 +461,16 @@ def valid():
 
     # Check with the service to verify authentication is valid.
     user_service_url = get_app().config['cnx-user-url']
-    url = "%s/check" % user_service_url
+    url = "%s/server/check" % user_service_url
     try:
         resp = requests.post(url, data={'token': user_token})
     except requests.exceptions.RequestException as exc:
         raise Rhaptos2Error("Invalid authentication token")
+    if resp.status_code == 400:
+        raise Rhaptos2Error("Invalid authentication token")
+    elif resp.status_code != 200:
+        raise Rhaptos2Error("Had problems communicating with the "
+                            "authentication service")
     user_id = resp.text
 
     # Now that we have the user's authenticated id, we can associate the user
