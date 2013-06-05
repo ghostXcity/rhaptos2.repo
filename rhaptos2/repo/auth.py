@@ -54,7 +54,7 @@ import uuid
 import flask
 import requests
 import statsd
-from flask import request, g, session, redirect
+from flask import abort, request, g, session, redirect
 from flaskext.openid import OpenID
 from webob import Request
 
@@ -76,6 +76,7 @@ def dolog(lvl, msg):
 ### this is key found in all session cookies
 ### It is hardcoded here not config.
 CNXSESSIONID = "cnxsessionid"
+
 
 def store_userdata_in_request(userd, sessionid):
     """
@@ -171,7 +172,7 @@ def handle_user_authentication(flask_request):
     except Rhaptos2NoSessionCookieError, e:
         dolog(
             "INFO", "Session Lookup returned NoCookieError, so redirect to login")
-        return redirect_to_login()
+        abort(403)
         # We end here for now - later we shall fix tempsessions
         # userdata = set_temp_session()
 
@@ -183,7 +184,7 @@ def handle_user_authentication(flask_request):
         g.userd = None
         dolog(
             "INFO", "Session Lookup returned None User, so redirect to login")
-        return redirect_to_login()
+        abort(403)
 
 ##########################
 ## Session Cookie Handling
