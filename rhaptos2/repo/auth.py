@@ -69,27 +69,6 @@ _lgr = logging.getLogger("authmodule")
 def dolog(lvl, msg):
     _lgr.info(msg)
 
-##########
-### Module startup
-##########
-
-def setup_auth(app):
-    """
-    As part of drive to remove app setup from the import process,
-    have moved to calls into this function.  This is driving
-    a circular import cycle, which while temp solved will only
-    be fixed by changing logging process.
-
-    So to ensure docs work, and as a nod towards cleaning up the
-    import-time work happening here, this needs to be called by run.
-
-    """
-    import views
-    app.config.update(
-        SECRET_KEY=app.config['openid_secretkey'],
-        DEBUG=app.debug
-        )
-
 ########################
 # User Auth flow
 ########################

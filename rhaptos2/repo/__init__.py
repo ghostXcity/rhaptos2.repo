@@ -113,7 +113,6 @@ def make_app(config, as_standalone=False):
     # I will review log and import process and want to put it all in a single
     # setup in run.
     from rhaptos2.repo import auth  # noqa
-    auth.setup_auth(app)
     from rhaptos2.repo import views  # noqa
 
     return app
