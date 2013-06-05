@@ -100,16 +100,7 @@ def setup_auth():
     app.config.update(
         SECRET_KEY=app.config['openid_secretkey'],
         DEBUG=app.debug
-    )
-
-    # setup flask-openid
-    #: we setup the loginhandler and after_login callbacks here
-    #: flesh out docs
-    oid = OpenID(app)
-    # views - why here and not in __init
-    oid.loginhandler(login)
-    oid.after_login(create_or_login)
-
+        )
 
 ########################
 # User Auth flow
@@ -118,24 +109,6 @@ def setup_auth():
 ### this is key found in all session cookies
 ### It is hardcoded here not config.
 CNXSESSIONID = "cnxsessionid"
-
-
-def redirect_to_login():
-    """
-    On first hitting the site, the user will have no cookie
-    If we issued a 301, the browser would issue another request,
-    which would have no cookie, which would issue a 301...
-
-    By presenting this HTML when the user hits the login server,
-    we avoid this.  Clearly templating is needed.
-
-    """
-    tmpl = """<p>Hello It seems your session has expired.
-    <p>Please <a href="/login">login again.</a>
-    <p>Developers can <a href="/autosession">autosession</a> """
-    resp = flask.make_response(tmpl)
-    return resp
-
 
 def store_userdata_in_request(userd, sessionid):
     """
@@ -474,59 +447,21 @@ def after_authentication(authenticated_identifier, method):
     create_session(userdetails)
     return userdetails
 
-
 def whoami():
-    '''
-
-    based on session cookie
-    returns userd dict of user details, equivalent to mediatype from service / session
-
-    '''
+    """based on session cookie
+    returns userd dict of user details, equivalent to mediatype from
+    service / session
+    """
     return g.userd
 
-
 def apply_cors(resp):
-    '''  '''
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
-
-def add_location_header_to_response(fn):
-    '''add Location: header
-
-        from: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
-        For 201 (Created) responses, the Location is that of the new
-        resource which was created by the request
-
-
-    decorator that assumes we are getting a flask response object
-
-    '''
-
-    resp = fn()
-    resp.headers["Location"] = "URL NEEDED FROM HASHID"
-
-
-#@property ## need to evolve a class here I feel...
-def userspace():
-    ''' '''
-    userspace = app.config['repodir']
-
-    if os.path.isdir(userspace):
-        return userspace
-    else:
-        try:
-            os.makedirs(userspace)
-            return userspace
-        except Exception, e:
-            raise Rhaptos2Error('cannot create repo \
-                                or userspace %s - %s' % (
-                                userspace, e))
-
-
+# ??? Why is this logic in this module? Shouldn't it be grouped with the other
+#     logging facilities.
 def callstatsd(dottedcounter):
-    ''' '''
     # Try to call logging. If not connected to a network this throws
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
     try:
@@ -537,113 +472,9 @@ def callstatsd(dottedcounter):
     except:
         pass
 
-# zombie code
-
-
-def asjson(pyobj):
-    '''just placeholder
-
-
-    >>> x = {'a':1}
-    >>> asjson(x)
-    '{"a": 1}'
-
-    '''
-    return json.dumps(pyobj)
-
-
-def gettime():
-    return datetime.datetime.today().isoformat()
-
-
-################ openid views - from flask
-
-
-def temp_openid_image_url():
-    """Provides a (temporary) fix for the openid images used
-    on the login page.
-    """
-    # Gets around http://openid-selector.googlecode.com quickly
-    resp = flask.redirect('/static/img/openid-providers-en.png')
-    return resp
-
-
-def login():
-    """Does the login via OpenID.  Has to call into `auth.oid.try_login`
-    to start the OpenID .
-    """
-    # if we are already logged in, go back to were we came from
-    if g.userd is not None:
-        dolog("INFO", "Were at /login with g.user_uri of %s" % g.user_uri)
-        return redirect(auth.oid.get_next_url())
-
-    if request.method == 'POST':
-        openid = request.form.get('openid')
-        if openid:
-            return auth.oid.try_login(openid, ask_for=['email', 'fullname',
-                                                       'nickname'])
-
-    return render_template('login.html', next=auth.oid.get_next_url(),
-                           error=auth.oid.fetch_error(),
-                           confd=app.config)
-
-
-def create_or_login(resp):
-    """This is called when login with OpenID succeeded and it's not
-    necessary to figure out if this is the users's first login or not.
-
-    """
-    dolog("INFO", "OpenID worked, now set server to believe this is logged in")
-    auth.after_authentication(resp.identity_url, 'openid')
-    return redirect(auth.oid.get_next_url())
-
-
 def logout():
-    """
-    kill the session in cache, remove the cookie from client
-
-    """
-
-    auth.delete_session(g.sessionid)
-    return redirect(auth.oid.get_next_url())
-
-##############
-
-
-def logoutpersona():
-    dolog("INFO", "logoutpersona")
-    return "Yes"
-
-
-def loginpersona():
-    """Taken mostly from mozilla quickstart """
-    dolog("INFO", "loginpersona")
-    # The request has to have an assertion for us to verify
-    if 'assertion' not in request.form:
-        abort(400)
-
-    # Send the assertion to Mozilla's verifier service.
-    audience = "http://%s" % app.config['www_server_name']
-    data = {'assertion': request.form['assertion'], 'audience': audience}
-    resp = requests.post(
-        'https://verifier.login.persona.org/verify', data=data, verify=True)
-
-    # Did the verifier respond?
-    if resp.ok:
-        # Parse the response
-        verification_data = json.loads(resp.content)
-        dolog("INFO", "Verified persona:%s" % repr(verification_data))
-
-        # Check if the assertion was valid
-        if verification_data['status'] == 'okay':
-            # Log the user in by setting a secure session cookie
-#            session.update({'email': verification_data['email']})
-            after_authentication(verification_data['email'], 'persona')
-            return resp.content
-
-    # Oops, something failed. Abort.
-    abort(500)
-
+    """kill the session in cache, remove the cookie from client"""
+    raise NotImplementedError()
 
 if __name__ == '__main__':
     import doctest

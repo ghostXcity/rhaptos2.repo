@@ -149,7 +149,7 @@ def whoamiGET():
     userd = auth.whoami()  # same as g.userd
 
     if userd:
-        jsond = auth.asjson(userd)  # FIXME - zombie code again
+        jsond = json.dumps(userd)
         resp = apply_cors(jsond)
         return resp
     else:
