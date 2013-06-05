@@ -45,23 +45,23 @@ userdict example::
     {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
 
 """
-
-import datetime
 import os
-import statsd
+import datetime
 import json
-import pprint
+import logging
 import uuid
-from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
-from rhaptos2.repo import get_app, sessioncache
+
 import flask
+import requests
+import statsd
 from flask import request, g, session, redirect
 from flaskext.openid import OpenID
-import requests
 from webob import Request
 
+from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
+from rhaptos2.repo import get_app, sessioncache
 
-import logging
+
 lgr = logging.getLogger("authmodule")
 
 ### This is a temporary log fix
