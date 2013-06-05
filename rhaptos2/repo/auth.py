@@ -72,16 +72,11 @@ lgr = logging.getLogger("authmodule")
 def dolog(lvl, msg):
     lgr.info(msg)
 
-
-### global namespace placeholder
-app = None
-
-
 ##########
 ### Module startup
 ##########
 
-def setup_auth():
+def setup_auth(app):
     """
     As part of drive to remove app setup from the import process,
     have moved to calls into this function.  This is driving
@@ -92,11 +87,7 @@ def setup_auth():
     import-time work happening here, this needs to be called by run.
 
     """
-
-    global app
     import views
-
-    app = get_app()
     app.config.update(
         SECRET_KEY=app.config['openid_secretkey'],
         DEBUG=app.debug
@@ -244,7 +235,7 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
     if CNXSESSIONID in flask_request_cookiedict:
         sessid = flask_request_cookiedict[CNXSESSIONID]
     else:
-        raise Rhaptos2NoSessionCookieError("NO SESSION - REDIRECT TO LOGIN")
+        raise Rhaptos2NoSessionCookieError("NO SESSION")
     userdata = lookup_session(sessid)
     return (userdata, sessid)
 
@@ -290,7 +281,7 @@ def authenticated_identifier_to_registered_user_details(ai):
     """
     payload = {'user': ai}
     ### Fixme - the whole app global thing is annoying me now.
-    user_server_url = app.config['globals'][
+    user_server_url = get_app().config['globals'][
         u'userserver'].replace("/user", "/openid")
 
     dolog("INFO", "user info - from url %s and query string %s" %
@@ -375,7 +366,7 @@ def set_autosession():
     It should fail in production
 
     """
-    if not app.debug:
+    if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
     # check if session already live for this user?
@@ -465,8 +456,8 @@ def callstatsd(dottedcounter):
     # Try to call logging. If not connected to a network this throws
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
     try:
-        c = statsd.StatsClient(app.config['globals']['statsd_host'],
-                               int(app.config['globals']['statsd_port']))
+        c = statsd.StatsClient(get_app().config['globals']['statsd_host'],
+                               int(get_app().config['globals']['statsd_port']))
         c.incr(dottedcounter)
         # todo: really return c and keep elsewhere for efficieny I suspect
     except:
