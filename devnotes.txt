@@ -4,11 +4,24 @@ on it.  I am a messy programmer, recovering slowly, and so the commented code
 will be pulled in here to be used / cribbed from later (yes, I know I can search
 the git logs, but that gets painful quickly)
 
-In short, when I get tempted to leave commented code in place as a reminder for the future, this is my nicotine patch.
+
+
+ACLs
+----
+This will be expanded in docs, however we now support sending and recving 
+ACLs as a array in the module / folder / collection record.
+
+
+
+Please see http://connexions.github.io/rhaptos2.repo/jsonflow.html
+for examples
+
+
+
 
 
 Logging
-
+-------
 statsdhandler logging:
 
   
@@ -27,8 +40,8 @@ I am not convinced the "extra" logger form is worthwhile
 
 Other logging 
 
-I will setup a series of thread based tests to show if logging module barfs trying to 
-piece together logs of same root name in different threads / gevents/
+I will setup a series of thread based tests to show if logging module barfs
+trying to piece together logs of same root name in different threads / gevents/
 If not then simplest logging problem is to set the root logger at startup and
-have each module use its own version of the logger, igoring the trying-to-pass-logger-around-via-imports
-issues.
+have each module use its own version of the logger, igoring the
+trying-to-pass-logger-around-via-imports issues.

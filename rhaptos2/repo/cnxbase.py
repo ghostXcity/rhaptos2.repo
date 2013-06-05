@@ -47,7 +47,7 @@ from rhaptos2.repo import dolog  # depednacy?
 
 class CNXBase():
     """
-    
+
     The resources we use (Folder, Collection, Module) all adhere to a common
     access protocol that is defined in :class:CNXBase.
 
@@ -82,11 +82,11 @@ class CNXBase():
         else:
             return False
 
-    def populate_self(self, d):
+    def populate_self(self, d, requesting_user_uri=None):
         ''' '''
-        self.from_dict(d)
+        self.from_dict(d, requesting_user_uri=requesting_user_uri)
 
-    def from_dict(self, userprofile_dict):
+    def from_dict(self, userprofile_dict, requesting_user_uri=None):
         """
         given a dict, derived from either test fixture or json POST
         populate the object.
@@ -105,7 +105,7 @@ class CNXBase():
         >> m.populate_self(d)
         >> m.save(db_session)
 
-        
+
         """
         idnames = ['id_', ]
         d = userprofile_dict
@@ -113,11 +113,15 @@ class CNXBase():
             if k in idnames and d[k] is None:
                 continue  # do not assign a id of None to the internal id
             elif k not in self.__table__.columns:
-                raise Rhaptos2Error("Tried to set attr %s when no matching table column" % k)
+                raise Rhaptos2Error(
+                    "Tried to set attr %s when no matching table column" % k)
+            elif k == "acl":
+                ## convert acls into userrole assignments
+                self.update_userroles(d['acl'], requesting_user_uri=requesting_user_uri)
+                setattr(self, k, d['acl'])                
             else:
                 setattr(self, k, d[k])
 
-                
     def jsonify(self, requesting_user_uri, softform=True):
         """
         public method to return the object as a JSON formatted string.
@@ -133,7 +137,7 @@ class CNXBase():
         to perform *n* more requests to get the title of each.
 
         To avoid this we return a softform
-        
+
          body = [{'id': '/folder/1234', 'title': 'foo', 'mediatype':'application/vnd.org.cnx.folder'},
                  {'id': '/module/5678', 'title': 'bar', 'mediatype':'application/vnd.org.cnx.module'},
 
@@ -147,18 +151,19 @@ class CNXBase():
            its own hierarchy and produce short-form versions of its children
            And a short-form long-form approach that needs to produce either the whole object
            or just a few items (title, id etc)
-        
+
         """
-        #get self as a (non-recursive) list of python types (ie json encodaeable)
+        # get self as a (non-recursive) list of python types (ie json
+        # encodaeable)
         self_as_complex = self.__complex__(requesting_user_uri, softform)
         jsonstr = json.dumps(self_as_complex)
         return jsonstr
-        
+
     def __complex__(self, requesting_user_uri, softform=True):
         """Return self as a dict, suitable for jsonifying     """
 
-        #softform and hardform have no distinction if there are
-        #no child nodes
+        # softform and hardform have no distinction if there are
+        # no child nodes
         if not self.is_action_auth("GET", requesting_user_uri):
             raise Rhaptos2AccessNotAllowedError("user %s not allowed access to %s"
                                                 % (requesting_user_uri,
@@ -182,7 +187,21 @@ class CNXBase():
         else:
             outstr = getattr(self, col.name)
         return outstr
+        
+    def prep_delete_userrole(self, user_uri, role_type=None):
+        """policy: we are ignoring role type for now.  Any delete will delete
+        the user, there should only be one roletype per user, and one user per
+        resource.  This is policy not enforced
 
+       *editing* a user's role is not transaction supported (del then add in one
+        trans).  If we ever change policy we need to fix that
+
+        """
+        
+        for usr in self.userroles:
+            if usr.user_uri == user_uri:
+                self.userroles.remove(usr)
+        
     def set_acls(self, setter_user_uri, acllist, userrole_klass=None):
         """set the user acls on this object.
 
@@ -216,15 +235,59 @@ class CNXBase():
         else:
             for usrdict in acllist:
                 # I am losing modified info...
-                self.adduserrole(userrole_klass, usrdict)
+                self.adduserrole(userrole_klass, usrdict, requesting_user_uri=setter_user_uri)
 
-    def adduserrole(self, userrole_klass, usrdict):
+    def update_userroles(self, proposed_acl_list, requesting_user_uri):
+        """
+        Given a list of (valid) user uris, add them to SQLA list
+
+        The proposed list is *always* accurate, *except* if it leaves off the
+        current requesting_user_uri, which is always added. (This may lead to some
+        strange behaviour or test issues so be flexible)
+        
+        """
+        #: We assume one auth check will suffice as there is by policy one
+        #: acl only (aclrw).  More fine grained policy will need more checks.
+        proceed = self.is_action_auth(action="PUT", requesting_user_uri=requesting_user_uri)
+        if not proceed:
+            raise Rhaptos2Error("Action forbidden for user %s cannot update userroles" % requesting_user_uri)
+
+
+        ### am i not matching sessons to useruris?
+        
+        set_curr_uris = set(self.userroles)
+        set_proposed_uris = set(proposed_acl_list)
+        del_uris = set_curr_uris - set_proposed_uris
+        add_uris = set_proposed_uris - set_curr_uris
+
+        dolog("INFO", str(set_proposed_uris))
+        dolog("INFO", str(set_curr_uris))        
+
+        
+        for user_uri in add_uris:
+            dolog("INFO", "will add following: %s" % str(add_uris))
+            self.adduserrole(self.userroleklass,
+                              {'user_uri': user_uri,
+                               'role_type': 'aclrw'},
+                               requesting_user_uri=requesting_user_uri)
+        for user_uri in del_uris:
+            dolog("INFO", "will deelte following: %s" % str(del_uris))
+            self.prep_delete_userrole(user_uri)
+            
+
+
+                
+    def adduserrole(self, userrole_klass, usrdict, requesting_user_uri):
         """ keeping a common funciton in one place
 
         Given a usr_uuid and a role_type, update a UserRole object
 
         I am checking setter_user is authorised in calling function.
-        Ideally check here too.
+
+        The requesting_user_uri merry-go-round
+        I am pushing the user name all over the place - I think because
+        userrole.from_dict is in cnbxbase which is not exclusive as base for userrole module.
+        SO have cnxbase klass for userroles as well. ToDO
         """
         t = self.get_utcnow()
 
@@ -235,7 +298,7 @@ class CNXBase():
         if user_uri not in [u.user_uri for u in self.userroles]:
             # UserID is not in any assoc. role - add a new one
             i = userrole_klass()
-            i.from_dict(usrdict)
+            i.from_dict(usrdict, requesting_user_uri=requesting_user_uri)
             i.dateCreatedUTC = t
             i.dateLastModifiedUTC = t
             self.userroles.append(i)
@@ -244,7 +307,7 @@ class CNXBase():
                                            in self.userroles]:
             # UserID has got a role, so *update*
             i = userrole_klass()
-            i.from_dict(usrdict)
+            i.from_dict(usrdict, requesting_user_uri=requesting_user_uri)
             i.dateLastModifiedUTC = t
             self.userroles.append(i)
         else:
@@ -293,7 +356,8 @@ class CNXBase():
         """ Given a user and a action type, determine if it is
             authorised on this object
 
-        
+
+
         #unittest not available as setup is large.
         >> C = CNXBase()
         >> C.is_action_auth(action="PUT", requesting_user_uri="Fake1")
@@ -321,17 +385,17 @@ class CNXBase():
             return False
 
         if requesting_user_uri is None:
-            s += "FAILED - None user supplied" 
+            s += "FAILED - None user supplied"
             dolog("INFO", s)
             return False
         else:
             if requesting_user_uri not in valid_user_list:
-                s += "FAIL - user not in valid list %s" % str(valid_user_list) 
+                s += "FAIL - user not in valid list %s" % str(valid_user_list)
                 dolog("INFO", s)
                 return False
             else:
-                #At last!
-                s += "SUCCESS user in valid list %s" % str(valid_user_list) 
+                # At last!
+                s += "SUCCESS user in valid list %s" % str(valid_user_list)
                 dolog("INFO", s)
                 return True
 

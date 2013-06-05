@@ -15,6 +15,9 @@ import webob
 import json
 import os
 from urlparse import urlparse
+import logging
+logging.basicConfig(level=logging.DEBUG)
+lgr = logging.getLogger(__name__)
 
 """
 restrest
@@ -29,16 +32,18 @@ useage:
     simply execute the script, it should print to stderr the conversation
     with google.
 
-JSON - we assume pretty much anything we care about is sent as json.
-XML - TBD
+    Or supply a request and response object to the main function :meth:`restrest`.  Please note that this was built initially to use ``Requests`` objects, then moved to ``WebOb.Requests``.  They main use case is webob so the formatting works sensibly there, the requests generally work fine.
 
-This is still very simple.
+
+JSON - we assume pretty much anything we care about is sent as json.
+
+Output is returned to you from restrest, do with it what you will.
 
 """
 
 
 
-def sanestr(s, cutoff=40):
+def sanestr(s, cutoff=55):
     """When printing headers and content
        replace reams of text with ellipsis and otherwise neaten stuff up"""
 
@@ -94,8 +99,13 @@ def format_content(resp):
         d = resp.json()
         txt = json.dumps(d, sort_keys=True, indent=4)
     except:
-        #ok not json. Likely mass of html, so ellipiss
-        txt = resp.text[:40] + "..."
+        #ok not json. Likely mass of html, or non existent
+        try:
+            txt = resp.text[:55] + "..."
+        except AttributeError, e:
+            lgr.info("Failed to get text from response - %s" % str(e))
+            txt = "null"
+        
     return indenttxt(txt)
 
 
@@ -110,22 +120,37 @@ def format_resp(resp):
 
     return s
 
-def restrest(resp):
+def restrest(req, resp, shortformat=True):
     """Simple tool to document a HTTP "conversation" using the
        requests library
 
     useage: resp = requests.get("http://www.google.com")
             restrest(resp)
+
+    At the moment only supporting WebOb, requests was originally supported
+    
+    :params req: a request object of WebOb type
+    :params resp: a response object of WebOb type    
+    :params shortformat: Boolean.  If True output more readable
+                         body and headers, replacing extra text with ellipsis
+                         If false output everything as is.
        """
 
-    
-    req_str = format_req(resp.request)
-    resp_str = format_resp(resp)
+    ### Quick dirty solution 
+    if not shortformat:
+        req_str = str(req)
+        resp_str = str(resp)
+        req_str = "    "+ req_str.replace("\n", "\n    ")
+        resp_str = "    "+ resp_str.replace("\n", "\n    ")        
+    else:
+        req_str = format_req(req)
+        resp_str = format_resp(resp)
+
     return req_str + resp_str + "\n\n"
 
 
 if __name__ == '__main__':
 
     resp = requests.get("http://www.google.com", data={"foo":"bar"})
-    print restrest(resp)
+    print restrest(resp.request, resp)
 

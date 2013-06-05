@@ -94,11 +94,8 @@ def status_dbase(config):
         "public.cnxcollection",
         "public.userrole_collection",
     ]
-    
+
     for tbl in tables:
         c.execute("SELECT COUNT(*) FROM %s" % tbl)
         print c.fetchall()
     conn.close()
-
-
-

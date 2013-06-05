@@ -10,55 +10,55 @@
 ###
 
 
-"""run.py - Launch the repo app.
+"""tests - designed to use WebTest from paste.
+
+ToDo:
+at the moment we control every id and session id
+Write tests that exercise the system without imposing the ids, so we can run tests
+again without hitting PK errors or clearing dbase.
 
 
-.. todo::
 
-   * replace mess of functions and @decorators with routes on routes
-     (idea: name each route then can build route
-      from name and vice versa with Routes.)
+The DisconnectionError:
 
-   *
+I was seeing a Client has disconnected error, which I traced to the readinto
+function of request.py. This was a red herring it seems, as the cause of the
+error was trying to read the body_file object (IOBase) a *second* time - once to
+read it when sending the request, and once to read it in restrest.
+
+The setting of the seek for the IO Object seemed too deep in the mire for me, so
+I resorted to simply genrating a request object, copying it and *then* executing
+the request.  Seems to work fine.
+
 """
 
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
                            sessioncache, dolog)
-from webtest import TestApp
+from webtest import TestApp, TestRequest
 from wsgiproxy.app import WSGIProxyApp
 from optparse import OptionParser
 import urlparse
 import requests
+import json
+from rhaptos2.repo.configuration import (  # noqa
+    Configuration
+)
 
 
-def capture_conversation(resp):
-    """Need to adapt the requests specicfic capture to WebTest """
-    rst = restrest.restrest(resp)
+
+def capture_conversation(webob_request, webob_response):
+    """
+    Given a request and response object, format them nicely in ReSt style
+    and push to a tmp file for later use.
+
+    restrest assumes you are sending in webob objects
+    """
+    rst = restrest.restrest(webob_request, webob_response, shortformat=True)
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
-
-
-def simplelog(r):
-    fo = open("foo.log","a")
-    fo.write(str(r.json))
-    fo.close()
-
-    ##FIXME - handle this problem then find out why it happens
-    ## suspect \n detection in webob.
-#     capture_conversation(r)
-#   File "build/bdist.freebsd-9.1-RC2-amd64/egg/webob/request.py", line 1528, in readinto
-#     + "(%d more bytes were expected)" % self.remaining
-# DisconnectionError: The client disconnected while sending the POST/PUT body (634 more bytes were expected)
-
-
-    
-from rhaptos2.repo.configuration import (  # noqa
-    Configuration,
-)
-
 
 def parse_args():
     parser = OptionParser()
@@ -106,7 +106,7 @@ def build_environ():
                     "CONTENT_LENGTH": "",
                     "SERVER_NAME": "1.2.3.4",
                     "SERVER_PORT": "80",
-                    "SERVER_PROTOCOL": "HTTP/1.1"
+                    "SERVER_PROTOCOL": "HTTP/1.1",
                     }
     d = {}
     d.update(wsgi_specific_headers)
@@ -114,30 +114,42 @@ def build_environ():
     return d
 
 
-###### CONSTANTS FOR TESTING.
-moduleuri = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
-collectionuri = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
-folderuri = "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
-
-userhost = "http://127.0.0.1:8000/"
-### THis header is where we put the authenticated ID
 
 ### session IDs - need to link to fixed auth.py
 def get_autosession():
     """
     """
-    resp = requests.get(userhost + "/autosession")
+    resp = requests.get(USERHOST + "/autosession")
     sessionid = resp.cookies['cnxsessionid']
     return str(sessionid)
-    
-RWUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
-ROUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
+
+###### CONSTANTS FOR TESTING.
+MODULEURI = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
+COLLECTIONURI = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+FOLDERURI = "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
+
+USERHOST = "http://127.0.0.1:8000/"
+GOODUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
+OTHERUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
 BADUSERSESSIONID = "00000000-0000-0000-0000-000000000002"
 
-#RWUSERSESSIONID = get_autosession()
-#ROUSERSESSIONID = RWUSERSESSIONID
-#BADUSERSESSIONID = RWUSERSESSIONID
-
+developers = {"GOODUSER":
+                   {"name": "pbrian",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000000"
+                   },
+              "OTHERUSER":
+                  {"name": "rossreedstrm",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000001"
+                   },
+              "BADUSER":
+                  {"name": "edwoodward",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
+                   "fakesessionid": "00000000-0000-0000-0000-000000000002"
+                   }
+                  }
+########################
 
 def get_cookie_hdr(fakesessionid):
     """
@@ -145,66 +157,44 @@ def get_cookie_hdr(fakesessionid):
     that resolve to known test users.
     We can choose which test user (ie can edit or not)
     buy passing in uuid of 0000's or 01 02
-    
+
     """
     COOKIEHEADER = "Cookie"
     headerd = {COOKIEHEADER: "cnxsessionid=%s" % fakesessionid}
     return headerd
-    
+
 
 APIMAP = {'module':
-         {"POST": urlparse.urljoin(userhost, "module/"),
-          "GET": urlparse.urljoin(userhost, "module/%(id_)s"),
-          "PUT": urlparse.urljoin(userhost, "module/%(id_)s"),
-          "DELETE": urlparse.urljoin(userhost, "module/%(id_)s"),
+         {"POST": urlparse.urljoin(USERHOST, "module/"),
+          "GET": urlparse.urljoin(USERHOST, "module/%(id_)s"),
+          "PUT": urlparse.urljoin(USERHOST, "module/%(id_)s"),
+          "DELETE": urlparse.urljoin(USERHOST, "module/%(id_)s"),
           },
 
           'collection':
-         {"POST": urlparse.urljoin(userhost, "collection/"),
-          "GET": urlparse.urljoin(userhost, "collection/%(id_)s"),
-          "PUT": urlparse.urljoin(userhost, "collection/%(id_)s"),
-          "DELETE": urlparse.urljoin(userhost, "collection/%(id_)s"),
+         {"POST": urlparse.urljoin(USERHOST, "collection/"),
+          "GET": urlparse.urljoin(USERHOST, "collection/%(id_)s"),
+          "PUT": urlparse.urljoin(USERHOST, "collection/%(id_)s"),
+          "DELETE": urlparse.urljoin(USERHOST, "collection/%(id_)s"),
           },
 
           'folder':
-         {"POST": urlparse.urljoin(userhost, "folder/"),
-          "GET": urlparse.urljoin(userhost, "folder/%(id_)s"),
-          "PUT": urlparse.urljoin(userhost, "folder/%(id_)s"),
-          "DELETE": urlparse.urljoin(userhost, "folder/%(id_)s"),
-          },
-
-          'module_acl':
-         {"POST": urlparse.urljoin(userhost, "module/%(id_)s/acl/"),
-          "GET": urlparse.urljoin(userhost, "module/%(id_)s/acl/"),
-          "PUT": urlparse.urljoin(userhost, "module/%(id_)s/acl/"),
-          "DELETE": urlparse.urljoin(userhost, "module/%(id_)s/acl/"),
-          },
-
-          'collection_acl':
-         {"POST": urlparse.urljoin(userhost, "collection/%(id_)s/acl/"),
-          "GET": urlparse.urljoin(userhost, "collection/%(id_)s/acl/"),
-          "PUT": urlparse.urljoin(userhost, "collection/%(id_)s/acl/"),
-          "DELETE": urlparse.urljoin(userhost, "collection/%(id_)s/acl/"),
-          },
-
-          'folder_acl':
-         {"POST": urlparse.urljoin(userhost, "folder/%(id_)s/"),
-          "GET": urlparse.urljoin(userhost, "folder/%(id_)s/acl/"),
-          "PUT": urlparse.urljoin(userhost, "folder/%(id_)s/acl/"),
-          "DELETE": urlparse.urljoin(userhost, "folder/%(id_)s/acl/"),
+         {"POST": urlparse.urljoin(USERHOST, "folder/"),
+          "GET": urlparse.urljoin(USERHOST, "folder/%(id_)s"),
+          "PUT": urlparse.urljoin(USERHOST, "folder/%(id_)s"),
+          "DELETE": urlparse.urljoin(USERHOST, "folder/%(id_)s"),
           },
 
           'workspace':
-         {"GET": urlparse.urljoin(userhost, "workspace/"),
+         {"GET": urlparse.urljoin(USERHOST, "workspace/"),
           },
 
-          
+
           }
 
 
 def get_url(resourcetype, id_=None, method=None):
     """ return the correct URL to call for various resource operations
-
 
     >>> get_url("collection", id_=None, method="POST")
     'http://localhost:8000/collection/'
@@ -230,25 +220,13 @@ def get_url(resourcetype, id_=None, method=None):
     >>> get_url("module", id_="xxx", method="PUT")
     'http://localhost:8000/module/xxx'
 
-    >>> get_url("collection_acl", id_="xxx", method="PUT")
-    'http://localhost:8000/collection/xxx/acl/'
-
-    >>> get_url("folder_acl", id_="xxx", method="PUT")
-    'http://localhost:8000/folder/xxx/acl/'
-
     >>> get_url("module", id_="xxx", method="DELETE")
     'http://localhost:8000/module/xxx'
-
-    >>> get_url("collection_acl", id_="xxx", method="DELETE")
-    'http://localhost:8000/collection/xxx/acl/'
-
-    >>> get_url("folder_acl", id_="xxx", method="DELETE")
-    'http://localhost:8000/folder/xxx/acl/'
 
     >>> get_url("workspace", id_=None, method="GET")
     'http://localhost:8000/workspace/'
 
-    
+
     Its pretty simple api so far...
 
     .. todo::
@@ -265,6 +243,11 @@ def get_url(resourcetype, id_=None, method=None):
         url = baseurl
     return url
 
+##################
+### Generic test routines, using a ``WebTest`` object and
+### running appropriate GET / PUT etc on it
+##################
+
 
 def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     """ """
@@ -274,33 +257,38 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
         URL = get_url(resourcetype, id_=id_, method="GET")
     else:
         headerd = get_cookie_hdr(test_session_id)
-              
-    try:
-        resp = wapp.get(URL, status="*", headers=headerd)
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print "\/" * 32
-        print e, tb
-        print "/\\" * 32
+    ###
+    req = TestRequest.blank(URL, method="GET",
+                            headers=headerd)
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
     return resp
 
 
 def wapp_post(wapp, resourcetype, data, test_session_id):
-    """ ?
+    """
+
+    We build the request as a blank and copy it to allow restrest to work
+
     """
     URL = get_url(resourcetype, id_=None, method="POST")
     headerd = get_cookie_hdr(test_session_id)
-    try:
-        resp = wapp.post_json(URL, params=data, headers=headerd, status="*")
-        print resp.request
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print "\/" * 32
-        print e, tb,
-        print "/\\" * 32
-        print URL
+    ###
+    data_as_json = json.dumps(data)
+    req = TestRequest.blank(URL, method="POST",
+                            body=data_as_json,
+                            headers=headerd)
+    req.content_type="application/json; charset=utf-8"
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
     return resp
 
 
@@ -309,199 +297,204 @@ def wapp_delete(wapp, resourcetype, id_, test_session_id):
     """
     URL = get_url(resourcetype, id_=id_, method="DELETE")
     headerd = get_cookie_hdr(test_session_id)
-    resp = wapp.delete(URL, headers=headerd, status="*")
+
+    req = TestRequest.blank(URL, method="DELETE",
+                            headers=headerd)
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
     return resp
 
 
 def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
     headerd = get_cookie_hdr(test_session_id)
     URL = get_url(resourcetype, method="PUT", id_=id_)
-    try:
-        resp = wapp.put_json(URL, params=data, headers=headerd, status="*")
-    except Exception, e:
-        import traceback
-        tb = traceback.format_exc()
-        print e, tb
+
+    ###
+    data_as_json = json.dumps(data)
+    req = TestRequest.blank(URL, method="PUT",
+                            body=data_as_json,
+                            headers=headerd)
+    req.content_type="application/json; charset=utf-8"
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
+    reqcp = req.copy()
+    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    capture_conversation(reqcp, resp)
+    ###
+
     return resp
 
+
+#############
+## Individual tests - run in order appearing
+## Each builds on previous changes to DBase
+#############
 
 def test_post_module():
     resp = wapp_post(TESTAPP,
                      "module",
                      decl.declarationdict['module'],
-                     RWUSERSESSIONID)
+                     GOODUSERSESSIONID)
     returned_module_uri = resp.json['id']
-    assert returned_module_uri == moduleuri
+    assert returned_module_uri == MODULEURI
 
+def test_put_module():
+    data = decl.declarationdict['module']
+    data['acl'] = [developers['OTHERUSER']['uri'],]
+    data['body'] = "<p> Shortened body in test_put_module"
+    resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
+    assert developers['OTHERUSER']['uri'] in resp.json['acl']
+
+    ### So, user 0002 (ross) is RW on this module
+
+def test_put_module_by_otheruser():
+    data = decl.declarationdict['module']
+    data['body'] = "<p> OTHERUSERSESSIONID has set this"
+    resp = wapp_put(TESTAPP, "module", data, OTHERUSERSESSIONID, MODULEURI)
+    assert "OTHERUSERSESSIONID" in resp.json['body']
+
+    ### So, user 0002 (ross) is allowed to put on this module
 
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
-                     'folder'], RWUSERSESSIONID)
+                     'folder'], GOODUSERSESSIONID)
     returned_folder_uri = resp.json['id']
-    assert returned_folder_uri == folderuri
+    assert returned_folder_uri == FOLDERURI
 
+def test_put_folder():
+    data = decl.declarationdict['folder']
+    data['acl'] = [OTHERUSERSESSIONID,]
+    data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
+                    "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127"]
+    resp = wapp_put(TESTAPP, "folder", data, GOODUSERSESSIONID, FOLDERURI)
+    assert "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126" ==\
+           resp.json['body'][0]['id']
+
+### Folders are returned as follows
+#    {u'body': [{u'title': u'Introduction', u'mediaType': u'application/vnd.org.cnx.module', u'id': u'cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126'}],
+
+def test_get_folder():
+    resp = wapp_get(TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
+    assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
 def test_post_collection():
-    resp = wapp_post(TESTAPP, "collection", decl.declarationdict[
-                     'collection'], RWUSERSESSIONID)
+    data = decl.declarationdict['collection']
+    resp = wapp_post(TESTAPP, "collection", data, GOODUSERSESSIONID)
     returned_collection_uri = resp.json['id']
-    assert returned_collection_uri == collectionuri
-
+    assert returned_collection_uri == COLLECTIONURI
 
 def test_put_collection():
     data = decl.declarationdict['collection_small']
-    resp = wapp_put(TESTAPP, "collection", data, RWUSERSESSIONID, collectionuri)
+    data['acl'] = [OTHERUSERSESSIONID,]
+    resp = wapp_put(TESTAPP, "collection", data, GOODUSERSESSIONID, COLLECTIONURI)
     assert resp.json['body'].find('href="cnxmodule:d3911c28') > -1
-    simplelog(resp)
 
-def ntest_put_collection_rouser():
+def test_get_collection():
+    resp = wapp_get(TESTAPP, "collection",
+                    "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+                    , GOODUSERSESSIONID, None)
+    assert resp.json['id'] == "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+
+def test_put_collection_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
-    resp = wapp_put(TESTAPP, "collection", data, ROUSERSESSIONID, collectionuri)
-    assert resp.status_int == 403
+    resp = wapp_put(TESTAPP, "collection", data, BADUSERSESSIONID, COLLECTIONURI)
+    assert resp.status_int == 403, resp.status_int
 
 
 def ntest_put_collection_baduser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB1", ]
-    resp = wapp_put(TESTAPP, "collection", data, ROUSERSESSIONID, collectionuri)
-    assert resp.status_int == 403
-
-
-def test_put_module():
-    data = decl.declarationdict['module']
-    data['body'] = "Declaration test text"
-    resp = wapp_put(TESTAPP, "module", data, RWUSERSESSIONID, moduleuri)
-    assert resp.json['body'] == "Declaration test text"
+    resp = wapp_put(TESTAPP, "collection", data, OTHERUSERSESSIONID, COLLECTIONURI)
+    assert resp.status_int == 403, resp.status_int
 
 def test_dateModifiedStamp():
     data = decl.declarationdict['module']
     data['body'] = "Declaration test text"
-    resp = wapp_put(TESTAPP, "module", data, RWUSERSESSIONID, moduleuri)
+    resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
-    
-def ntest_put_module_rouser():
+
+def test_put_module_rouser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
-    resp = wapp_put(TESTAPP, "module", data, ROUSERSESSIONID, moduleuri)
-    assert resp.status_int == 403
-
+    resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
+    assert resp.status_int == 403, resp.status_int
 
 def ntest_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
-    resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, moduleuri)
-    print "status =", resp.status
-    assert resp.status_int == 403
+    resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
+    assert resp.status_int == 403, resp.status_int
 
-
-def test_put_folder():
-    data = decl.declarationdict['folder']
-    data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126", ]
-    resp = wapp_put(TESTAPP, "folder", data, RWUSERSESSIONID, folderuri)
-    assert len(resp.json['body']) == 1
-
-
-def ntest_put_folder_ro():
+def test_put_folder_ro():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
-    resp = wapp_put(TESTAPP, "folder", data, ROUSERSESSIONID, folderuri)
-    assert resp.status_int == 403
+    resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, FOLDERURI)
+    assert resp.status_int == 403, resp.status_int
 
-
-def ntest_put_folder_bad():
-    data = decl.declarationdict['folder']
-    data['body'] = ["BADUSER", ]
-    resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, folderuri)
-    assert resp.status_int == 403
-
-
-def ntest_put_module_acl():
-    data = decl.acllist
-    resp = wapp_put(TESTAPP, "module_acl", data, RWUSERSESSIONID, moduleuri)
-    assert resp.status_int == 200
-
-
-    
-def ntest_read_module_rouser():
-    resp = wapp_get(TESTAPP, "module", moduleuri, ROUSERSESSIONID)
-    assert resp.status_int == 200
+def test_read_module_rouser():
+    resp = wapp_get(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
+    assert resp.status_int == 200, resp.status_int
 
 def test_read_folder_gooduser():
-    resp = wapp_get(TESTAPP, "folder", folderuri, RWUSERSESSIONID)
-    assert resp.status_int == 200
-    simplelog(resp)
+    resp = wapp_get(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
+    assert resp.status_int == 200, resp.status_int
 
-def ntest_read_module_baduser():
-    resp = wapp_get(TESTAPP, "module", moduleuri, BADUSERSESSIONID)
-    print resp, resp.status, BADUSERSESSIONID
-    assert resp.status_int == 403
-    
-    
+def test_read_module_baduser():
+    resp = wapp_get(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
+    assert resp.status_int == 403, resp.status_int
+
+
 def test_get_workspace_good():
-    resp = wapp_get(TESTAPP, "workspace", None, RWUSERSESSIONID)
-    print resp
-    print resp.json
-    assert len(resp.json) == 3   
-    assert resp.status_int == 200
-    simplelog(resp)
-    
-    
-###############    
-
-def ntest_delete_module_baduser():
-    resp = wapp_delete(TESTAPP, "module", moduleuri, BADUSERSESSIONID)
-    assert resp.status_int == 403
+    resp = wapp_get(TESTAPP, "workspace", None, GOODUSERSESSIONID)
+    assert len(resp.json) == 3
+    assert resp.status_int == 200, resp.status_int
 
 
-def ntest_delete_module_rouser():
-    resp = wapp_delete(TESTAPP, "module", moduleuri, ROUSERSESSIONID)
-    assert resp.status_int == 403
+
+###############
+
+def test_delete_module_baduser():
+    resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
+    assert resp.status_int == 403, resp.status_int
+
 
 def test_delete_module_good():
-    resp = wapp_delete(TESTAPP, "module", moduleuri, RWUSERSESSIONID)
-    assert resp.status_int == 200
+    resp = wapp_delete(TESTAPP, "module", MODULEURI, GOODUSERSESSIONID)
+    assert resp.status_int == 200, resp.status_int
 
 ###
-    
-def ntest_delete_collection_baduser():
-    resp = wapp_delete(TESTAPP, "collection", collectionuri, BADUSERSESSIONID)
-    assert resp.status_int == 403
 
-
-def ntest_delete_collection_rouser():
-    resp = wapp_delete(TESTAPP, "collection", collectionuri, ROUSERSESSIONID)
-    assert resp.status_int == 403
+def test_delete_collection_baduser():
+    resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
+    assert resp.status_int == 403, resp.status_int
 
 
 def test_delete_collection_good():
-    resp = wapp_delete(TESTAPP, "collection", collectionuri, RWUSERSESSIONID)
-    assert resp.status_int == 200
+    resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, GOODUSERSESSIONID)
+    assert resp.status_int == 200, resp.status_int
 
 ###
-    
-def ntest_delete_folder_baduser():
-    resp = wapp_delete(TESTAPP, "folder", folderuri, BADUSERSESSIONID)
-    assert resp.status_int == 403
 
-
-def ntest_delete_folder_rouser():
-    resp = wapp_delete(TESTAPP, "folder", folderuri, ROUSERSESSIONID)
-    assert resp.status_int == 403
-
+def test_delete_folder_baduser():
+    resp = wapp_delete(TESTAPP, "folder", FOLDERURI, BADUSERSESSIONID)
+    assert resp.status_int == 403, resp.status_int
 
 def test_delete_folder_good():
-    resp = wapp_delete(TESTAPP, "folder", folderuri, RWUSERSESSIONID)
+    resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
 def ntest_whoami():
     resp = wapp_get(TESTAPP, "-", None,
-                    RWUSERSESSIONID,
+                    GOODUSERSESSIONID,
                     URL="http://localhost:8000/me/"
     )
     assert resp.status_int == 200
-    assert resp.json["name"] == "PaulRW" 
-    assert resp.json["id"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920" 
+    assert resp.json["name"] == "PaulRW"
+    assert resp.json["id"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
 
     ########################################################################
 
@@ -513,17 +506,14 @@ def convert_config(config):
     """
     This is done to convert the "dict" from configuration into true dict.
 
-    FIXME - this is ridiculous - just go back to one confd object 
+    FIXME - this is ridiculous - just go back to one confd object
     """
-    print "THis is config beflore"
-    print config
-    
+
     defaultsection = 'app'
-    for k in config[defaultsection]:
-        config[k] = config[defaultsection][k]
+    if defaultsection in config:
+        for k in config[defaultsection]:
+            config[k] = config[defaultsection][k]
     #del config[defaultsection]
-    print "and after"
-    print config
     return config
 
 
@@ -536,6 +526,7 @@ def setup():
     from testconfig import config
     ## now "convert" to app-style dict
     TESTCONFIG = convert_config(config)
+    initdb(TESTCONFIG)
 
     dolog("INFO", "WHAT THE HELL IS GOING ON WITH CONF %s %s" % (str(config), str(TESTCONFIG)))
     if 'HTTPPROXY' in config.keys():
@@ -547,10 +538,6 @@ def setup():
         sessioncache.set_config(config)
         TESTAPP = TestApp(app.wsgi_app)
 
-
-    print "Running setup"
-    print "cookies", TESTAPP.cookies 
-
 def cleardown(config):
     backend.clean_dbase(config)
 
@@ -560,7 +547,7 @@ def initdb(config):
     ### kind of useless as have not instantiated the models yet.
 
 
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-

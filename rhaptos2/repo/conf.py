@@ -10,7 +10,7 @@
 ###
 
 
-'''                                                                                       
+'''
 Configuration services to be used commonly across Rhaptos2
 ----------------------------------------------------------
 
@@ -22,7 +22,7 @@ This should be acceptable (sed basically)
 
 ::
 
-  from rhaptos2.common import conf
+  from rhaptos2.repo import conf
   confd = conf.get_config("/ini/file/path")
 
 We now have a python dict, named confd, holding all the namesapced
@@ -31,7 +31,7 @@ configuration variables available in the "environment"
 it would look like ::
 
   {
-   'bamboo': 
+   'bamboo':
        {'www_host_name':"www.cnx.org",},
    'rhaptos2repo':
        {'flag': "RedWhiteBlue"}
@@ -61,7 +61,6 @@ that the conf has changed in the application.
 '''
 
 
-
 import os
 import ConfigParser
 import types
@@ -78,33 +77,30 @@ def get_config(ini_file_path=None):
         raise Rhaptos2Error("%s is not found" % ini_file_path)
     try:
         d = read_ini(ini_file_path)
-        confd.update(d)    
+        confd.update(d)
     except Rhaptos2Error, e:
         pass
-    return confd    
+    return confd
 
-    
 
 def read_ini(filepath):
 
     d = {}
     parser = ConfigParser.SafeConfigParser()
-    parser.optionxform = str     #case sensitive
+    parser.optionxform = str  # case sensitive
     try:
         parser.read(filepath)
     except Exception, e:
-        raise Rhaptos2Error('Could not find or could not process: %s - %s' % (filepath, e) )
+        raise Rhaptos2Error(
+            'Could not find or could not process: %s - %s' % (filepath, e))
 
     ## convert ini file to a dict of dicts
     for sect in parser.sections():
         d[sect] = dict(parser.items(sect))
-     
-    return d
-    
 
+    return d
 
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod(verbose=False)
-
