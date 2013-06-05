@@ -341,7 +341,6 @@ def test_post_module():
     returned_module_uri = resp.json['id']
     assert returned_module_uri == MODULEURI
 
-
 def test_put_module():
     data = decl.declarationdict['module']
     data['acl'] = [developers['OTHERUSER']['uri'],]
@@ -359,14 +358,11 @@ def test_put_module_by_otheruser():
 
     ### So, user 0002 (ross) is allowed to put on this module
 
-
-
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
                      'folder'], GOODUSERSESSIONID)
     returned_folder_uri = resp.json['id']
     assert returned_folder_uri == FOLDERURI
-
 
 def test_put_folder():
     data = decl.declarationdict['folder']
@@ -384,14 +380,11 @@ def test_get_folder():
     resp = wapp_get(TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
     assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
-
-
 def test_post_collection():
     data = decl.declarationdict['collection']
     resp = wapp_post(TESTAPP, "collection", data, GOODUSERSESSIONID)
     returned_collection_uri = resp.json['id']
     assert returned_collection_uri == COLLECTIONURI
-
 
 def test_put_collection():
     data = decl.declarationdict['collection_small']
@@ -409,14 +402,14 @@ def test_put_collection_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
     resp = wapp_put(TESTAPP, "collection", data, BADUSERSESSIONID, COLLECTIONURI)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 
 def ntest_put_collection_baduser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB1", ]
     resp = wapp_put(TESTAPP, "collection", data, OTHERUSERSESSIONID, COLLECTIONURI)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 def test_dateModifiedStamp():
     data = decl.declarationdict['module']
@@ -428,42 +421,37 @@ def test_put_module_rouser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
-    assert resp.status_int == 403
-
+    assert resp.status_int == 403, resp.status_int
 
 def ntest_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
-    assert resp.status_int == 403
-
-
-
+    assert resp.status_int == 403, resp.status_int
 
 def test_put_folder_ro():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
     resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, FOLDERURI)
-    assert resp.status_int == 403
-
+    assert resp.status_int == 403, resp.status_int
 
 def test_read_module_rouser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
-    assert resp.status_int == 200
+    assert resp.status_int == 200, resp.status_int
 
 def test_read_folder_gooduser():
     resp = wapp_get(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
-    assert resp.status_int == 200
+    assert resp.status_int == 200, resp.status_int
 
 def test_read_module_baduser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 
 def test_get_workspace_good():
     resp = wapp_get(TESTAPP, "workspace", None, GOODUSERSESSIONID)
     assert len(resp.json) == 3
-    assert resp.status_int == 200
+    assert resp.status_int == 200, resp.status_int
 
 
 
@@ -471,29 +459,29 @@ def test_get_workspace_good():
 
 def test_delete_module_baduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 
 def test_delete_module_good():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, GOODUSERSESSIONID)
-    assert resp.status_int == 200
+    assert resp.status_int == 200, resp.status_int
 
 ###
 
 def test_delete_collection_baduser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 
 def test_delete_collection_good():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, GOODUSERSESSIONID)
-    assert resp.status_int == 200
+    assert resp.status_int == 200, resp.status_int
 
 ###
 
 def test_delete_folder_baduser():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, BADUSERSESSIONID)
-    assert resp.status_int == 403
+    assert resp.status_int == 403, resp.status_int
 
 def test_delete_folder_good():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
