@@ -69,13 +69,16 @@ _lgr = logging.getLogger("authmodule")
 def dolog(lvl, msg):
     _lgr.info(msg)
 
+# Paths which do not require authorization.
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
+# The key used in session cookies.
+CNX_SESSION_ID = "cnxsessionid"
+
+
 ########################
 # User Auth flow
 ########################
 
-### this is key found in all session cookies
-### It is hardcoded here not config.
-CNXSESSIONID = "cnxsessionid"
 
 
 def store_userdata_in_request(userd, sessionid):
@@ -161,7 +164,7 @@ def handle_user_authentication(flask_request):
     ### hit this wsgi app and *not* get bounced out for bad session
     ### FIXME - while this is the *only* exception I dont like the hardcoded manner
     ### options: have /login served by another app - ala Velruse?
-    if flask_request.path in ("/login", "/favicon.ico", "/autosession"):
+    if flask_request.path in DMZ_PATHS:
         return None
     dolog("INFO", "Auth test for %s" % flask_request.path)
 
@@ -209,8 +212,8 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
     :returns: Err if lookup fails, userdict if not
 
     """
-    if CNXSESSIONID in flask_request_cookiedict:
-        sessid = flask_request_cookiedict[CNXSESSIONID]
+    if CNX_SESSION_ID in flask_request_cookiedict:
+        sessid = flask_request_cookiedict[CNX_SESSION_ID]
     else:
         raise Rhaptos2NoSessionCookieError("NO SESSION")
     userdata = lookup_session(sessid)
