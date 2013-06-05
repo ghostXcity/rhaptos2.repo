@@ -62,15 +62,12 @@ from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
 from rhaptos2.repo import get_app, sessioncache
 
 
-lgr = logging.getLogger("authmodule")
-
-### This is a temporary log fix
-### The full fix is in branch fix-logging-importing
-### THis is a temp workaround to handle the circular import
-
-
+# XXX This is a temporary log fix
+#     The full fix is in branch fix-logging-importing
+#     This is a workaround to handle the circular import
+_lgr = logging.getLogger("authmodule")
 def dolog(lvl, msg):
-    lgr.info(msg)
+    _lgr.info(msg)
 
 ##########
 ### Module startup
