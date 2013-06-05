@@ -260,6 +260,8 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     ###
     req = TestRequest.blank(URL, method="GET",
                             headers=headerd)
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
@@ -281,6 +283,8 @@ def wapp_post(wapp, resourcetype, data, test_session_id):
                             body=data_as_json,
                             headers=headerd)
     req.content_type="application/json; charset=utf-8"
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
@@ -296,6 +300,8 @@ def wapp_delete(wapp, resourcetype, id_, test_session_id):
 
     req = TestRequest.blank(URL, method="DELETE",
                             headers=headerd)
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
@@ -312,6 +318,8 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
                             body=data_as_json,
                             headers=headerd)
     req.content_type="application/json; charset=utf-8"
+    for k, v in wapp.extra_environ.items():
+        req.environ.setdefault(k, v)
     reqcp = req.copy()
     resp =  wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
