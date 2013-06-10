@@ -260,26 +260,28 @@ def authenticated_identifier_to_registered_user_details(ai):
 
     """
     payload = {'user': ai}
-    ### Fixme - the whole app global thing is annoying me now.
-    user_server_url = get_app().config['globals'][
-        u'userserver'].replace("/user", "/openid")
+    user_service_url = get_app().config['cnx-user-url']
+    url = "%s/api/users/%s" % (user_service_url, ai)
 
     dolog("INFO", "user info - from url %s and query string %s" %
-                  (user_server_url, repr(payload)))
+                  (user_service_url, repr(payload)))
 
     try:
-        r = requests.get(user_server_url, params=payload)
-        userdetails = r.json()
-    except Exception, e:
-        #.. todo:: not sure what to do here ... the user dbase is down
-        dolog("INFO", e)
-        userdetails = None
+        resp = requests.get(url, params=payload)
+    except requests.exceptions.RequestException:
+        raise Rhaptos2Error("Problem communicating with the user service.")
 
-    dolog("INFO", "Got back %s " % str(userdetails))
-    if userdetails and r.status_code == 200:
-        return userdetails
-    else:
-        raise Rhaptos2Error("Not a known user")
+    if resp.status_code == 404:
+        return None
+    if resp.status_code == 403:
+        raise Rhaptos2Error("Access to user details denied. Do you have "
+                            "permissions to use the user service?")
+    if resp.status_code != 200:
+        raise Rhaptos2Error("Problem communicating with the user service.")
+    user_details = resp.json()
+
+    dolog("INFO", "Got back %s " % user_details)
+    return user_details
 
 
 def create_session(userdata):
@@ -447,14 +449,13 @@ def valid():
     elif resp.status_code != 200:
         raise Rhaptos2Error("Had problems communicating with the "
                             "authentication service")
-    user_id = resp.text
+    user_id = resp.json()['id']
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
-    raise NotImplementedError()
-
-    redirect(next_location)
-
+    user_details = authenticated_identifier_to_registered_user_details(user_id)
+    create_session(user_details)
+    return redirect(next_location)
 
 if __name__ == '__main__':
     import doctest
