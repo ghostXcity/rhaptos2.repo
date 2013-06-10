@@ -394,30 +394,6 @@ def create_temp_user(identifiertype, identifierstring):
     stubbeduri = "cnxuser:" + str(uuid.uuid4())
     return stubbeduri
 
-
-def after_authentication(authenticated_identifier, method):
-    """Called after a user has provided a validated ID (openid or peresons)
-
-    This would be an ``endpoint`` in Valruse.
-
-    method either openid, or persona
-
-    :parms: authenticated_identifier
-
-    pass on responsibility to
-
-
-
-    """
-    if method not in ('openid', 'persona', 'temporary'):
-        raise Rhaptos2Error("Incorrect method of authenticating ID")
-
-    dolog("INFO", "in after auth - %s %s" % (authenticated_identifier, method))
-    userdetails = authenticated_identifier_to_registered_user_details(
-        authenticated_identifier)
-    create_session(userdetails)
-    return userdetails
-
 def whoami():
     """based on session cookie
     returns userd dict of user details, equivalent to mediatype from
