@@ -310,7 +310,11 @@ def create_session(userdata):
         return resp
 
     def begin_profile(resp):
-        resp.set_cookie('cnxprofile', userdata['fullname'],
+        # XXX Using the user information should be left to
+        #     the client-side code. We should supply the client-side code with
+        #     the id and url to the user profile. The user already has
+        #     authorization to acquire their data.
+        resp.set_cookie('cnxprofile', '',
                         httponly=True,
                         expires=-0)
         return resp
