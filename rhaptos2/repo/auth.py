@@ -175,7 +175,7 @@ def handle_user_authentication(flask_request):
     except Rhaptos2NoSessionCookieError, e:
         dolog(
             "INFO", "Session Lookup returned NoCookieError, so redirect to login")
-        abort(403)
+        abort(401)
         # We end here for now - later we shall fix tempsessions
         # userdata = set_temp_session()
 
@@ -187,7 +187,7 @@ def handle_user_authentication(flask_request):
         g.userd = None
         dolog(
             "INFO", "Session Lookup returned None User, so redirect to login")
-        abort(403)
+        abort(401)
 
 ##########################
 ## Session Cookie Handling
