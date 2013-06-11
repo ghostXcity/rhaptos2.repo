@@ -64,15 +64,8 @@ def assign_routing_rules(app):
         "/version/", view_func=views.versionGET, methods=['GET', ])
     app.add_url_rule(
         "/autosession", view_func=views.auto_session, methods=['GET', ])
-    app.add_url_rule("/images/openid-providers-en.png",
-                     view_func=auth.temp_openid_image_url, methods=['GET', ])
-    app.add_url_rule("/login", view_func=auth.login, methods=['GET', 'POST'])
-    ### This needs oid.loginhandler function applied ...@auth.oid.loginhandler
+    app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
-    app.add_url_rule(
-        '/persona/logout/', view_func=auth.logoutpersona, methods=['POST', ])
-    app.add_url_rule(
-        "/persona/login/", view_func=auth.loginpersona, methods=['POST', ])
 
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
@@ -121,7 +114,6 @@ def make_app(config, as_standalone=False):
     # I will review log and import process and want to put it all in a single
     # setup in run.
     from rhaptos2.repo import auth  # noqa
-    auth.setup_auth()
     from rhaptos2.repo import views  # noqa
 
     return app

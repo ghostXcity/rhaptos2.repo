@@ -45,96 +45,40 @@ userdict example::
     {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
 
 """
-
-import datetime
 import os
-import statsd
+import datetime
 import json
-import pprint
+import logging
 import uuid
-from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
-from rhaptos2.repo import get_app, sessioncache
+
 import flask
-from flask import request, g, session, redirect
-from flaskext.openid import OpenID
 import requests
+import statsd
+from flask import abort, request, g, session, redirect
+from flaskext.openid import OpenID
 from webob import Request
 
-
-import logging
-lgr = logging.getLogger("authmodule")
-
-### This is a temporary log fix
-### The full fix is in branch fix-logging-importing
-### THis is a temp workaround to handle the circular import
+from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
+from rhaptos2.repo import get_app, sessioncache
 
 
+# XXX This is a temporary log fix
+#     The full fix is in branch fix-logging-importing
+#     This is a workaround to handle the circular import
+_lgr = logging.getLogger("authmodule")
 def dolog(lvl, msg):
-    lgr.info(msg)
+    _lgr.info(msg)
 
-
-### global namespace placeholder
-app = None
-
-
-##########
-### Module startup
-##########
-
-def setup_auth():
-    """
-    As part of drive to remove app setup from the import process,
-    have moved to calls into this function.  This is driving
-    a circular import cycle, which while temp solved will only
-    be fixed by changing logging process.
-
-    So to ensure docs work, and as a nod towards cleaning up the
-    import-time work happening here, this needs to be called by run.
-
-    """
-
-    global app
-    import views
-
-    app = get_app()
-    app.config.update(
-        SECRET_KEY=app.config['openid_secretkey'],
-        DEBUG=app.debug
-    )
-
-    # setup flask-openid
-    #: we setup the loginhandler and after_login callbacks here
-    #: flesh out docs
-    oid = OpenID(app)
-    # views - why here and not in __init
-    oid.loginhandler(login)
-    oid.after_login(create_or_login)
+# Paths which do not require authorization.
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
+# The key used in session cookies.
+CNX_SESSION_ID = "cnxsessionid"
 
 
 ########################
 # User Auth flow
 ########################
 
-### this is key found in all session cookies
-### It is hardcoded here not config.
-CNXSESSIONID = "cnxsessionid"
-
-
-def redirect_to_login():
-    """
-    On first hitting the site, the user will have no cookie
-    If we issued a 301, the browser would issue another request,
-    which would have no cookie, which would issue a 301...
-
-    By presenting this HTML when the user hits the login server,
-    we avoid this.  Clearly templating is needed.
-
-    """
-    tmpl = """<p>Hello It seems your session has expired.
-    <p>Please <a href="/login">login again.</a>
-    <p>Developers can <a href="/autosession">autosession</a> """
-    resp = flask.make_response(tmpl)
-    return resp
 
 
 def store_userdata_in_request(userd, sessionid):
@@ -220,7 +164,7 @@ def handle_user_authentication(flask_request):
     ### hit this wsgi app and *not* get bounced out for bad session
     ### FIXME - while this is the *only* exception I dont like the hardcoded manner
     ### options: have /login served by another app - ala Velruse?
-    if flask_request.path in ("/login", "/favicon.ico", "/autosession"):
+    if flask_request.path in DMZ_PATHS:
         return None
     dolog("INFO", "Auth test for %s" % flask_request.path)
 
@@ -231,7 +175,7 @@ def handle_user_authentication(flask_request):
     except Rhaptos2NoSessionCookieError, e:
         dolog(
             "INFO", "Session Lookup returned NoCookieError, so redirect to login")
-        return redirect_to_login()
+        abort(401)
         # We end here for now - later we shall fix tempsessions
         # userdata = set_temp_session()
 
@@ -243,7 +187,7 @@ def handle_user_authentication(flask_request):
         g.userd = None
         dolog(
             "INFO", "Session Lookup returned None User, so redirect to login")
-        return redirect_to_login()
+        abort(401)
 
 ##########################
 ## Session Cookie Handling
@@ -268,10 +212,10 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
     :returns: Err if lookup fails, userdict if not
 
     """
-    if CNXSESSIONID in flask_request_cookiedict:
-        sessid = flask_request_cookiedict[CNXSESSIONID]
+    if CNX_SESSION_ID in flask_request_cookiedict:
+        sessid = flask_request_cookiedict[CNX_SESSION_ID]
     else:
-        raise Rhaptos2NoSessionCookieError("NO SESSION - REDIRECT TO LOGIN")
+        raise Rhaptos2NoSessionCookieError("NO SESSION")
     userdata = lookup_session(sessid)
     return (userdata, sessid)
 
@@ -316,26 +260,28 @@ def authenticated_identifier_to_registered_user_details(ai):
 
     """
     payload = {'user': ai}
-    ### Fixme - the whole app global thing is annoying me now.
-    user_server_url = app.config['globals'][
-        u'userserver'].replace("/user", "/openid")
+    user_service_url = get_app().config['cnx-user-url']
+    url = "%s/api/users/%s" % (user_service_url, ai)
 
     dolog("INFO", "user info - from url %s and query string %s" %
-                  (user_server_url, repr(payload)))
+                  (user_service_url, repr(payload)))
 
     try:
-        r = requests.get(user_server_url, params=payload)
-        userdetails = r.json()
-    except Exception, e:
-        #.. todo:: not sure what to do here ... the user dbase is down
-        dolog("INFO", e)
-        userdetails = None
+        resp = requests.get(url, params=payload)
+    except requests.exceptions.RequestException:
+        raise Rhaptos2Error("Problem communicating with the user service.")
 
-    dolog("INFO", "Got back %s " % str(userdetails))
-    if userdetails and r.status_code == 200:
-        return userdetails
-    else:
-        raise Rhaptos2Error("Not a known user")
+    if resp.status_code == 404:
+        return None
+    if resp.status_code == 403:
+        raise Rhaptos2Error("Access to user details denied. Do you have "
+                            "permissions to use the user service?")
+    if resp.status_code != 200:
+        raise Rhaptos2Error("Problem communicating with the user service.")
+    user_details = resp.json()
+
+    dolog("INFO", "Got back %s " % user_details)
+    return user_details
 
 
 def create_session(userdata):
@@ -364,7 +310,11 @@ def create_session(userdata):
         return resp
 
     def begin_profile(resp):
-        resp.set_cookie('cnxprofile', userdata['fullname'],
+        # XXX Using the user information should be left to
+        #     the client-side code. We should supply the client-side code with
+        #     the id and url to the user profile. The user already has
+        #     authorization to acquire their data.
+        resp.set_cookie('cnxprofile', '',
                         httponly=True,
                         expires=-0)
         return resp
@@ -402,7 +352,7 @@ def set_autosession():
     It should fail in production
 
     """
-    if not app.debug:
+    if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
     # check if session already live for this user?
@@ -450,200 +400,66 @@ def create_temp_user(identifiertype, identifierstring):
     stubbeduri = "cnxuser:" + str(uuid.uuid4())
     return stubbeduri
 
-
-def after_authentication(authenticated_identifier, method):
-    """Called after a user has provided a validated ID (openid or peresons)
-
-    This would be an ``endpoint`` in Valruse.
-
-    method either openid, or persona
-
-    :parms: authenticated_identifier
-
-    pass on responsibility to
-
-
-
-    """
-    if method not in ('openid', 'persona', 'temporary'):
-        raise Rhaptos2Error("Incorrect method of authenticating ID")
-
-    dolog("INFO", "in after auth - %s %s" % (authenticated_identifier, method))
-    userdetails = authenticated_identifier_to_registered_user_details(
-        authenticated_identifier)
-    create_session(userdetails)
-    return userdetails
-
-
 def whoami():
-    '''
-
-    based on session cookie
-    returns userd dict of user details, equivalent to mediatype from service / session
-
-    '''
+    """based on session cookie
+    returns userd dict of user details, equivalent to mediatype from
+    service / session
+    """
     return g.userd
 
-
 def apply_cors(resp):
-    '''  '''
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
-
-def add_location_header_to_response(fn):
-    '''add Location: header
-
-        from: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
-        For 201 (Created) responses, the Location is that of the new
-        resource which was created by the request
-
-
-    decorator that assumes we are getting a flask response object
-
-    '''
-
-    resp = fn()
-    resp.headers["Location"] = "URL NEEDED FROM HASHID"
-
-
-#@property ## need to evolve a class here I feel...
-def userspace():
-    ''' '''
-    userspace = app.config['repodir']
-
-    if os.path.isdir(userspace):
-        return userspace
-    else:
-        try:
-            os.makedirs(userspace)
-            return userspace
-        except Exception, e:
-            raise Rhaptos2Error('cannot create repo \
-                                or userspace %s - %s' % (
-                                userspace, e))
-
-
+# ??? Why is this logic in this module? Shouldn't it be grouped with the other
+#     logging facilities.
 def callstatsd(dottedcounter):
-    ''' '''
     # Try to call logging. If not connected to a network this throws
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
     try:
-        c = statsd.StatsClient(app.config['globals']['statsd_host'],
-                               int(app.config['globals']['statsd_port']))
+        c = statsd.StatsClient(get_app().config['globals']['statsd_host'],
+                               int(get_app().config['globals']['statsd_port']))
         c.incr(dottedcounter)
         # todo: really return c and keep elsewhere for efficieny I suspect
     except:
         pass
 
-# zombie code
-
-
-def asjson(pyobj):
-    '''just placeholder
-
-
-    >>> x = {'a':1}
-    >>> asjson(x)
-    '{"a": 1}'
-
-    '''
-    return json.dumps(pyobj)
-
-
-def gettime():
-    return datetime.datetime.today().isoformat()
-
-
-################ openid views - from flask
-
-
-def temp_openid_image_url():
-    """Provides a (temporary) fix for the openid images used
-    on the login page.
-    """
-    # Gets around http://openid-selector.googlecode.com quickly
-    resp = flask.redirect('/static/img/openid-providers-en.png')
-    return resp
-
-
-def login():
-    """Does the login via OpenID.  Has to call into `auth.oid.try_login`
-    to start the OpenID .
-    """
-    # if we are already logged in, go back to were we came from
-    if g.userd is not None:
-        dolog("INFO", "Were at /login with g.user_uri of %s" % g.user_uri)
-        return redirect(auth.oid.get_next_url())
-
-    if request.method == 'POST':
-        openid = request.form.get('openid')
-        if openid:
-            return auth.oid.try_login(openid, ask_for=['email', 'fullname',
-                                                       'nickname'])
-
-    return render_template('login.html', next=auth.oid.get_next_url(),
-                           error=auth.oid.fetch_error(),
-                           confd=app.config)
-
-
-def create_or_login(resp):
-    """This is called when login with OpenID succeeded and it's not
-    necessary to figure out if this is the users's first login or not.
-
-    """
-    dolog("INFO", "OpenID worked, now set server to believe this is logged in")
-    auth.after_authentication(resp.identity_url, 'openid')
-    return redirect(auth.oid.get_next_url())
-
-
 def logout():
-    """
-    kill the session in cache, remove the cookie from client
+    """kill the session in cache, remove the cookie from client"""
+    raise NotImplementedError()
 
-    """
+############################
+# cnx-user communication API
+############################
 
-    auth.delete_session(g.sessionid)
-    return redirect(auth.oid.get_next_url())
+# cnx-user requires that a service have a /valid route to handle users when
+#   they return from authenticating.
 
-##############
+def valid():
+    """cnx-user /valid view for capturing valid authentication requests."""
+    user_token = request.args['token']
+    next_location = request.args.get('next', '/')
 
+    # Check with the service to verify authentication is valid.
+    user_service_url = get_app().config['cnx-user-url']
+    url = "%s/server/check" % user_service_url
+    try:
+        resp = requests.post(url, data={'token': user_token})
+    except requests.exceptions.RequestException as exc:
+        raise Rhaptos2Error("Invalid authentication token")
+    if resp.status_code == 400:
+        raise Rhaptos2Error("Invalid authentication token")
+    elif resp.status_code != 200:
+        raise Rhaptos2Error("Had problems communicating with the "
+                            "authentication service")
+    user_id = resp.json()['id']
 
-def logoutpersona():
-    dolog("INFO", "logoutpersona")
-    return "Yes"
-
-
-def loginpersona():
-    """Taken mostly from mozilla quickstart """
-    dolog("INFO", "loginpersona")
-    # The request has to have an assertion for us to verify
-    if 'assertion' not in request.form:
-        abort(400)
-
-    # Send the assertion to Mozilla's verifier service.
-    audience = "http://%s" % app.config['www_server_name']
-    data = {'assertion': request.form['assertion'], 'audience': audience}
-    resp = requests.post(
-        'https://verifier.login.persona.org/verify', data=data, verify=True)
-
-    # Did the verifier respond?
-    if resp.ok:
-        # Parse the response
-        verification_data = json.loads(resp.content)
-        dolog("INFO", "Verified persona:%s" % repr(verification_data))
-
-        # Check if the assertion was valid
-        if verification_data['status'] == 'okay':
-            # Log the user in by setting a secure session cookie
-#            session.update({'email': verification_data['email']})
-            after_authentication(verification_data['email'], 'persona')
-            return resp.content
-
-    # Oops, something failed. Abort.
-    abort(500)
-
+    # Now that we have the user's authenticated id, we can associate the user
+    #   with the system and any previous session.
+    user_details = authenticated_identifier_to_registered_user_details(user_id)
+    create_session(user_details)
+    return redirect(next_location)
 
 if __name__ == '__main__':
     import doctest
