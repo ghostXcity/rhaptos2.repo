@@ -28,10 +28,18 @@ equal station to which the Laws of Nature and of Nature's God entitles
 them, a decent respect to the opinions of mankind requires that they
 should declare the causes which impel them to the separation.</p>
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]         
+
          }
 
 
@@ -60,10 +68,17 @@ absolute Despotism, it is their right, it is their duty, to throw off
 such Government, and to provide new Guards for their future
 security.</p>
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]         
+
          }
 
 
@@ -179,10 +194,17 @@ by repeated injury. A Prince, whose character is thus marked by every
 act which may define a Tyrant, is unfit to be the ruler of a free
 people.
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]  
+
          }
 
 
@@ -202,10 +224,16 @@ denounces our Separation, and hold them, as we hold the rest of
 mankind, Enemies in War, in Peace Friends.</p>
 
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "authors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]         
          }
 
 
@@ -228,10 +256,17 @@ protection of divine Providence, we mutually pledge to each other our
 Lives, our Fortunes and our sacred Honor.</p>
 
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]  
+
          }
 
 
@@ -252,10 +287,17 @@ sect6 = {"id_":  "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
     South Carolina: Edward Rutledge, Thomas Heyward, Jr., Thomas Lynch, Jr., Arthur Middleton
     Georgia: Button Gwinnett, Lyman Hall, George Walton
 """,
-         "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-         "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',]
+
          }
 
 # folder
@@ -278,11 +320,18 @@ collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
               "subjects": ["Social Sciences", ],
               "keywords": ["Life", "Liberty", "Happiness"],
               "summary": "No.",
-              "authors": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-              "maintainers": ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-              "copyrightHolders":
-                         ["cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383", ],
-
+              
+         "authors":
+          ["Paula Nancy Millstone Jennings", ],
+         "maintainers":
+          ["Paula Nancy Millstone Jennings", ],
+         "copyrightHolders":
+          ["Paula Nancy Millstone Jennings", ],
+         "editors":
+          ['Paula Nancy Millstone Jennings',],
+         "translators":
+          ['Paula Nancy Millstone Jennings',],  
+              
               "body": '''<ul><li><a href="cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126">Introduction</li>
 <li><a href="cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b">Preamble</li>
 <li><a href="cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6">Indictment</li>
