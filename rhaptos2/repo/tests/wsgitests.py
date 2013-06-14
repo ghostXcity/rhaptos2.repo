@@ -128,7 +128,7 @@ MODULEURI = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
 COLLECTIONURI = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
 FOLDERURI = "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
-USERHOST = "http://127.0.0.1:8000/"
+USERHOST = "http://localhost:8000/"
 GOODUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
 OTHERUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
 BADUSERSESSIONID = "00000000-0000-0000-0000-000000000002"
@@ -205,6 +205,10 @@ def get_url(resourcetype, id_=None, method=None):
     >>> get_url("module", method="POST")
     'http://localhost:8000/module/'
 
+    >>> get_url("module", id_="xxx", method="GET")
+    'http://localhost:8000/module/xxx'
+
+ 
     >>> get_url("collection", id_="xxx", method="GET")
     'http://localhost:8000/collection/xxx'
 
@@ -258,6 +262,7 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     else:
         headerd = get_cookie_hdr(test_session_id)
     ###
+    print URL, "*****"
     req = TestRequest.blank(URL, method="GET",
                             headers=headerd)
     for k, v in wapp.extra_environ.items():
@@ -358,6 +363,23 @@ def test_put_module_by_otheruser():
 
     ### So, user 0002 (ross) is allowed to put on this module
 
+def test_get_module():
+    resp = wapp_get(TESTAPP, "module",
+                    "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
+                    GOODUSERSESSIONID)
+    assert resp.status_int == 200
+
+def test_valid_fields_in_GET():
+    """Are we getting back the editor and translator fields
+
+    XXX: this should simply expand to be a jsonschema compliance test"""
+    resp = wapp_get(TESTAPP, "module",
+                    "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
+                    GOODUSERSESSIONID)
+    assert "translators" in resp.json.keys()
+    assert "editors" in resp.json.keys()    
+    
+    
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
                      'folder'], GOODUSERSESSIONID)
@@ -487,15 +509,17 @@ def test_delete_folder_good():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
-def ntest_whoami():
+def test_whoami():
     resp = wapp_get(TESTAPP, "-", None,
                     GOODUSERSESSIONID,
                     URL="http://localhost:8000/me/"
     )
     assert resp.status_int == 200
-    assert resp.json["name"] == "PaulRW"
-    assert resp.json["id"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
+    assert resp.json["fullname"] == "pbrian"
+    assert resp.json["user_uri"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
 
+
+    
     ########################################################################
 
 TESTCONFIG = None
