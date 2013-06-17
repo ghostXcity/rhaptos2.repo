@@ -15,6 +15,20 @@ Some documentation is hand-written as below, and some is API further below
    specindex
 
 
+Proposals
+=========
+
+This is an experimental area of the docs - it contains written `use cases`,
+`specs` and just plain old discussions about the work this branch is trying to
+perform. It seems useful to have one location to put this stuff.  This location
+may or may not be best.
+
+.. toctree::
+   :maxdepth: 1
+   :glob:
+
+   proposals_and_stories/*
+   
 
 API
 ===

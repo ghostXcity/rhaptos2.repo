@@ -377,7 +377,8 @@ def test_valid_fields_in_GET():
                     "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     GOODUSERSESSIONID)
     assert "translators" in resp.json.keys()
-    assert "editors" in resp.json.keys()    
+    assert "editors" in resp.json.keys()
+
     
     
 def test_post_folder():
@@ -427,12 +428,30 @@ def test_put_collection_otheruser():
     assert resp.status_int == 403, resp.status_int
 
 
-def ntest_put_collection_baduser():
-    data = decl.declarationdict['collection']
-    data['body'] = ["cnxmodule:SHOULDNEVERHITDB1", ]
-    resp = wapp_put(TESTAPP, "collection", data, OTHERUSERSESSIONID, COLLECTIONURI)
-    assert resp.status_int == 403, resp.status_int
+### Testing GAC 
+def test_put_googleanalytics_module():
+    """
+    """
+    data = decl.declarationdict['module']
+    gacval = """<script> Arbitrary script for google </script> """
+    data['gac'] = gacval
+    resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
+    assert 'gac' in resp.json.keys()
+    assert resp.json['gac'] == gacval
 
+def test_put_googleanalytics_collection():
+    """
+    """
+    data = decl.declarationdict['collection']
+    data['gac'] = """<script> Arbitrary script for google </script> """
+    resp = wapp_put(TESTAPP, "collection", data,
+                    GOODUSERSESSIONID, COLLECTIONURI)
+    assert 'gac' in resp.json.keys()
+
+###            
+
+
+    
 def test_dateModifiedStamp():
     data = decl.declarationdict['module']
     data['body'] = "Declaration test text"

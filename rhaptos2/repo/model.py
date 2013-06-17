@@ -134,6 +134,7 @@ class Collection(Base, CNXBase):
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
+    gac = Column(String)
 
     userroles = relationship("UserRoleCollection",
                              backref="cnxcollection",
@@ -229,15 +230,16 @@ class Module(Base, CNXBase):
     subjects = Column(ARRAY(String))
     keywords = Column(ARRAY(String))
     summary = Column(String)
-
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
-
+    gac = Column(String)
+    
     userroles = relationship("UserRoleModule",
                              backref="cnxmodule",
                              cascade="all, delete-orphan")
     userroleklass = UserRoleModule
+    
     
     def __init__(self, id_=None, creator_uuid=None):
         """
