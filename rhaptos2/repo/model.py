@@ -134,7 +134,7 @@ class Collection(Base, CNXBase):
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
-    gac = Column(String)
+    googleTrackingID = Column(String)
 
     userroles = relationship("UserRoleCollection",
                              backref="cnxcollection",
@@ -233,7 +233,7 @@ class Module(Base, CNXBase):
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
-    gac = Column(String)
+    googleTrackingID = Column(String)
     
     userroles = relationship("UserRoleModule",
                              backref="cnxmodule",

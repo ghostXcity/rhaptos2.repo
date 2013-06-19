@@ -42,8 +42,9 @@ folder
 import json
 import datetime
 from err import Rhaptos2Error
+from werkzeug.exceptions import BadRequest
 from rhaptos2.repo import dolog  # depednacy?
-
+import string
 
 class CNXBase():
     """
@@ -121,7 +122,13 @@ class CNXBase():
             elif k == "acl":
                 ## convert acls into userrole assignments
                 self.update_userroles(d['acl'], requesting_user_uri=requesting_user_uri)
-                setattr(self, k, d['acl'])                
+                setattr(self, k, d['acl'])
+            elif k == "googleTrackingID":
+                ### validate the ID - it must not have
+                if not simple_xss_validation(d[k]):
+                    raise BadRequest(description="googleTrackingID cannot have script-like charaters in it")
+                else:
+                    setattr(self, k, d[k])
             else:
                 setattr(self, k, d[k])
 
@@ -401,7 +408,28 @@ class CNXBase():
                 s += "SUCCESS user in valid list %s" % str(valid_user_list)
                 dolog("INFO", s)
                 return True
+###
 
+def simple_xss_validation(html_fragment):
+    """
+
+    >>> simple_xss_validation("US-12345678-1")
+    True
+    >>> simple_xss_validation("<script>Evil</script>")
+    False
+
+    This is very quick and dirty, and we need some consideration
+    over XSS escaping. FIXME
+    """
+
+    whitelist = string.ascii_letters + string.digits + "-" + string.whitespace
+    dolog("INFO", "Start XSS whitelist - %s" % html_fragment)                
+    for char in html_fragment:
+        if char not in whitelist:
+            dolog("INFO", "Failed XSS whitelist - %s" % html_fragment)            
+            return False
+    return True
+    
 
 if __name__ == '__main__':
     import doctest
