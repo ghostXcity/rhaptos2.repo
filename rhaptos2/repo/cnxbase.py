@@ -94,16 +94,19 @@ class CNXBase():
         setattr is valid as a means of internally updating
         a sqlalchemy object, and will correctly pass the diamond lookup.
 
+        >>> from rhaptos2.repo import model
         >>> m = model.Module(creator_uuid="test")
-        >>> d = {"totalfake":100}
+        >>> d = {"InvalidFieldName":100}
         >>> m.populate_self(d)
         Traceback (most recent call last):
-        ... Tried to set attr totalfake when no ...
+          ...
+        Rhaptos2Error: ...
 
         [correct usage would be as:]
-        >> d = {"title":"testtitle"}
-        >> m.populate_self(d)
-        >> m.save(db_session)
+        >>> d = {"title":"testtitle"}
+        >>> m.populate_self(d)
+        >>> m
+        Module:(...)-testtitle
 
 
         """
@@ -402,4 +405,7 @@ class CNXBase():
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod()
+    val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE + \
+        doctest.IGNORE_EXCEPTION_DETAIL
+    doctest.testmod(optionflags=val)
+    
