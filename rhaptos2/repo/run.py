@@ -69,7 +69,6 @@ def get_app(opts, args, config, as_devserver=False, jslocation=None):
     app = make_app(config)
     app.debug = True
     sessioncache.set_config(config)
-    print "<<<>>>CALLED get_app"
     initialize_database()
 
     if as_devserver:
