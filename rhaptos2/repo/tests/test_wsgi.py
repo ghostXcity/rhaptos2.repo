@@ -45,7 +45,69 @@ import json
 from rhaptos2.repo.configuration import (  # noqa
     Configuration
 )
+from nose.tools import with_setup
 
+
+    ########################################################################
+    # module level setup for nosetests
+    ########################################################################
+
+TESTCONFIG = None
+TESTAPP = None
+
+
+def convert_config(config):
+    """
+    This is done to convert the "dict" from configuration into true dict.
+
+    FIXME - this is ridiculous - just go back to one confd object
+    """
+
+    defaultsection = 'app'
+    if defaultsection in config:
+        for k in config[defaultsection]:
+            config[k] = config[defaultsection][k]
+    return config
+
+
+def setup():
+    global TESTCONFIG
+    global TESTAPP
+
+    reload(decl)
+    
+    # using nose-testconfig we obtain the config dict passed in through the
+    # nosetests command line
+    from testconfig import config
+    ## now "convert" to app-style dict
+    TESTCONFIG = convert_config(config)
+    initdb(TESTCONFIG)
+
+    if 'HTTPPROXY' in config.keys():
+        app = WSGIProxyApp(config['HTTPPROXY'])
+        TESTAPP = TestApp(app, extra_environ={'REMOTE_ADDR': '1.2.3.4'})
+    else:
+        app = make_app(TESTCONFIG)
+        app.debug = True
+        sessioncache.set_config(config)
+        TESTAPP = TestApp(app.wsgi_app)
+
+def funcsetup():
+    """
+    once per test
+    """
+    reload(decl)
+
+        
+def cleardown(config):
+    backend.clean_dbase(config)
+
+
+def initdb(config):
+    backend.initdb(config)
+
+
+####################
 
 
 def capture_conversation(webob_request, webob_response):
@@ -55,7 +117,7 @@ def capture_conversation(webob_request, webob_response):
 
     restrest assumes you are sending in webob objects
     """
-    rst = restrest.restrest(webob_request, webob_response, shortformat=True)
+    rst = restrest.restrest(webob_request, webob_response, shortformat=False)
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
@@ -338,6 +400,7 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
 ## Each builds on previous changes to DBase
 #############
 
+@with_setup(funcsetup)    
 def test_post_module():
     resp = wapp_post(TESTAPP,
                      "module",
@@ -346,6 +409,7 @@ def test_post_module():
     returned_module_uri = resp.json['id']
     assert returned_module_uri == MODULEURI
 
+@with_setup(funcsetup)
 def test_put_module():
     data = decl.declarationdict['module']
     data['acl'] = [developers['OTHERUSER']['uri'],]
@@ -355,6 +419,7 @@ def test_put_module():
 
     ### So, user 0002 (ross) is RW on this module
 
+@with_setup(funcsetup)    
 def test_put_module_by_otheruser():
     data = decl.declarationdict['module']
     data['body'] = "<p> OTHERUSERSESSIONID has set this"
@@ -363,12 +428,14 @@ def test_put_module_by_otheruser():
 
     ### So, user 0002 (ross) is allowed to put on this module
 
+@with_setup(funcsetup)
 def test_get_module():
     resp = wapp_get(TESTAPP, "module",
                     "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     GOODUSERSESSIONID)
     assert resp.status_int == 200
 
+@with_setup(funcsetup)
 def test_valid_fields_in_GET():
     """Are we getting back the editor and translator fields
 
@@ -381,12 +448,16 @@ def test_valid_fields_in_GET():
 
     
     
+
+@with_setup(funcsetup)
 def test_post_folder():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
                      'folder'], GOODUSERSESSIONID)
     returned_folder_uri = resp.json['id']
     assert returned_folder_uri == FOLDERURI
 
+
+@with_setup(funcsetup)
 def test_put_folder():
     data = decl.declarationdict['folder']
     data['acl'] = [OTHERUSERSESSIONID,]
@@ -399,28 +470,38 @@ def test_put_folder():
 ### Folders are returned as follows
 #    {u'body': [{u'title': u'Introduction', u'mediaType': u'application/vnd.org.cnx.module', u'id': u'cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126'}],
 
+
+@with_setup(funcsetup)
 def test_get_folder():
     resp = wapp_get(TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
     assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
+
+@with_setup(funcsetup)
 def test_post_collection():
     data = decl.declarationdict['collection']
     resp = wapp_post(TESTAPP, "collection", data, GOODUSERSESSIONID)
     returned_collection_uri = resp.json['id']
     assert returned_collection_uri == COLLECTIONURI
 
+
+@with_setup(funcsetup)
 def test_put_collection():
     data = decl.declarationdict['collection_small']
     data['acl'] = [OTHERUSERSESSIONID,]
     resp = wapp_put(TESTAPP, "collection", data, GOODUSERSESSIONID, COLLECTIONURI)
     assert resp.json['body'].find('href="cnxmodule:d3911c28') > -1
 
+
+@with_setup(funcsetup)
 def test_get_collection():
     resp = wapp_get(TESTAPP, "collection",
                     "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
                     , GOODUSERSESSIONID, None)
     assert resp.json['id'] == "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
 
+
+@with_setup(funcsetup)
 def test_put_collection_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
@@ -429,35 +510,55 @@ def test_put_collection_otheruser():
 
 
 ### Testing GAC 
+@with_setup(funcsetup)
 def test_put_googleanalytics_module():
     """
     """
     data = decl.declarationdict['module']
-    gacval = """<script> Arbitrary script for google </script> """
-    data['gac'] = gacval
+    gacval = """UA-12345678-1"""
+    data['googleTrackingID'] = gacval
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
-    assert 'gac' in resp.json.keys()
-    assert resp.json['gac'] == gacval
+    assert 'googleTrackingID' in resp.json.keys()
+    assert resp.json['googleTrackingID'] == gacval
 
+
+@with_setup(funcsetup)
+def test_put_badgoogleanalytics_module():
+    """
+    """
+    data = decl.declarationdict['module']
+    gacval = """<script>evil</script>"""
+    data['googleTrackingID'] = gacval
+    resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
+    assert resp.status_int == 400
+    #data['googleTrackingID'] = ""  ##this should be dealt with in setup...    
+
+    
+
+@with_setup(funcsetup)
 def test_put_googleanalytics_collection():
     """
     """
     data = decl.declarationdict['collection']
-    data['gac'] = """<script> Arbitrary script for google </script> """
+    data['googleTrackingID'] = """UA-12345678-1"""
     resp = wapp_put(TESTAPP, "collection", data,
                     GOODUSERSESSIONID, COLLECTIONURI)
-    assert 'gac' in resp.json.keys()
+    assert 'googleTrackingID' in resp.json.keys()
 
 ###            
 
-
-    
+@with_setup(funcsetup)
 def test_dateModifiedStamp():
     data = decl.declarationdict['module']
     data['body'] = "Declaration test text"
+
+    dolog("INFO", data)
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
+    assert resp.status_int == 200
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
 
+
+@with_setup(funcsetup)
 def test_put_module_rouser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
@@ -470,25 +571,35 @@ def ntest_put_module_baduser():
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
     assert resp.status_int == 403, resp.status_int
 
+
+@with_setup(funcsetup)
 def test_put_folder_ro():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
     resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, FOLDERURI)
     assert resp.status_int == 403, resp.status_int
 
+
+@with_setup(funcsetup)
 def test_read_module_rouser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
+
+@with_setup(funcsetup)
 def test_read_folder_gooduser():
     resp = wapp_get(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
+
+@with_setup(funcsetup)
 def test_read_module_baduser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
+
+@with_setup(funcsetup)
 def test_get_workspace_good():
     resp = wapp_get(TESTAPP, "workspace", None, GOODUSERSESSIONID)
     assert len(resp.json) == 3
@@ -498,36 +609,50 @@ def test_get_workspace_good():
 
 ###############
 
+
+@with_setup(funcsetup)
 def test_delete_module_baduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
+
+@with_setup(funcsetup)
 def test_delete_module_good():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
 ###
 
+
+@with_setup(funcsetup)
 def test_delete_collection_baduser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
+
+@with_setup(funcsetup)
 def test_delete_collection_good():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
 ###
 
+
+@with_setup(funcsetup)
 def test_delete_folder_baduser():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
+
+@with_setup(funcsetup)
 def test_delete_folder_good():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
+
+@with_setup(funcsetup)
 def test_whoami():
     resp = wapp_get(TESTAPP, "-", None,
                     GOODUSERSESSIONID,
@@ -536,59 +661,6 @@ def test_whoami():
     assert resp.status_int == 200
     assert resp.json["fullname"] == "pbrian"
     assert resp.json["user_uri"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
-
-
-    
-    ########################################################################
-
-TESTCONFIG = None
-TESTAPP = None
-
-
-def convert_config(config):
-    """
-    This is done to convert the "dict" from configuration into true dict.
-
-    FIXME - this is ridiculous - just go back to one confd object
-    """
-
-    defaultsection = 'app'
-    if defaultsection in config:
-        for k in config[defaultsection]:
-            config[k] = config[defaultsection][k]
-    #del config[defaultsection]
-    return config
-
-
-def setup():
-    global TESTCONFIG
-    global TESTAPP
-
-    # using nose-testconfig we obtain the config dict passed in through the
-    # nosetests command line
-    from testconfig import config
-    ## now "convert" to app-style dict
-    TESTCONFIG = convert_config(config)
-    initdb(TESTCONFIG)
-
-    dolog("INFO", "WHAT THE HELL IS GOING ON WITH CONF %s %s" % (str(config), str(TESTCONFIG)))
-    if 'HTTPPROXY' in config.keys():
-        app = WSGIProxyApp(config['HTTPPROXY'])
-        TESTAPP = TestApp(app, extra_environ={'REMOTE_ADDR': '1.2.3.4'})
-    else:
-        app = make_app(TESTCONFIG)
-        app.debug = True
-        sessioncache.set_config(config)
-        TESTAPP = TestApp(app.wsgi_app)
-
-def cleardown(config):
-    backend.clean_dbase(config)
-
-
-def initdb(config):
-    backend.initdb(config)
-    ### kind of useless as have not instantiated the models yet.
-
 
 
 if __name__ == '__main__':
