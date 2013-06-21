@@ -14,7 +14,7 @@ Spec
 
 
 We shall provide a single text field in both modules and collections named 
-``gac`` and this will allow arbitrary tracking code to be installed.
+``googleTrackingID`` and this will allow arbitrary tracking code to be installed.
 
 The backend repo only needs to support accepting a new field from the json doc
 and handling it correctly.  The ATC client will need to do more, see story https://trello.com/card/atc-add-missing-ui-fields-for-metadata-6-pts/5181197901c3b1290b001951/85
