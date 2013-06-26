@@ -66,9 +66,16 @@ from rhaptos2.repo import get_app, sessioncache
 #     The full fix is in branch fix-logging-importing
 #     This is a workaround to handle the circular import
 _lgr = logging.getLogger("authmodule")
+logging.basicConfig(filename='/tmp/repoauth.log')
+_lgr.info("test1")
+
+
 def dolog(lvl, msg):
+    print msg
     _lgr.info(msg)
 
+dolog("INFO","TEST2")
+    
 # Paths which do not require authorization.
 DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
 # The key used in session cookies.

@@ -22,6 +22,8 @@ import logging
 from flask import Flask, g
 from rhaptos2.repo import log
 import pkg_resources
+import logging
+from logging import FileHandler, StreamHandler
 
 
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
@@ -120,61 +122,23 @@ def make_app(config, as_standalone=False):
 
 
 def dolog(lvl, msg, caller=None, statsd=None):
-    """wrapper function purely for adding context to log stmts
-
-    I am trying to keep this simple, no parsing of the stack etc.
-
-    caller is the function passed when the dolog func is called.  We
-    jsut grab its name extras is likely to hold a list of strings that
-    are the buckets
-
-
-    >>> dolog("ERROR", "whoops", os.path.isdir, ['a.b.c',])
-
     """
-
+    reducing logging to minimum
+    """
     lvls = {
-        "CRITICAL": 50,
-        "ERROR": 40,
-        "WARNING": 30,
-        "INFO": 20,
-        "DEBUG": 10,
-        "NOTSET": 0
+       "CRITICAL": 50,
+       "ERROR": 40,
+       "WARNING": 30,
+       "INFO": 20,
+       "DEBUG": 10,
+       "NOTSET": 0
     }
     try:
         goodlvl = lvls[lvl]
     except:
         goodlvl = 20  # !!!
-
-    # create an extras dict, that holds curreent user, request and action notes
-    if caller:
-        calledby = "rhaptos2.loggedin." + str(caller.__name__)
-    else:
-        calledby = "rhaptos2.loggedin.unknown"
-
-    if statsd:
-        statsd.append(calledby)
-    else:
-        statsd = [calledby, ]
-
-    try:
-        request_id = g.request_id
-    except:
-        request_id = "no_request_id"
-
-    try:
-        user_id = g.userID
-    except:
-        user_id = "no_user_id"
-
-    extra = {'statsd': statsd,
-             'user_id': user_id,
-             'request_id': request_id}
-
-    try:
-        _app.logger.log(goodlvl, msg, extra=extra)
-    except Exception, e:
-        print extra, msg, e
+    _lgr.log(goodlvl, msg)
+    
 
 
 def set_up_logging(app):
@@ -183,14 +147,27 @@ def set_up_logging(app):
     """
     config = app.config
 
-    # Define the logging handlers
-    stream_handler = logging.StreamHandler()
+    default_formatter = logging.Formatter(\
+       "%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
-    # Define the log formatting.
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
-                                  "- %(message)s")
+    console_handler = StreamHandler()
+    console_handler.setFormatter(default_formatter)
 
-    stream_handler.setFormatter(formatter)
-    # Set the handlers on the application.
-    for handler in (stream_handler,):
-        app.logger.addHandler(handler)
+    error_handler = FileHandler("repo-error.log", "a")
+    error_handler.setLevel(logging.INFO)
+    error_handler.setFormatter(default_formatter)
+
+    flask_error_handler = FileHandler("flask-error.log", "a")
+    flask_error_handler.setLevel(logging.INFO)
+    flask_error_handler.setFormatter(default_formatter)
+
+    
+    root = logging.getLogger(__name__)
+    root.addHandler(console_handler)
+    root.addHandler(error_handler)
+    root.setLevel(logging.INFO)
+
+    root.info("logger set up on %s" % __name__)
+    
+    app.logger.addHandler(flask_error_handler)
+    app.logger.info("Flask-logger will output to %s" % "flask-error.log")
