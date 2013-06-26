@@ -106,7 +106,22 @@ def apply_cors(resp_as_pytype):
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
+def logging_endpoint():
+    """
+    """
+    req = obtain_payload(request)
+    weblogging.log_endpoint(req)
+    return ""
 
+def metric_endpoint():
+    """
+    """
+    req = obtain_payload(request)
+    weblogging.metric_endpoint(req)
+    return ""
+
+    
+    
 def index():
     """
     .. dicussion::

@@ -91,6 +91,11 @@ def assign_routing_rules(app):
     app.add_url_rule('/module/<path:moduleuri>', view_func=views.module_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
+    ###
+    app.add_url_rule('/logging', view_func=views.logging_endpoint,
+                     methods=['POST'])
+    ###
+    
     app.before_request(views.requestid)
     app.after_request(views.call_after_request_callbacks)
     return app
