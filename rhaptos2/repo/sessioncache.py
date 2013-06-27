@@ -398,7 +398,6 @@ def _fakesessionusers(sessiontype='fixed'):
 [u'interests', u'user_id', u'suffix', u'firstname', u'title', u'middlename', u'lastname', u'imageurl', u'identifiers', u'affiliationinstitution_url', u'email', u'version', u'location', u'recommendations', u'preferredlang', u'affiliationinstitution', u'otherlangs', u'homepage', u'fullname', u'biography']
 
     """
-    print "Calling fake sessioon"
     developertmpl = """{"interests": null,
                         "identifiers": [{"identifierstring":  "https://%(name)s.myopenid.com",
                                          "user_id": "%(uri)s",

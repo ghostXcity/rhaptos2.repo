@@ -55,6 +55,7 @@ def assign_routing_rules(app):
     Avoid having to have a wsgi / flask app in global namespace of views.
     We need to replace decorators that assume app already exists at import (or decorator first call time)
 
+    FIXME - tidy this up!
     """
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
@@ -93,10 +94,11 @@ def assign_routing_rules(app):
 
 def make_app(config, as_standalone=False):
     """WSGI application factory
-    The ``as_standalone`` parameter is used to tell the factory to serve the
-    static Authoring Tools Client (ATC) client JavaScript code from a
-    directory. In a deployed situation this would normally be configured
-    and served by the webserver.
+    
+    The ``as_standalone`` parameter (toggled by `--devserver` in commandline) is
+    used to tell the factory to serve the static Authoring Tools Client (ATC)
+    client JavaScript code from a directory. In a deployed situation this would
+    normally be configured and served by the webserver.
 
     """
     app = Flask(__name__)

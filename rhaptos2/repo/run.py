@@ -56,9 +56,7 @@ def main():
     app = get_app(opts, args, config,
                   as_devserver=opts.devserver,
                   jslocation=opts.jslocation)
-
     wsgi_run(app, opts, args)
-
 
 def get_app(opts, args, config, as_devserver=False, jslocation=None):
     """

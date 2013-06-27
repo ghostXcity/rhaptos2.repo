@@ -326,7 +326,6 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     else:
         headerd = get_cookie_hdr(test_session_id)
     ###
-    print URL, "*****"
     req = TestRequest.blank(URL, method="GET",
                             headers=headerd)
     for k, v in wapp.extra_environ.items():
