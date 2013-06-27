@@ -217,13 +217,13 @@ def getconn():
 
     """
     try:
-        lgr.error("CONFD is %s" % str(CONFD))
         conn = psycopg2.connect(host=CONFD['pghost'],
                                 database=CONFD['pgdbname'],
                                 user=CONFD['pgusername'],
                                 password=CONFD['pgpassword'])
     except psycopg2.Error, e:
-        lgr.error("Error making pg conn - %s" % str(e))
+        lgr.error("Error making pg conn - %s - config was %s" %
+                  str(e), CONFD)
         raise e
 
     return conn
