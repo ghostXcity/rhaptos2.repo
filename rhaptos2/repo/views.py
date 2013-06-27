@@ -46,11 +46,6 @@ lgr = logging.getLogger(__name__)
 import os
 import json
 from functools import wraps
-try:
-    from cStringIO import StringIO  # noqa
-except ImportError:
-    from StringIO import StringIO  # noqa
-
 import uuid
 import requests
 import flask
@@ -67,17 +62,11 @@ from rhaptos2.repo import (get_app,
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
-########
-## module level globals -
-## FIXME: prefer to avoid this through urlmapping
-## unclear if can fix for SA
-########
-# app = get_app()
-
 
 def requestid():
     """
     before_request is supplied with this to run before each __call_
+    
     """
     g.requestid = uuid.uuid4()
     g.request_id = g.requestid
@@ -111,7 +100,6 @@ def apply_cors(resp_as_pytype):
     '''A callable function (not decorator) to
        take the output of a app_end and convert it to a Flask response
        with appropriate Json-ified wrappings.
-
 
     '''
     resp = flask.make_response(resp_as_pytype)
@@ -281,6 +269,11 @@ def obtain_payload(werkzeug_request_obj):
     return jsond
 
 
+############################################################
+## "Routers". genericly handle very similar actions
+## but without 'reimplmenting' Flask disaptching
+############################################################
+    
 def folder_router(folderuri):
     """
     """
@@ -384,10 +377,17 @@ def module_router(moduleuri):
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
-
+##########################################################
+## specific views called by "routers" above.
+##########################################################
+        
 def folder_get(folderuri, requesting_user_uri):
     """
     return folder as an appropriate json based response string
+
+    This is returned not as the generic representation of a folder, but as
+    a "soft" form, with names of folder children as well as "hard" uuids.
+    This is why the folder_get is special cased here.
 
     .__complex__ -> creates a version of an object that can be run through a std json.dump
 
