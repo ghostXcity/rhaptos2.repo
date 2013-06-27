@@ -66,9 +66,11 @@ from rhaptos2.repo import get_app, sessioncache
 
 
 # Paths which do not require authorization.
-DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home', '/tempsession')
 # The key used in session cookies.
 CNX_SESSION_ID = "cnxsessionid"
+
+
 
 
 ########################
@@ -178,14 +180,15 @@ def handle_user_authentication(flask_request):
         
         
     # We are at start of request cycle, so tell everything downstream who User
-    # is.
+    # is.  If userdata not set, create a temp user and move on.
     if userdata is not None:
         store_userdata_in_request(userdata, sessionid)
     else:
         g.userd = None
         lgr.error("Session Lookup returned None User, so redirect to login")
         if 'cnxprofile' in flask_request.cookies:
-            userdata, sessionid = set_temp_session()    
+            userdata, sessionid = set_temp_session()
+            store_userdata_in_request(userdata, sessionid)
         else:
             abort(401)
         

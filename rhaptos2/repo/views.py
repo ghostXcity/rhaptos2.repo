@@ -133,10 +133,27 @@ def index():
 
     TODO: either use a config value, or bring a index template in here
     """
-    lgr.error("THis is request %s" % g.requestid)
+    lgr.info("THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
 
+def home():
+    """
+    A trial page to help with the logic of redicrttion and logins
+    """
+    
+    if not g.userd:
+        return """<p>~~~ Bootstrap hotness here ~~~~</p>
+        You are not logged in.
+        You can now choose to either
+        <table>
+        <tr><td><a href="%s">login</a></td>
+            <td>Try the site <a href="/tempsession">anonymously</a></td></tr>
+        </table>
+        Please note all work will be lost at the end of anonymous sessions.
+        """ % get_app().config['globals']['userserver']
+    else:
+        return "You are logged in as %s - why not <a href="/">go to the site</a> and edit" % g.userd['fullname']
 
 def whoamiGET():
     '''
@@ -226,7 +243,23 @@ def auto_session():
 
     return "Session created - please see headers"
 
+def temp_session():
+    """
+    When a user wants to edit anonymously, they need to hit this
+    first.  This is to avoid the logic problems in knowing
+    if a user should be redirected if they have one but not two cookies etc.
 
+    Here we generate a temperoiary userid (that is *not* linked to cnx-user)
+    then setup a session based on that userid.  All work will be lost
+    at end of session.
+    
+    """
+    sessionid = auth.set_temp_session()
+    resp = flask.redirect("/")
+    return resp
+
+
+    
 MEDIA_MODELS_BY_TYPE = {
     "application/vnd.org.cnx.collection": model.Collection,
     "application/vnd.org.cnx.module": model.Module,
