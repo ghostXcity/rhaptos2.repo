@@ -170,8 +170,9 @@ def handle_user_authentication(flask_request):
             flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
         lgr.error("Session Lookup returned NoCookieError, so redirect to login")
-        abort(401)
+        #abort(401)
         ### FIXME - add in temp session & fake userid.
+        set_temp_session()
         
     # We are at start of request cycle, so tell everything downstream who User
     # is.
@@ -180,9 +181,10 @@ def handle_user_authentication(flask_request):
     else:
         g.userd = None
         lgr.error("Session Lookup returned None User, so redirect to login")
-        abort(401)
+        #abort(401)
         ### FIXME - add in temp session & fake userid.
-
+        set_temp_session()
+        
 ##########################
 ## Session Cookie Handling
 ##########################
