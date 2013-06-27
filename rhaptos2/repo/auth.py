@@ -406,19 +406,6 @@ def apply_cors(resp):
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
-# ??? Why is this logic in this module? Shouldn't it be grouped with the other
-#     logging facilities.
-def callstatsd(dottedcounter):
-    # Try to call logging. If not connected to a network this throws
-    # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
-    try:
-        c = statsd.StatsClient(get_app().config['globals']['statsd_host'],
-                               int(get_app().config['globals']['statsd_port']))
-        c.incr(dottedcounter)
-        # todo: really return c and keep elsewhere for efficieny I suspect
-    except:
-        pass
-
 def logout():
     """kill the session in cache, remove the cookie from client"""
     raise NotImplementedError()

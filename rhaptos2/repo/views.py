@@ -180,8 +180,6 @@ def workspaceGET():
         short_format_list = [{
             "id": i.id_, "title": i.title, "mediaType": i.mediaType} for i in w]
         flatten = json.dumps(short_format_list)
-
-    auth.callstatsd('rhaptos2.e2repo.workspace.GET')
     resp = apply_cors(flatten)
     return resp
 
