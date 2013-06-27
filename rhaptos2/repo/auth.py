@@ -170,9 +170,12 @@ def handle_user_authentication(flask_request):
             flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
         lgr.error("Session Lookup returned NoCookieError, so redirect to login")
-        #abort(401)
+        if 'cnxprofile' in flask_request.cookies:
+            userdata, sessionid = set_temp_session()    
+        else:
+            abort(401)
         ### FIXME - add in temp session & fake userid.
-        set_temp_session()
+        
         
     # We are at start of request cycle, so tell everything downstream who User
     # is.
@@ -181,9 +184,10 @@ def handle_user_authentication(flask_request):
     else:
         g.userd = None
         lgr.error("Session Lookup returned None User, so redirect to login")
-        #abort(401)
-        ### FIXME - add in temp session & fake userid.
-        set_temp_session()
+        if 'cnxprofile' in flask_request.cookies:
+            userdata, sessionid = set_temp_session()    
+        else:
+            abort(401)
         
 ##########################
 ## Session Cookie Handling
@@ -310,9 +314,9 @@ def create_session(userdata):
         #     the client-side code. We should supply the client-side code with
         #     the id and url to the user profile. The user already has
         #     authorization to acquire their data.
-        resp.set_cookie('cnxprofile', '',
+        resp.set_cookie('cnxprofile', 'FOO',
                         httponly=True,
-                        expires=-0)
+                        expires=datetime.datetime.today()+datetime.timedelta(days=365))
         return resp
 
     g.deferred_callbacks.append(begin_session)
@@ -379,8 +383,8 @@ def set_temp_session():
     useruri = create_temp_user(
         "temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
     tempuserdict = {'fullname': "temporary user", 'user_id': useruri}
-    create_session(tempuserdict)
-    return tempuserdict
+    sessionid = create_session(tempuserdict)
+    return (tempuserdict, sessionid)
 
 
 def create_temp_user(identifiertype, identifierstring):
