@@ -61,49 +61,30 @@
 <span class="c">###</span>
 
 
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">run.py - Launch the repo app.</span>
+<span class="sd">&quot;&quot;&quot;run.py - Launch the repo app.</span>
 
 <span class="sd">This is the suggested method for running a WSGI Server - we instantiate the repo</span>
 <span class="sd">app, and pass it to the waitress server (To be replaced by gunicorn)::</span>
 
-<span class="sd">  python run.py --config=../../testing.ini</span>
 
-<span class="sd">.. todo::</span>
-<span class="sd">   Michaels solution to include a sererate standalone module was much better.</span>
-<span class="sd">   Replicate it and pull much of the URLMap code out of here.</span>
-
-
-<span class="sd">def make_app(name, confd):</span>
-<span class="sd">    /</span>
-<span class="sd">    an attempt at an app_factory</span>
-<span class="sd">    /</span>
-<span class="sd">    open(&quot;/tmp/log&quot;, &quot;a&quot;).write(&quot;APPFACTORYCALLED\n&quot;)</span>
-<span class="sd">    app = Flask(name)</span>
-<span class="sd">    app.config.update(confd)</span>
-<span class="sd">    app.add_url_rule(&quot;/&quot;, view_func=index)</span>
-<span class="sd">    app.add_url_rule(&quot;/favicon&quot;, view_func=favicon)</span>
-<span class="sd">    app.add_url_rule(&quot;/cms/&lt;path:path&gt;&quot;, view_func=cms)</span>
-
-<span class="sd">    return app</span>
+<span class="sd">  python run.py --config=../../testing.ini --devserver --jslocation=/path/to/atc</span>
 
 
 <span class="sd">changes:</span>
 
-<span class="sd">* 21 May 2013 - moving to avoid global app.</span>
-<span class="sd">  We have been calling get_app which looks at the global in __init__</span>
-<span class="sd">  I would rather use a push approach to giving individual modules config and the wsgiapp</span>
-<span class="sd">  this will mean we can more easily run modules as standalone, more easily seperate out testing</span>
-<span class="sd">  and fits my brain easier (this last is unlikely to apply to anyone else I admit!)</span>
+<span class="sd">* 21 May 2013 - moving to avoid global app.  We have been calling get_app which</span>
+<span class="sd">  looks at the global in __init__ I would rather use a push approach to giving</span>
+<span class="sd">  individual modules config and the wsgiapp this will mean we can more easily</span>
+<span class="sd">  run modules as standalone, more easily seperate out testing and fits my brain</span>
+<span class="sd">  easier (this last is unlikely to apply to anyone else I admit!)</span>
 
-<span class="sd">  currently views.py, __init__.py, run.py, auth.py have to have an wsgiapp in their global namespace</span>
+<span class="sd">  currently views.py, __init__.py, run.py, auth.py have to have an wsgiapp in</span>
+<span class="sd">  their global namespace</span>
 
-<span class="sd">  By removing the @route approach, and placing that, before and after requests, and the oid setup,</span>
-<span class="sd">  in the initialisation phase of run, only run will need a wsgiapp in the global namespace, although auth.py will</span>
-<span class="sd">  find it easier / avoid refactor of the openid approaches.</span>
-
-
-
+<span class="sd">  By removing the @route approach, and placing that, before and after requests,</span>
+<span class="sd">  and the oid setup, in the initialisation phase of run, only run will need a</span>
+<span class="sd">  wsgiapp in the global namespace, although auth.py will find it easier / avoid</span>
+<span class="sd">  refactor of the openid approaches.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -139,7 +120,6 @@
     <span class="n">app</span> <span class="o">=</span> <span class="n">make_app</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
     <span class="n">sessioncache</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-    <span class="k">print</span> <span class="s">&quot;&lt;&lt;&lt;&gt;&gt;&gt;CALLED get_app&quot;</span>
     <span class="n">initialize_database</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">as_devserver</span><span class="p">:</span>
@@ -236,6 +216,10 @@
 
     <span class="kn">from</span> <span class="nn">rhaptos2.repo.backend</span> <span class="kn">import</span> <span class="n">initdb</span>
     <span class="n">initdb</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">rhaptos2.repo.sessioncache</span> <span class="kn">import</span> <span class="n">set_config</span><span class="p">,</span> <span class="n">initdb</span>
+    <span class="n">set_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="n">initdb</span><span class="p">()</span>
 
 </div>
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>

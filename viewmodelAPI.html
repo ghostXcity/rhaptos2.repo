@@ -27,7 +27,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
     <link rel="next" title="Authentication API" href="authenticationAPI.html" />
-    <link rel="prev" title="Simple spec links" href="specindex.html" /> 
+    <link rel="prev" title="Logging" href="proposals_and_stories/logging-clear-out.html" /> 
   </head>
   <body>
     <div class="related">
@@ -43,7 +43,7 @@
           <a href="authenticationAPI.html" title="Authentication API"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="specindex.html" title="Simple spec links"
+          <a href="proposals_and_stories/logging-clear-out.html" title="Logging"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>
@@ -357,6 +357,16 @@ It may be neater to bring the index.html page into here later on.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="rhaptos2.repo.views.logging_endpoint">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">logging_endpoint</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#logging_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.logging_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.metric_endpoint">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">metric_endpoint</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#metric_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.metric_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="rhaptos2.repo.views.module_router">
 <tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">module_router</tt><big>(</big><em>moduleuri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#module_router"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.module_router" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -456,16 +466,20 @@ SO have cnxbase klass for userroles as well. ToDO</p>
 populate the object.</p>
 <p>setattr is valid as a means of internally updating
 a sqlalchemy object, and will correctly pass the diamond lookup.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">creator_uuid</span><span class="o">=</span><span class="s">&quot;test&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;totalfake&quot;</span><span class="p">:</span><span class="mi">100</span><span class="p">}</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">creator_uuid</span><span class="o">=</span><span class="s">&quot;test&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;InvalidFieldName&quot;</span><span class="p">:</span><span class="mi">100</span><span class="p">}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">populate_self</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-<span class="gp">... </span><span class="n">Tried</span> <span class="n">to</span> <span class="nb">set</span> <span class="n">attr</span> <span class="n">totalfake</span> <span class="n">when</span> <span class="n">no</span> <span class="o">...</span>
+<span class="gt">Traceback (most recent call last):</span>
+  <span class="c">...</span>
+<span class="gr">Rhaptos2Error</span>: <span class="n">...</span>
 </pre></div>
 </div>
 <p>[correct usage would be as:]
-&gt;&gt; d = {&#8220;title&#8221;:&#8221;testtitle&#8221;}
-&gt;&gt; m.populate_self(d)
-&gt;&gt; m.save(db_session)</p>
+&gt;&gt;&gt; d = {&#8220;title&#8221;:&#8221;testtitle&#8221;}
+&gt;&gt;&gt; m.populate_self(d)
+&gt;&gt;&gt; m
+Module:(...)-testtitle</p>
 </dd></dl>
 
 <dl class="method">
@@ -609,6 +623,19 @@ strange behaviour or test issues so be flexible)</p>
 
 </dd></dl>
 
+<dl class="function">
+<dt id="rhaptos2.repo.cnxbase.simple_xss_validation">
+<tt class="descclassname">rhaptos2.repo.cnxbase.</tt><tt class="descname">simple_xss_validation</tt><big>(</big><em>html_fragment</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/cnxbase.html#simple_xss_validation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.cnxbase.simple_xss_validation" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">simple_xss_validation</span><span class="p">(</span><span class="s">&quot;US-12345678-1&quot;</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">simple_xss_validation</span><span class="p">(</span><span class="s">&quot;&lt;script&gt;Evil&lt;/script&gt;&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<p>This is very quick and dirty, and we need some consideration
+over XSS escaping. FIXME</p>
+</dd></dl>
+
 </div>
 </div>
 
@@ -639,8 +666,8 @@ strange behaviour or test issues so be flexible)</p>
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="specindex.html"
-                        title="previous chapter">Simple spec links</a></p>
+  <p class="topless"><a href="proposals_and_stories/logging-clear-out.html"
+                        title="previous chapter">Logging</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="authenticationAPI.html"
                         title="next chapter">Authentication API</a></p>
@@ -679,7 +706,7 @@ strange behaviour or test issues so be flexible)</p>
           <a href="authenticationAPI.html" title="Authentication API"
              >next</a> |</li>
         <li class="right" >
-          <a href="specindex.html" title="Simple spec links"
+          <a href="proposals_and_stories/logging-clear-out.html" title="Logging"
              >previous</a> |</li>
         <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>

@@ -86,50 +86,6 @@ but seems consistent for flask. Will need rethink.</p>
 </pre></div>
 </div>
 <dl class="function">
-<dt id="rhaptos2.repo.auth.add_location_header_to_response">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">add_location_header_to_response</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#add_location_header_to_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.add_location_header_to_response" title="Permalink to this definition">¶</a></dt>
-<dd><p>add Location: header</p>
-<blockquote>
-<div>from: <a class="reference external" href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html">http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html</a>
-For 201 (Created) responses, the Location is that of the new
-resource which was created by the request</div></blockquote>
-<p>decorator that assumes we are getting a flask response object</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.after_authentication">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">after_authentication</tt><big>(</big><em>authenticated_identifier</em>, <em>method</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#after_authentication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.after_authentication" title="Permalink to this definition">¶</a></dt>
-<dd><p>Called after a user has provided a validated ID (openid or peresons)</p>
-<p>This would be an <tt class="docutils literal"><span class="pre">endpoint</span></tt> in Valruse.</p>
-<p>method either openid, or persona</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parms :</th><td class="field-body">authenticated_identifier</td>
-</tr>
-</tbody>
-</table>
-<p>pass on responsibility to</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.apply_cors">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">apply_cors</tt><big>(</big><em>resp</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#apply_cors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.apply_cors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.asjson">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">asjson</tt><big>(</big><em>pyobj</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#asjson"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.asjson" title="Permalink to this definition">¶</a></dt>
-<dd><p>just placeholder</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;a&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">asjson</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-<span class="go">&#39;{&quot;a&quot;: 1}&#39;</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="function">
 <dt id="rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details">
 <tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">authenticated_identifier_to_registered_user_details</tt><big>(</big><em>ai</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#authenticated_identifier_to_registered_user_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given an <tt class="docutils literal"><span class="pre">authenticated_identifier</span> <span class="pre">(ai)</span></tt> request full user details from
@@ -139,18 +95,6 @@ the <tt class="docutils literal"><span class="pre">user</span> <span class="pre"
 <dd>None (user not registerd)
 or error (user service down).</dd>
 </dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.callstatsd">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">callstatsd</tt><big>(</big><em>dottedcounter</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#callstatsd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.callstatsd" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.create_or_login">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">create_or_login</tt><big>(</big><em>resp</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#create_or_login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.create_or_login" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is called when login with OpenID succeeded and it&#8217;s not
-necessary to figure out if this is the users&#8217;s first login or not.</p>
 </dd></dl>
 
 <dl class="function">
@@ -365,19 +309,6 @@ register any logged in user, or redirect to login pages</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rhaptos2.repo.auth.login">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">login</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.login" title="Permalink to this definition">¶</a></dt>
-<dd><p>Does the login via OpenID.  Has to call into <cite>auth.oid.try_login</cite>
-to start the OpenID .</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.loginpersona">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">loginpersona</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#loginpersona"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.loginpersona" title="Permalink to this definition">¶</a></dt>
-<dd><p>Taken mostly from mozilla quickstart</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="rhaptos2.repo.auth.logout">
 <tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">logout</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#logout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.logout" title="Permalink to this definition">¶</a></dt>
 <dd><p>kill the session in cache, remove the cookie from client</p>
@@ -394,16 +325,6 @@ performance monitoring of request life cycle?</p>
 <dd>or None if no session ID in cache
 or Error if lookup failed for other reason.</dd>
 </dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.redirect_to_login">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">redirect_to_login</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#redirect_to_login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.redirect_to_login" title="Permalink to this definition">¶</a></dt>
-<dd><p>On first hitting the site, the user will have no cookie
-If we issued a 301, the browser would issue another request,
-which would have no cookie, which would issue a 301...</p>
-<p>By presenting this HTML when the user hits the login server,
-we avoid this.  Clearly templating is needed.</p>
 </dd></dl>
 
 <dl class="function">
@@ -452,17 +373,6 @@ temporary id.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rhaptos2.repo.auth.setup_auth">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">setup_auth</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#setup_auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.setup_auth" title="Permalink to this definition">¶</a></dt>
-<dd><p>As part of drive to remove app setup from the import process,
-have moved to calls into this function.  This is driving
-a circular import cycle, which while temp solved will only
-be fixed by changing logging process.</p>
-<p>So to ensure docs work, and as a nod towards cleaning up the
-import-time work happening here, this needs to be called by run.</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="rhaptos2.repo.auth.store_userdata_in_request">
 <tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">store_userdata_in_request</tt><big>(</big><em>userd</em>, <em>sessionid</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#store_userdata_in_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.store_userdata_in_request" title="Permalink to this definition">¶</a></dt>
 <dd><p>given a userdict, keep it in the request cycle for later reference.
@@ -470,22 +380,17 @@ Best practise here will depend on web framework.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rhaptos2.repo.auth.temp_openid_image_url">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">temp_openid_image_url</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#temp_openid_image_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.temp_openid_image_url" title="Permalink to this definition">¶</a></dt>
-<dd><p>Provides a (temporary) fix for the openid images used
-on the login page.</p>
+<dt id="rhaptos2.repo.auth.valid">
+<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">valid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>cnx-user /valid view for capturing valid authentication requests.</p>
 </dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.auth.userspace">
-<tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">userspace</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#userspace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.userspace" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="function">
 <dt id="rhaptos2.repo.auth.whoami">
 <tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">whoami</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#whoami"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.whoami" title="Permalink to this definition">¶</a></dt>
 <dd><p>based on session cookie
-returns userd dict of user details, equivalent to mediatype from service / session</p>
+returns userd dict of user details, equivalent to mediatype from
+service / session</p>
 </dd></dl>
 
 </div>
@@ -773,6 +678,98 @@ comparing on database.</p>
 </div>
 </div>
 </div>
+<div class="section" id="module-rhaptos2.repo.weblogging">
+<span id="rhaptos2-repo-weblogging"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.weblogging" title="rhaptos2.repo.weblogging"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.weblogging</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.weblogging" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body"><a class="reference external" href="mailto:paul&#37;&#52;&#48;mikadosoftware&#46;com">paul<span>&#64;</span>mikadosoftware<span>&#46;</span>com</a> &lt;Paul Brian&gt;</td>
+</tr>
+</tbody>
+</table>
+<p>This is initially a simple URL to be listened to:</p>
+<div class="highlight-python"><pre>/logging</pre>
+</div>
+<p>and</p>
+<blockquote>
+<div>/metrics</div></blockquote>
+<p>The <cite>logging</cite> endpoint will take a message string and apply it to
+the local syslog, which we expect will be configured to centralise
+over rsyslogd.</p>
+<p>The <cite>metrics</cite> endpoint will take a triple, of the below form and
+convert it into a <cite>stasd</cite> call to be stored on the graphite database.</p>
+<div class="section" id="logging">
+<h3>logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h3>
+<p>If it receives a POST of the correct form, it will pass that post onto
+syslog on the local machine.</p>
+<p>Form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&#39;log-message&#39;</span><span class="p">:</span><span class="s">&#39;&lt;txt&gt;&#39;</span><span class="p">,</span>
+ <span class="s">&#39;log-message-version&#39;</span><span class="p">:</span> <span class="s">&#39;0.0.1&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>There is no log level, or error code - it did not seem necessary in initial
+discussions.  Again can revisit</p>
+</div>
+<div class="section" id="metrics">
+<h3>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h3>
+<p>Form:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&#39;metric-label&#39;</span><span class="p">:</span><span class="s">&#39;org.cnx.login.successful&#39;</span><span class="p">,</span>
+ <span class="s">&#39;metric-type&#39;</span><span class="p">:</span> <span class="s">&#39;incr&#39;</span><span class="p">,</span>
+ <span class="s">&#39;metric-schema-version&#39;</span><span class="p">:</span> <span class="s">&#39;0.0.1&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>We currently only support label/incr on the metric side - this is for
+simplicity, as writing timing tests got complex and I see little use
+for them at the moment. We can revisit.</p>
+</div>
+<div class="section" id="improvements">
+<h3>Improvements<a class="headerlink" href="#improvements" title="Permalink to this headline">¶</a></h3>
+<p>Run this as a WSGI middleware, so it is simple to import into
+the chain.</p>
+</div>
+<div class="section" id="security-considerations">
+<h3>Security considerations<a class="headerlink" href="#security-considerations" title="Permalink to this headline">¶</a></h3>
+<p>Fundamentally no different from any web service.
+I expect we shall need to use some form of long running token and
+keep the conversastions in SSL to prevent simplistic DDOS attacks.</p>
+<dl class="function">
+<dt id="rhaptos2.repo.weblogging.configure_statsd">
+<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">configure_statsd</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#configure_statsd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.configure_statsd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.weblogging.configure_weblogging">
+<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">configure_weblogging</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#configure_weblogging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.configure_weblogging" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.weblogging.log_endpoint">
+<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">log_endpoint</tt><big>(</big><em>json_formatted_payload</em>, <em>context={}</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#log_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.log_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.weblogging.metric_endpoint">
+<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">metric_endpoint</tt><big>(</big><em>json_formatted_payload</em>, <em>context={}</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#metric_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.metric_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.weblogging.validate_msg_return_dict">
+<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">validate_msg_return_dict</tt><big>(</big><em>json_formatted_payload</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#validate_msg_return_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.validate_msg_return_dict" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">configure_weblogging</span><span class="p">({})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">payload_good</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;{&quot;metric-label&quot;:&quot;org.cnx.login.successful&quot;,</span>
+<span class="gp">... </span><span class="s">&quot;metric-type&quot;: &quot;incr&quot;,</span>
+<span class="gp">... </span><span class="s">&quot;metric-value&quot;: null,</span>
+<span class="gp">... </span><span class="s">&quot;metric-schema-version&quot;: &quot;0.0.1&quot;}&#39;&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">validate_msg_return_dict</span><span class="p">(</span><span class="n">payload_good</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span>
+<span class="go">({u&#39;metric-type&#39;: u&#39;incr&#39;, u&#39;metric-value&#39;: None, u&#39;metric-label&#39;: u&#39;org.cnx.login.successful&#39;, u&#39;metric-schema-version&#39;: u&#39;0.0.1&#39;}, True)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
 <div class="section" id="future-developments">
 <h2>Future Developments<a class="headerlink" href="#future-developments" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -806,6 +803,13 @@ comparing on database.</p>
 <li><a class="reference internal" href="#standalone-usage">Standalone usage</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rhaptos2.repo.weblogging"><tt class="docutils literal"><span class="pre">rhaptos2.repo.weblogging</span></tt></a><ul>
+<li><a class="reference internal" href="#logging">logging</a></li>
+<li><a class="reference internal" href="#metrics">Metrics</a></li>
+<li><a class="reference internal" href="#improvements">Improvements</a></li>
+<li><a class="reference internal" href="#security-considerations">Security considerations</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#future-developments">Future Developments</a></li>

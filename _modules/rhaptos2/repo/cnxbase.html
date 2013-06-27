@@ -93,8 +93,9 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span>
+<span class="kn">from</span> <span class="nn">werkzeug.exceptions</span> <span class="kn">import</span> <span class="n">BadRequest</span>
 <span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">dolog</span>  <span class="c"># depednacy?</span>
-
+<span class="kn">import</span> <span class="nn">string</span>
 
 <div class="viewcode-block" id="CNXBase"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase">[docs]</a><span class="k">class</span> <span class="nc">CNXBase</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -145,16 +146,19 @@
 <span class="sd">        setattr is valid as a means of internally updating</span>
 <span class="sd">        a sqlalchemy object, and will correctly pass the diamond lookup.</span>
 
+<span class="sd">        &gt;&gt;&gt; from rhaptos2.repo import model</span>
 <span class="sd">        &gt;&gt;&gt; m = model.Module(creator_uuid=&quot;test&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; d = {&quot;totalfake&quot;:100}</span>
+<span class="sd">        &gt;&gt;&gt; d = {&quot;InvalidFieldName&quot;:100}</span>
 <span class="sd">        &gt;&gt;&gt; m.populate_self(d)</span>
 <span class="sd">        Traceback (most recent call last):</span>
-<span class="sd">        ... Tried to set attr totalfake when no ...</span>
+<span class="sd">          ...</span>
+<span class="sd">        Rhaptos2Error: ...</span>
 
 <span class="sd">        [correct usage would be as:]</span>
-<span class="sd">        &gt;&gt; d = {&quot;title&quot;:&quot;testtitle&quot;}</span>
-<span class="sd">        &gt;&gt; m.populate_self(d)</span>
-<span class="sd">        &gt;&gt; m.save(db_session)</span>
+<span class="sd">        &gt;&gt;&gt; d = {&quot;title&quot;:&quot;testtitle&quot;}</span>
+<span class="sd">        &gt;&gt;&gt; m.populate_self(d)</span>
+<span class="sd">        &gt;&gt;&gt; m</span>
+<span class="sd">        Module:(...)-testtitle</span>
 
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -169,7 +173,13 @@
             <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s">&quot;acl&quot;</span><span class="p">:</span>
                 <span class="c">## convert acls into userrole assignments</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">update_userroles</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;acl&#39;</span><span class="p">],</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;acl&#39;</span><span class="p">])</span>                
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;acl&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s">&quot;googleTrackingID&quot;</span><span class="p">:</span>
+                <span class="c">### validate the ID - it must not have</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">simple_xss_validation</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+                    <span class="k">raise</span> <span class="n">BadRequest</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;googleTrackingID cannot have script-like charaters in it&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
 </div>
@@ -302,18 +312,27 @@
         <span class="n">proceed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_action_auth</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s">&quot;PUT&quot;</span><span class="p">,</span> <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">proceed</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Action forbidden for user </span><span class="si">%s</span><span class="s"> cannot update userroles&quot;</span> <span class="o">%</span> <span class="n">requesting_user_uri</span><span class="p">)</span>
+
+
+        <span class="c">### am i not matching sessons to useruris?</span>
         
         <span class="n">set_curr_uris</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userroles</span><span class="p">)</span>
         <span class="n">set_proposed_uris</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">proposed_acl_list</span><span class="p">)</span>
         <span class="n">del_uris</span> <span class="o">=</span> <span class="n">set_curr_uris</span> <span class="o">-</span> <span class="n">set_proposed_uris</span>
         <span class="n">add_uris</span> <span class="o">=</span> <span class="n">set_proposed_uris</span> <span class="o">-</span> <span class="n">set_curr_uris</span>
 
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">set_proposed_uris</span><span class="p">))</span>
+        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">set_curr_uris</span><span class="p">))</span>        
+
+        
         <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">add_uris</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;will add following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">add_uris</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span><span class="p">,</span>
                               <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">user_uri</span><span class="p">,</span>
                                <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
                                <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">del_uris</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;will deelte following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">del_uris</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prep_delete_userrole</span><span class="p">(</span><span class="n">user_uri</span><span class="p">)</span>
             
 
@@ -440,11 +459,35 @@
                 <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;SUCCESS user in valid list </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">valid_user_list</span><span class="p">)</span>
                 <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
                 <span class="k">return</span> <span class="bp">True</span>
-
+<span class="c">###</span>
 </div></div>
+<div class="viewcode-block" id="simple_xss_validation"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.simple_xss_validation">[docs]</a><span class="k">def</span> <span class="nf">simple_xss_validation</span><span class="p">(</span><span class="n">html_fragment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    &gt;&gt;&gt; simple_xss_validation(&quot;US-12345678-1&quot;)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; simple_xss_validation(&quot;&lt;script&gt;Evil&lt;/script&gt;&quot;)</span>
+<span class="sd">    False</span>
+
+<span class="sd">    This is very quick and dirty, and we need some consideration</span>
+<span class="sd">    over XSS escaping. FIXME</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">whitelist</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">whitespace</span>
+    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Start XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>                
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">html_fragment</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">whitelist</span><span class="p">:</span>
+            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Failed XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>            
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="bp">True</span>
+    
+</div>
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">doctest</span>
-    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">ELLIPSIS</span><span class="o">+</span><span class="n">doctest</span><span class="o">.</span><span class="n">REPORT_ONLY_FIRST_FAILURE</span> <span class="o">+</span> \
+        <span class="n">doctest</span><span class="o">.</span><span class="n">IGNORE_EXCEPTION_DETAIL</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span><span class="n">optionflags</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+    
 </pre></div>
 
           </div>

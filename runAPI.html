@@ -63,34 +63,21 @@
 <p>run.py - Launch the repo app.</p>
 <p>This is the suggested method for running a WSGI Server - we instantiate the repo
 app, and pass it to the waitress server (To be replaced by gunicorn):</p>
-<div class="highlight-python"><pre>python run.py --config=../../testing.ini</pre>
+<div class="highlight-python"><pre>python run.py --config=../../testing.ini --devserver --jslocation=/path/to/atc</pre>
 </div>
-<dl class="docutils">
-<dt>def make_app(name, confd):</dt>
-<dd>/
-an attempt at an app_factory
-/
-open(&#8220;/tmp/log&#8221;, &#8220;a&#8221;).write(&#8220;APPFACTORYCALLED</dd>
-<dt>&#8221;)</dt>
-<dd><p class="first">app = Flask(name)
-app.config.update(confd)
-app.add_url_rule(&#8220;/&#8221;, view_func=index)
-app.add_url_rule(&#8220;/favicon&#8221;, view_func=favicon)
-app.add_url_rule(&#8220;/cms/&lt;path:path&gt;&#8221;, view_func=cms)</p>
-<p class="last">return app</p>
-</dd>
-</dl>
 <p>changes:</p>
 <ul>
-<li><p class="first">21 May 2013 - moving to avoid global app.
-We have been calling get_app which looks at the global in __init__
-I would rather use a push approach to giving individual modules config and the wsgiapp
-this will mean we can more easily run modules as standalone, more easily seperate out testing
-and fits my brain easier (this last is unlikely to apply to anyone else I admit!)</p>
-<p>currently views.py, __init__.py, run.py, auth.py have to have an wsgiapp in their global namespace</p>
-<p>By removing the &#64;route approach, and placing that, before and after requests, and the oid setup,
-in the initialisation phase of run, only run will need a wsgiapp in the global namespace, although auth.py will
-find it easier / avoid refactor of the openid approaches.</p>
+<li><p class="first">21 May 2013 - moving to avoid global app.  We have been calling get_app which
+looks at the global in __init__ I would rather use a push approach to giving
+individual modules config and the wsgiapp this will mean we can more easily
+run modules as standalone, more easily seperate out testing and fits my brain
+easier (this last is unlikely to apply to anyone else I admit!)</p>
+<p>currently views.py, __init__.py, run.py, auth.py have to have an wsgiapp in
+their global namespace</p>
+<p>By removing the &#64;route approach, and placing that, before and after requests,
+and the oid setup, in the initialisation phase of run, only run will need a
+wsgiapp in the global namespace, although auth.py will find it easier / avoid
+refactor of the openid approaches.</p>
 </li>
 </ul>
 <dl class="function">

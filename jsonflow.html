@@ -61,10 +61,10 @@ It documents HTTP conversations as they occur through
 the python requestsmodule.</p>
 <div class="section" id="post-module">
 <h2>POST /module/<a class="headerlink" href="#post-module" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
 Content-Length: 826
-Content-Type: application/json</pre>
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><pre>{
@@ -86,354 +86,31 @@ Content-Type: application/json</pre>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 1131</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;h1&gt;In CONGRESS, July 4, 1776....</pre>
-</div>
-</div>
-<div class="section" id="id1">
-<h2>POST /module/<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 826
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><pre>{
-    "authors": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "body": "&lt;h1&gt;In CONGRESS, July 4, 1776.&lt;/h1&gt;\n&lt;p&gt;The unanimous Declaration ...
-    "copyrightHolders": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "id_": "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
-    "maintainers": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "title": "Introduction"
-}</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 1131</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "&lt;h1&gt;In CONGRESS, July 4, 1776....</pre>
+<div class="highlight-python"><pre>{"body": "&lt;h1&gt;In CONGRESS, July 4, 1776.&lt;/h1&gt;\n&lt;p&gt;The u...</pre>
 </div>
 </div>
 <div class="section" id="put-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">
 <h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#put-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<p>NB - we are using session 000 for the initial PUT</p>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
-Content-Length: 432
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
-    <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="s">&quot;&lt;p&gt; Shortened body in test_put_module&quot;</span><span class="p">,</span>
-    <span class="s">&quot;copyrightHolders&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
-    <span class="s">&quot;maintainers&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Introduction&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 724</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "&lt;p&gt; Shortened body in test_put...</pre>
-</div>
-</div>
-<div class="section" id="post-folder">
-<h2>POST /folder/<a class="headerlink" href="#post-folder" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 398
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
-    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707&quot;</span><span class="p">,</span>
-    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Declaration Folder&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 445</pre>
-</div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
-</div>
-</div>
-<div class="section" id="put-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
-<h2>PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#put-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 303
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
-    <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707&quot;</span><span class="p">,</span>
-    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Declaration Folder&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537</pre>
-</div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
-</div>
-</div>
-<div class="section" id="get-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
-<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#get-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537
-Access-Control-Allow-Origin: *</pre>
-</div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
-</div>
-</div>
-<div class="section" id="post-collection">
-<h2>POST /collection/<a class="headerlink" href="#post-collection" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 956
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><pre>{
-    "authors": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
-    "copyrightHolders": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
-    "keywords": [
-        "Life",
-        "Liberty",
-        "Happiness"
-    ],
-    "language": "en",
-    "maintainers": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "subType": "Other Report",
-    "subjects": [
-        "Social Sciences"
-    ],
-    "summary": "No.",
-    "title": "United States Declaration Of Independance"
-}</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 1181</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
-</div>
-</div>
-<div class="section" id="put-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
-<h2>PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#put-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 739
-Content-Type: application/json</pre>
+Content-Length: 384
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><pre>{
     "acl": [
-        "cnxuser:00000000-0000-0000-0000-000000000101",
-        "cnxuser:00000000-0000-0000-0000-000000000111"
+        "cnxuser:75e06194-baee-4395-8e1a-566b656f6921"
     ],
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        This is the useruri for a registered user, (ross)
+        who we happen to know has a sessionID of 0001
+
     "authors": [
         "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
     ],
-    "body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126\"...
-    "copyrightHolders": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
-    "keywords": [
-        "Life",
-        "Liberty",
-        "Happiness"
-    ],
-    "language": "en",
-    "maintainers": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "subType": "Other Report",
-    "subjects": [
-        "Social Sciences"
-    ],
-    "summary": "No.",
-    "title": "United States Declaration Of Independance"
-}</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 951</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
-</div>
-</div>
-<div class="section" id="get-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
-<h2>GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#get-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 951</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
-</div>
-</div>
-<div class="section" id="id2">
-<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 416
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
-    <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="s">&quot;Declaration test text&quot;</span><span class="p">,</span>
-    <span class="s">&quot;copyrightHolders&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
-    <span class="s">&quot;maintainers&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
-    <span class="p">],</span>
-    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Introduction&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 708</pre>
-</div>
-<div class="highlight-python"><pre>{"body": "Declaration test text", "id_":...</pre>
-</div>
-</div>
-<div class="section" id="id3">
-<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537
-Access-Control-Allow-Origin: *</pre>
-</div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
-</div>
-</div>
-<div class="section" id="get-workspace">
-<h2>GET /workspace/<a class="headerlink" href="#get-workspace" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 433
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Credentials: true</pre>
-</div>
-<div class="highlight-python"><pre>[{"mediaType": "application/vnd.org.cnx....</pre>
-</div>
-</div>
-<div class="section" id="delete-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">
-<h2>DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#delete-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 57</pre>
-</div>
-<div class="highlight-python"><pre>cnxmodule:d3911c28-2a9e-4153-9546-f71d83...</pre>
-</div>
-</div>
-<div class="section" id="delete-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
-<h2>DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#delete-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 61</pre>
-</div>
-<div class="highlight-python"><pre>cnxcollection:be7790d1-9ee4-4b25-be84-30...</pre>
-</div>
-</div>
-<div class="section" id="delete-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
-<h2>DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#delete-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000</pre>
-</div>
-<p>Response:</p>
-<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 57</pre>
-</div>
-<div class="highlight-python"><pre>cnxfolder:c192bcaf-669a-44c5-b799-96ae00...</pre>
-</div>
-</div>
-<div class="section" id="id4">
-<h2>POST /module/<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
-Host: 127.0.0.1:8000
-Content-Length: 826
-Content-Type: application/json</pre>
-</div>
-<p>Body:</p>
-<div class="highlight-python"><pre>{
-    "authors": [
-        "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
-    ],
-    "body": "&lt;h1&gt;In CONGRESS, July 4, 1776.&lt;/h1&gt;\n&lt;p&gt;The unanimous Declaration ...
+    "body": "&lt;p&gt; Shortened body in test_put_module",
     "copyrightHolders": [
         "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
     ],
@@ -446,28 +123,29 @@ Content-Type: application/json</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 1131</pre>
+Content-Length: 676</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;h1&gt;In CONGRESS, July 4, 1776....</pre>
+<div class="highlight-python"><pre>{"body": "&lt;p&gt; Shortened body in test_put_module", "id_"...</pre>
 </div>
 </div>
-<div class="section" id="id5">
-<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="id1">
+<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>Here we are using a different user, 001 (ross) that
+we added as a ACL in previous PUT.</p>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000001
 Host: 127.0.0.1:8000
-Content-Length: 432
-Content-Type: application/json</pre>
+Content-Length: 382
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
     <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
+        <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6921&quot;</span>
     <span class="p">],</span>
     <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
     <span class="p">],</span>
-    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="s">&quot;&lt;p&gt; Shortened body in test_put_module&quot;</span><span class="p">,</span>
+    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="s">&quot;&lt;p&gt; OTHERUSERSESSIONID has set this&quot;</span><span class="p">,</span>
     <span class="s">&quot;copyrightHolders&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
     <span class="p">],</span>
@@ -481,17 +159,17 @@ Content-Type: application/json</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 724</pre>
+Content-Length: 674</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;p&gt; Shortened body in test_put...</pre>
+<div class="highlight-python"><pre>{"body": "&lt;p&gt; OTHERUSERSESSIONID has set this", "id_": ...</pre>
 </div>
 </div>
-<div class="section" id="id6">
-<h2>POST /folder/<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="post-folder">
+<h2>POST /folder/<a class="headerlink" href="#post-folder" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
 Content-Length: 398
-Content-Type: application/json</pre>
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
@@ -512,21 +190,20 @@ Content-Type: application/json</pre>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 445</pre>
 </div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
+<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd.org.cnx.module...</pre>
 </div>
 </div>
-<div class="section" id="id7">
-<h2>PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="put-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
+<h2>PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#put-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
-Content-Length: 303
-Content-Type: application/json</pre>
+Content-Length: 247
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
     <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
+        <span class="s">&quot;00000000-0000-0000-0000-000000000001&quot;</span>
     <span class="p">],</span>
     <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
@@ -539,30 +216,30 @@ Content-Type: application/json</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537</pre>
+Content-Length: 481</pre>
 </div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
+<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd.org.cnx.module...</pre>
 </div>
 </div>
-<div class="section" id="id8">
-<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="get-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
+<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#get-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537
+Content-Length: 481
 Access-Control-Allow-Origin: *</pre>
 </div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
+<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd.org.cnx.module...</pre>
 </div>
 </div>
-<div class="section" id="id9">
-<h2>POST /collection/<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="post-collection">
+<h2>POST /collection/<a class="headerlink" href="#post-collection" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
 Content-Length: 956
-Content-Type: application/json</pre>
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><pre>{
@@ -595,21 +272,20 @@ Content-Type: application/json</pre>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 1181</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
+<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3911c28-2a9e-415...</pre>
 </div>
 </div>
-<div class="section" id="id10">
-<h2>PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="put-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
+<h2>PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#put-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000
-Content-Length: 739
-Content-Type: application/json</pre>
+Content-Length: 683
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><pre>{
     "acl": [
-        "cnxuser:00000000-0000-0000-0000-000000000101",
-        "cnxuser:00000000-0000-0000-0000-000000000111"
+        "00000000-0000-0000-0000-000000000001"
     ],
     "authors": [
         "cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383"
@@ -638,35 +314,79 @@ Content-Type: application/json</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 951</pre>
+Content-Length: 895</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
+<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3911c28-2a9e-415...</pre>
 </div>
 </div>
-<div class="section" id="id11">
-<h2>GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="get-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
+<h2>GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#get-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 951</pre>
+Content-Length: 895</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3...</pre>
+<div class="highlight-python"><pre>{"body": "&lt;ul&gt;&lt;li&gt;&lt;a href=\"cnxmodule:d3911c28-2a9e-415...</pre>
 </div>
 </div>
-<div class="section" id="id12">
-<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="id2">
+<h2>PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
 Host: 127.0.0.1:8000
-Content-Length: 416
-Content-Type: application/json</pre>
+Content-Length: 494
+Content-Type: application/json; charset=utf-8</pre>
+</div>
+<p>Body:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
+    <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxmodule:SHOULDNEVERHITDB0&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;copyrightHolders&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7&quot;</span><span class="p">,</span>
+    <span class="s">&quot;keywords&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;Life&quot;</span><span class="p">,</span>
+        <span class="s">&quot;Liberty&quot;</span><span class="p">,</span>
+        <span class="s">&quot;Happiness&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;language&quot;</span><span class="p">:</span> <span class="s">&quot;en&quot;</span><span class="p">,</span>
+    <span class="s">&quot;maintainers&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;subType&quot;</span><span class="p">:</span> <span class="s">&quot;Other Report&quot;</span><span class="p">,</span>
+    <span class="s">&quot;subjects&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;Social Sciences&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;summary&quot;</span><span class="p">:</span> <span class="s">&quot;No.&quot;</span><span class="p">,</span>
+    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;United States Declaration Of Independance&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 227</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
+Host: 127.0.0.1:8000
+Content-Length: 368
+Content-Type: application/json; charset=utf-8</pre>
 </div>
 <p>Body:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
     <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000101&quot;</span><span class="p">,</span>
-        <span class="s">&quot;cnxuser:00000000-0000-0000-0000-000000000111&quot;</span>
+        <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6921&quot;</span>
     <span class="p">],</span>
     <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
@@ -685,27 +405,115 @@ Content-Type: application/json</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 708</pre>
+Content-Length: 660</pre>
 </div>
-<div class="highlight-python"><pre>{"body": "Declaration test text", "id_":...</pre>
+<div class="highlight-python"><pre>{"body": "Declaration test text", "id_": "cnxmodule:d39...</pre>
 </div>
 </div>
-<div class="section" id="id13">
-<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="id4">
+<h2>PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000
+Content-Length: 359
+Content-Type: application/json; charset=utf-8</pre>
+</div>
+<p>Body:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
+    <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6921&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="s">&quot;NEVER HIT DB&quot;</span><span class="p">,</span>
+    <span class="s">&quot;copyrightHolders&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126&quot;</span><span class="p">,</span>
+    <span class="s">&quot;maintainers&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;cnxuser:f9647df6-cc6e-4885-9b53-254aa55a3383&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Introduction&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 223</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id5">
+<h2>PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000
+Content-Length: 163
+Content-Type: application/json; charset=utf-8</pre>
+</div>
+<p>Body:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
+    <span class="s">&quot;acl&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;00000000-0000-0000-0000-000000000001&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;body&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s">&quot;THIS IS TEST&quot;</span>
+    <span class="p">],</span>
+    <span class="s">&quot;id_&quot;</span><span class="p">:</span> <span class="s">&quot;cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707&quot;</span><span class="p">,</span>
+    <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Declaration Folder&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 223</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">
+<h2>GET /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#get-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000001
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
-Content-Length: 537
+Content-Length: 660</pre>
+</div>
+<div class="highlight-python"><pre>{"body": "Declaration test text", "id_": "cnxmodule:d39...</pre>
+</div>
+</div>
+<div class="section" id="id6">
+<h2>GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
+Host: 127.0.0.1:8000</pre>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
+Content-Length: 481
 Access-Control-Allow-Origin: *</pre>
 </div>
-<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd...</pre>
+<div class="highlight-python"><pre>{"body": [{"mediaType": "application/vnd.org.cnx.module...</pre>
 </div>
 </div>
-<div class="section" id="id14">
-<h2>GET /workspace/<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="id7">
+<h2>GET /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000</pre>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 223</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-workspace">
+<h2>GET /workspace/<a class="headerlink" href="#get-workspace" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
@@ -714,43 +522,82 @@ Content-Length: 433
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Credentials: true</pre>
 </div>
-<div class="highlight-python"><pre>[{"mediaType": "application/vnd.org.cnx....</pre>
+<div class="highlight-python"><pre>[{"mediaType": "application/vnd.org.cnx.module", "id": ...</pre>
 </div>
 </div>
-<div class="section" id="id15">
-<h2>DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="delete-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">
+<h2>DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#delete-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000</pre>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 223</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id8">
+<h2>DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 57</pre>
 </div>
-<div class="highlight-python"><pre>cnxmodule:d3911c28-2a9e-4153-9546-f71d83...</pre>
+<div class="highlight-python"><pre>cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126 is no mo...</pre>
 </div>
 </div>
-<div class="section" id="id16">
-<h2>DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="delete-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">
+<h2>DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#delete-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000</pre>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 227</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id9">
+<h2>DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 61</pre>
 </div>
-<div class="highlight-python"><pre>cnxcollection:be7790d1-9ee4-4b25-be84-30...</pre>
+<div class="highlight-python"><pre>cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7 is n...</pre>
 </div>
 </div>
-<div class="section" id="id17">
-<h2>DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000...
+<div class="section" id="delete-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">
+<h2>DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#delete-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000002
+Host: 127.0.0.1:8000</pre>
+</div>
+<p>Response:</p>
+<div class="highlight-python"><pre>Content-Type: text/html
+Content-Length: 223</pre>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">null</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id10">
+<h2>DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>Cookie: cnxsessionid=00000000-0000-0000-0000-000000000000
 Host: 127.0.0.1:8000</pre>
 </div>
 <p>Response:</p>
 <div class="highlight-python"><pre>Content-Type: application/json; charset=utf-8
 Content-Length: 57</pre>
 </div>
-<div class="highlight-python"><pre>cnxfolder:c192bcaf-669a-44c5-b799-96ae00...</pre>
+<div class="highlight-python"><pre>cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707 is no mo...</pre>
 </div>
 </div>
 </div>
@@ -765,34 +612,28 @@ Content-Length: 57</pre>
   <ul>
 <li><a class="reference internal" href="#">Documenting JSON flow of repo API</a><ul>
 <li><a class="reference internal" href="#post-module">POST /module/</a></li>
-<li><a class="reference internal" href="#id1">POST /module/</a></li>
 <li><a class="reference internal" href="#put-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
+<li><a class="reference internal" href="#id1">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
 <li><a class="reference internal" href="#post-folder">POST /folder/</a></li>
 <li><a class="reference internal" href="#put-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
 <li><a class="reference internal" href="#get-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
 <li><a class="reference internal" href="#post-collection">POST /collection/</a></li>
 <li><a class="reference internal" href="#put-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
 <li><a class="reference internal" href="#get-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
-<li><a class="reference internal" href="#id2">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
-<li><a class="reference internal" href="#id3">GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
+<li><a class="reference internal" href="#id2">PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
+<li><a class="reference internal" href="#id3">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
+<li><a class="reference internal" href="#id4">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
+<li><a class="reference internal" href="#id5">PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
+<li><a class="reference internal" href="#get-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">GET /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
+<li><a class="reference internal" href="#id6">GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
+<li><a class="reference internal" href="#id7">GET /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
 <li><a class="reference internal" href="#get-workspace">GET /workspace/</a></li>
 <li><a class="reference internal" href="#delete-module-cnxmodule-d3911c28-2a9e-4153-9546-f71d83e41126">DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
+<li><a class="reference internal" href="#id8">DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
 <li><a class="reference internal" href="#delete-collection-cnxcollection-be7790d1-9ee4-4b25-be84-30b7208f5db7">DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
+<li><a class="reference internal" href="#id9">DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
 <li><a class="reference internal" href="#delete-folder-cnxfolder-c192bcaf-669a-44c5-b799-96ae00ef4707">DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
-<li><a class="reference internal" href="#id4">POST /module/</a></li>
-<li><a class="reference internal" href="#id5">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
-<li><a class="reference internal" href="#id6">POST /folder/</a></li>
-<li><a class="reference internal" href="#id7">PUT /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
-<li><a class="reference internal" href="#id8">GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
-<li><a class="reference internal" href="#id9">POST /collection/</a></li>
-<li><a class="reference internal" href="#id10">PUT /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
-<li><a class="reference internal" href="#id11">GET /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
-<li><a class="reference internal" href="#id12">PUT /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
-<li><a class="reference internal" href="#id13">GET /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
-<li><a class="reference internal" href="#id14">GET /workspace/</a></li>
-<li><a class="reference internal" href="#id15">DELETE /module/cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126</a></li>
-<li><a class="reference internal" href="#id16">DELETE /collection/cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7</a></li>
-<li><a class="reference internal" href="#id17">DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
+<li><a class="reference internal" href="#id10">DELETE /folder/cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707</a></li>
 </ul>
 </li>
 </ul>

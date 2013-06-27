@@ -166,8 +166,23 @@
     <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
     <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Credentials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;true&quot;</span>
     <span class="k">return</span> <span class="n">resp</span>
-
 </div>
+<div class="viewcode-block" id="logging_endpoint"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.logging_endpoint">[docs]</a><span class="k">def</span> <span class="nf">logging_endpoint</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="n">obtain_payload</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">weblogging</span><span class="o">.</span><span class="n">log_endpoint</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">&quot;&quot;</span>
+</div>
+<div class="viewcode-block" id="metric_endpoint"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.metric_endpoint">[docs]</a><span class="k">def</span> <span class="nf">metric_endpoint</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="n">obtain_payload</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">weblogging</span><span class="o">.</span><span class="n">metric_endpoint</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">&quot;&quot;</span>
+
+    
+    </div>
 <div class="viewcode-block" id="index"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.views.index">[docs]</a><span class="k">def</span> <span class="nf">index</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    .. dicussion::</span>
@@ -200,7 +215,7 @@
     <span class="n">userd</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">whoami</span><span class="p">()</span>  <span class="c"># same as g.userd</span>
 
     <span class="k">if</span> <span class="n">userd</span><span class="p">:</span>
-        <span class="n">jsond</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">asjson</span><span class="p">(</span><span class="n">userd</span><span class="p">)</span>  <span class="c"># FIXME - zombie code again</span>
+        <span class="n">jsond</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">userd</span><span class="p">)</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">apply_cors</span><span class="p">(</span><span class="n">jsond</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">resp</span>
     <span class="k">else</span><span class="p">:</span>

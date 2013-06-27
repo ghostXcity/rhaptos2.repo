@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rhaptos2.repo.weblogging &mdash; rhaptos2 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rhaptos2 0.0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rhaptos2.repo.weblogging</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#! -*- coding: utf-8 -*-</span>
+
+<span class="c">### Copyright Rice University 2013</span>
+
+<span class="c"># This program is licensed, without  under the terms of the</span>
+<span class="c"># GNU Affero Public License 3 (or later).  Please see</span>
+<span class="c"># LICENSE.txt for details</span>
+
+<span class="c">###</span>
+
+<span class="sd">&quot;&quot;&quot;:author:  paul@mikadosoftware.com &lt;Paul Brian&gt;</span>
+
+
+<span class="sd">This is initially a simple URL to be listened to::</span>
+
+<span class="sd">  /logging</span>
+
+<span class="sd">and</span>
+
+<span class="sd">  /metrics</span>
+
+<span class="sd">The `logging` endpoint will take a message string and apply it to</span>
+<span class="sd">the local syslog, which we expect will be configured to centralise</span>
+<span class="sd">over rsyslogd.</span>
+
+<span class="sd">The `metrics` endpoint will take a triple, of the below form and</span>
+<span class="sd">convert it into a `stasd` call to be stored on the graphite database.</span>
+
+<span class="sd">logging</span>
+<span class="sd">-------</span>
+
+<span class="sd">If it receives a POST of the correct form, it will pass that post onto</span>
+<span class="sd">syslog on the local machine.</span>
+
+<span class="sd">Form::</span>
+
+<span class="sd">    {&#39;log-message&#39;:&#39;&lt;txt&gt;&#39;,</span>
+<span class="sd">     &#39;log-message-version&#39;: &#39;0.0.1&#39;}</span>
+
+<span class="sd">There is no log level, or error code - it did not seem necessary in initial</span>
+<span class="sd">discussions.  Again can revisit</span>
+
+
+<span class="sd">Metrics</span>
+<span class="sd">-------</span>
+
+
+<span class="sd">Form::</span>
+
+<span class="sd">    {&#39;metric-label&#39;:&#39;org.cnx.login.successful&#39;,</span>
+<span class="sd">     &#39;metric-type&#39;: &#39;incr&#39;,</span>
+<span class="sd">     &#39;metric-schema-version&#39;: &#39;0.0.1&#39;}</span>
+
+<span class="sd">We currently only support label/incr on the metric side - this is for</span>
+<span class="sd">simplicity, as writing timing tests got complex and I see little use</span>
+<span class="sd">for them at the moment. We can revisit.</span>
+
+
+<span class="sd">Improvements</span>
+<span class="sd">------------</span>
+<span class="sd">Run this as a WSGI middleware, so it is simple to import into</span>
+<span class="sd">the chain.</span>
+
+
+<span class="sd">Security considerations</span>
+<span class="sd">-----------------------</span>
+
+<span class="sd">Fundamentally no different from any web service.</span>
+<span class="sd">I expect we shall need to use some form of long running token and</span>
+<span class="sd">keep the conversastions in SSL to prevent simplistic DDOS attacks.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">logging.handlers</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+
+
+<span class="c">### Use module level global</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="n">stats_client_connected</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c">## called by application startup</span>
+<div class="viewcode-block" id="configure_weblogging"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.weblogging.configure_weblogging">[docs]</a><span class="k">def</span> <span class="nf">configure_weblogging</span><span class="p">(</span><span class="n">confd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">lgr</span>
+    
+    <span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">SysLogHandler</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="s">&quot;/dev/log&quot;</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+
+<span class="c">## called by application startup</span></div>
+<div class="viewcode-block" id="validate_msg_return_dict"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.weblogging.validate_msg_return_dict">[docs]</a><span class="k">def</span> <span class="nf">validate_msg_return_dict</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &gt;&gt;&gt; configure_weblogging({})</span>
+<span class="sd">    &gt;&gt;&gt; payload_good = &#39;&#39;&#39;{&quot;metric-label&quot;:&quot;org.cnx.login.successful&quot;,</span>
+<span class="sd">    ... &quot;metric-type&quot;: &quot;incr&quot;,</span>
+<span class="sd">    ... &quot;metric-value&quot;: null,</span>
+<span class="sd">    ... &quot;metric-schema-version&quot;: &quot;0.0.1&quot;}&#39;&#39;&#39;</span>
+<span class="sd">    &gt;&gt;&gt; x = validate_msg_return_dict(payload_good)</span>
+<span class="sd">    &gt;&gt;&gt; x</span>
+<span class="sd">    ({u&#39;metric-type&#39;: u&#39;incr&#39;, u&#39;metric-value&#39;: None, u&#39;metric-label&#39;: u&#39;org.cnx.login.successful&#39;, u&#39;metric-schema-version&#39;: u&#39;0.0.1&#39;}, True)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">metricpayload</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed parse json&quot;</span><span class="p">)</span>
+        <span class="k">return</span><span class="p">(</span><span class="s">&#39;fff&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+    <span class="c">### better validation needed - json-schema</span>
+    <span class="k">if</span> <span class="s">&#39;metric-label&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metricpayload</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">metricpayload</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">metricpayload</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="configure_statsd"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.weblogging.configure_statsd">[docs]</a><span class="k">def</span> <span class="nf">configure_statsd</span><span class="p">(</span><span class="n">confd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">statsd</span>
+    <span class="k">global</span> <span class="n">stats_client_connected</span>
+    <span class="n">stats_client_connected</span> <span class="o">=</span> <span class="n">statsd</span><span class="o">.</span><span class="n">StatsClient</span><span class="p">(</span><span class="n">confd</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_host&#39;</span><span class="p">],</span>
+                           <span class="n">confd</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_port&#39;</span><span class="p">])</span>
+    
+        
+    
+    
+</div>
+<div class="viewcode-block" id="log_endpoint"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.weblogging.log_endpoint">[docs]</a><span class="k">def</span> <span class="nf">log_endpoint</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="p">{}):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;log-message&#39;</span> <span class="ow">in</span> <span class="n">msg_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg_dict</span><span class="p">[</span><span class="s">&#39;log-message&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;/logging recvd incorrect log payload </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">json_formatted_payload</span><span class="p">)</span>
+    
+</div>
+<div class="viewcode-block" id="metric_endpoint"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.weblogging.metric_endpoint">[docs]</a><span class="k">def</span> <span class="nf">metric_endpoint</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="p">{}):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg_dict</span><span class="p">,</span> <span class="n">is_valid</span> <span class="o">=</span> <span class="n">validate_msg_return_dict</span><span class="p">(</span><span class="n">json_formatted_payload</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_valid</span><span class="p">:</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;/logging recvd incorrect log payload </span><span class="si">%s</span><span class="s">&quot;</span>
+                   <span class="o">%</span> <span class="n">json_formatted_payload</span><span class="p">)</span>        
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">msg_dict</span><span class="p">[</span><span class="s">&#39;metric-type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;incr&#39;</span><span class="p">:</span>
+            <span class="n">stats_client_connected</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">msg_dict</span><span class="p">[</span><span class="s">&#39;metric-label&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;/metric not support metric-type of </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">msg_dict</span><span class="p">[</span><span class="s">&#39;metric-type&#39;</span><span class="p">])</span>
+    
+                  
+    
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Paul Brian.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
