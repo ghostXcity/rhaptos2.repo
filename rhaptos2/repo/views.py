@@ -128,9 +128,15 @@ def index():
 def home():
     """
     A trial page to help with the logic of redicrttion and logins
+
+    This logic is convoluted agian and this
+    probably should be uin handle_auith
     """
     
-    if not g.userd:
+    try:
+        userdata, sessionid = auth.session_to_user(
+                               request.cookies, request.environ)
+    except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>
         You are not logged in.
         You can now choose to either
@@ -141,7 +147,8 @@ def home():
         Please note all work will be lost at the end of anonymous sessions.
         """ % get_app().config['globals']['userserver']
     else:
-        return "You are logged in as %s - why not <a href="/">go to the site</a> and edit" % g.userd['fullname']
+        lgr.info("at home: %s %s" % (userdata, sessionid))
+        return """You are logged in as %s - why not <a href="/">go to the site</a> and edit""" % userdata['fullname']
 
 def whoamiGET():
     '''

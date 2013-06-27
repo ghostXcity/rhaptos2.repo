@@ -162,6 +162,7 @@ def handle_user_authentication(flask_request):
     ### options: have /login served by another app - ala Velruse?
     if flask_request.path in DMZ_PATHS:
         return None
+        
     lgr.error("Auth test for %s" % flask_request.path)
 
     ### convert the cookie to a registered users details
@@ -182,7 +183,6 @@ def handle_user_authentication(flask_request):
     if userdata is not None:
         store_userdata_in_request(userdata, sessionid)
     else:
-        g.userd = None
         lgr.error("Session Lookup returned None User, so redirect to login")
         if 'cnxprofile' in flask_request.cookies:
             userdata, sessionid = set_temp_session()
@@ -376,8 +376,10 @@ def set_autosession():
     standarduser = userdict_example
     sessionid = create_session(standarduser)
     store_userdata_in_request(standarduser, sessionid)
+    lgr.info("Session %s now has %s" % (sessionid, g.userd['user_id']))
     ### fake in three users of id 0001 002 etc
     sessioncache._fakesessionusers(sessiontype='fixed')
+    store_userdata_in_request(standarduser, sessionid)
     return standarduser
 
 
