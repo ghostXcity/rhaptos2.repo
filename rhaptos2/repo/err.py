@@ -8,6 +8,10 @@
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
 ###
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 
 from werkzeug.exceptions import HTTPException
 

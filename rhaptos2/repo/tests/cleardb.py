@@ -1,4 +1,7 @@
 
+import logging
+logging.basicConfig(file="clear-db.log", level=logging.INFO)
+
 import os, json
 import pprint
 from rhaptos2.repo import backend, model, sessioncache

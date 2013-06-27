@@ -39,6 +39,10 @@ todo: remove crash and burn
 
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import os
 import json
 from functools import wraps
@@ -57,7 +61,7 @@ from flask import (
     send_from_directory
 )
 
-from rhaptos2.repo import (get_app, dolog,
+from rhaptos2.repo import (get_app,
                            auth, VERSION, model,
                            backend)
 from rhaptos2.repo.err import (Rhaptos2Error,
@@ -129,7 +133,7 @@ def index():
 
     TODO: either use a config value, or bring a index template in here
     """
-    dolog("INFO", "THis is request %s" % g.requestid)
+    lgr.error("THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
 
@@ -167,9 +171,9 @@ def workspaceGET():
         abort(403)
     else:
         wout = {}
-        dolog("INFO", "Calling workspace with %s" % userd['user_uri'])
+        lgr.error("Calling workspace with %s" % userd['user_uri'])
         w = model.workspace_by_user(userd['user_uri'])
-        dolog("INFO", repr(w))
+        lgr.error(repr(w))
         ## w is a list of models (folders, cols etc).
         # it would require some flattening or a JSONEncoder but we just want
         # short form for now
@@ -249,7 +253,7 @@ def obtain_payload(werkzeug_request_obj):
 def folder_router(folderuri):
     """
     """
-    dolog("INFO", "In folder router, %s" % request.method)
+    lgr.error("In folder router, %s" % request.method)
     requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 
@@ -284,7 +288,7 @@ def folder_router(folderuri):
 def collection_router(collectionuri):
     """
     """
-    dolog("INFO", "In collection router, %s" % request.method)
+    lgr.error("In collection router, %s" % request.method)
     requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 
@@ -319,7 +323,7 @@ def collection_router(collectionuri):
 def module_router(moduleuri):
     """
     """
-    dolog("INFO", "In module router, %s" % request.method)
+    lgr.error("In module router, %s" % request.method)
     requesting_user_uri = g.userd['user_uri']
     payload = obtain_payload(request)
 

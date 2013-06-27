@@ -17,6 +17,9 @@ models to connect to postegres.
 
 """
 
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base

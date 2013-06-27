@@ -32,10 +32,12 @@ the request.  Seems to work fine.
 
 """
 
+import logging
+lgr = logging.getLogger(__name__)
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
-                           sessioncache, dolog)
+                           sessioncache)
 from webtest import TestApp, TestRequest
 from wsgiproxy.app import WSGIProxyApp
 from optparse import OptionParser
@@ -552,7 +554,7 @@ def test_dateModifiedStamp():
     data = decl.declarationdict['module']
     data['body'] = "Declaration test text"
 
-    dolog("INFO", data)
+    lgr.info(data)
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert resp.status_int == 200
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']

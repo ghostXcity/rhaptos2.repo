@@ -60,6 +60,10 @@ that the conf has changed in the application.
 
 '''
 
+## root logger set in application startup
+import logging
+logging.basicConfig(level=logging.INFO)
+lgr = logging.getLogger(__name__)
 
 import os
 import ConfigParser
@@ -79,7 +83,8 @@ def get_config(ini_file_path=None):
         d = read_ini(ini_file_path)
         confd.update(d)
     except Rhaptos2Error, e:
-        pass
+        lgr.error("unable to parse conf file %s because %s" % (ini_file_path, str(e)))
+        raise e
     return confd
 
 

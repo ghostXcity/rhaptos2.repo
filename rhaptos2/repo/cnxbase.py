@@ -39,11 +39,14 @@ folder
 
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import json
 import datetime
 from err import Rhaptos2Error
 from werkzeug.exceptions import BadRequest
-from rhaptos2.repo import dolog  # depednacy?
 import string
 
 class CNXBase():
@@ -270,18 +273,18 @@ class CNXBase():
         del_uris = set_curr_uris - set_proposed_uris
         add_uris = set_proposed_uris - set_curr_uris
 
-        dolog("INFO", str(set_proposed_uris))
-        dolog("INFO", str(set_curr_uris))        
+        lgr.error(str(set_proposed_uris))
+        lgr.error(str(set_curr_uris))        
 
         
         for user_uri in add_uris:
-            dolog("INFO", "will add following: %s" % str(add_uris))
+            lgr.error("will add following: %s" % str(add_uris))
             self.adduserrole(self.userroleklass,
                               {'user_uri': user_uri,
                                'role_type': 'aclrw'},
                                requesting_user_uri=requesting_user_uri)
         for user_uri in del_uris:
-            dolog("INFO", "will deelte following: %s" % str(del_uris))
+            lgr.error("will deelte following: %s" % str(del_uris))
             self.prep_delete_userrole(user_uri)
             
 
@@ -391,22 +394,22 @@ class CNXBase():
                                if u.role_type in ("aclrw",)]
         else:
             s += "FAILED - Unknown action type  %s" % action
-            dolog("INFO", s)
+            lgr.error(s)
             return False
 
         if requesting_user_uri is None:
             s += "FAILED - None user supplied"
-            dolog("INFO", s)
+            lgr.error(s)
             return False
         else:
             if requesting_user_uri not in valid_user_list:
                 s += "FAIL - user not in valid list %s" % str(valid_user_list)
-                dolog("INFO", s)
+                lgr.error(s)
                 return False
             else:
                 # At last!
                 s += "SUCCESS user in valid list %s" % str(valid_user_list)
-                dolog("INFO", s)
+                lgr.error(s)
                 return True
 ###
 
@@ -423,10 +426,10 @@ def simple_xss_validation(html_fragment):
     """
 
     whitelist = string.ascii_letters + string.digits + "-" + string.whitespace
-    dolog("INFO", "Start XSS whitelist - %s" % html_fragment)                
+    lgr.error("Start XSS whitelist - %s" % html_fragment)                
     for char in html_fragment:
         if char not in whitelist:
-            dolog("INFO", "Failed XSS whitelist - %s" % html_fragment)            
+            lgr.error("Failed XSS whitelist - %s" % html_fragment)            
             return False
     return True
     

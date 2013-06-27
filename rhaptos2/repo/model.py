@@ -76,6 +76,10 @@ So, this basically implies a protocol for objects / classes
 
 """
 
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 from sqlalchemy import (ForeignKey,
                         Column, String,
                         Enum, DateTime,
@@ -84,7 +88,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 import uuid
 from cnxbase import CNXBase
-from rhaptos2.repo import dolog
 from rhaptos2.repo.backend import Base, db_session
 from err import (Rhaptos2Error,
                  Rhaptos2SecurityError,
@@ -405,9 +408,9 @@ class Folder(Base, CNXBase):
                     ### exceptions: if you cannot read a single child item
                     ### we still want to return rest of the folder
                 except Rhaptos2SecurityError, e:
-                    dolog("INFO", "Error thrown in folder recursion %s" % e)
+                    lgr.error("Error thrown in folder recursion %s" % e)
                 except Rhaptos2Error, e:
-                    dolog("INFO", "Error thrown in folder recursion %s" % e)
+                    lgr.error("Error thrown in folder recursion %s" % e)
                     # todo: should we be ignoring bnroken links??
                 except Exception, e:
                     raise e
@@ -462,7 +465,7 @@ def obj_from_urn(URN, requesting_user_uri, klass=None):
         try:
             klass = klass_from_uri(URN)
         except:
-            dolog("INFO", "Failed getting klass %s" % URN)
+            lgr.error("Failed getting klass %s" % URN)
             abort(400)
 
     q = db_session.query(klass)
@@ -543,7 +546,7 @@ def put_o(jsond, klass, ID, requesting_user_uri):
 
     uobj = obj_from_urn(ID, requesting_user_uri)
     if not change_approval(uobj, jsond, requesting_user_uri, "PUT"):
-        dolog("INFO", "Failed change approval %s %s " % (ID, requesting_user_uri))
+        lgr.error("Failed change approval %s %s " % (ID, requesting_user_uri))
         abort(403)
     #.. todo:: parser = verify_schema_version(None)
     uobj.populate_self(jsond, requesting_user_uri=requesting_user_uri)

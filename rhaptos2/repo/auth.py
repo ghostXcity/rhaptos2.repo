@@ -45,10 +45,13 @@ userdict example::
     {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import os
 import datetime
 import json
-import logging
 import uuid
 
 import flask
@@ -62,20 +65,6 @@ from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
 from rhaptos2.repo import get_app, sessioncache
 
 
-# XXX This is a temporary log fix
-#     The full fix is in branch fix-logging-importing
-#     This is a workaround to handle the circular import
-_lgr = logging.getLogger("authmodule")
-logging.basicConfig(filename='/tmp/repoauth.log')
-_lgr.info("test1")
-
-
-def dolog(lvl, msg):
-    print msg
-    _lgr.info(msg)
-
-dolog("INFO","TEST2")
-    
 # Paths which do not require authorization.
 DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
 # The key used in session cookies.
@@ -99,7 +88,7 @@ def store_userdata_in_request(userd, sessionid):
     userd['user_uri'] = userd['user_id']
     g.userd = userd
     g.sessionid = sessionid
-    dolog("INFO", "SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
+    lgr.error("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
          (g.sessionid, userd['user_uri'], g.requestid))
     ### Now flask actually calls __call__
 
@@ -173,28 +162,26 @@ def handle_user_authentication(flask_request):
     ### options: have /login served by another app - ala Velruse?
     if flask_request.path in DMZ_PATHS:
         return None
-    dolog("INFO", "Auth test for %s" % flask_request.path)
+    lgr.error("Auth test for %s" % flask_request.path)
 
     ### convert the cookie to a registered users details
     try:
         userdata, sessionid = session_to_user(
             flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
-        dolog(
-            "INFO", "Session Lookup returned NoCookieError, so redirect to login")
+        lgr.error("Session Lookup returned NoCookieError, so redirect to login")
         abort(401)
-        # We end here for now - later we shall fix tempsessions
-        # userdata = set_temp_session()
-
+        ### FIXME - add in temp session & fake userid.
+        
     # We are at start of request cycle, so tell everything downstream who User
     # is.
     if userdata is not None:
         store_userdata_in_request(userdata, sessionid)
     else:
         g.userd = None
-        dolog(
-            "INFO", "Session Lookup returned None User, so redirect to login")
+        lgr.error("Session Lookup returned None User, so redirect to login")
         abort(401)
+        ### FIXME - add in temp session & fake userid.
 
 ##########################
 ## Session Cookie Handling
@@ -238,20 +225,20 @@ def lookup_session(sessid):
             or Error if lookup failed for other reason.
 
     """
-    dolog("INFO", "begin look up sessid %s in cache" % sessid)
+    lgr.error("begin look up sessid %s in cache" % sessid)
     try:
         userd = sessioncache.get_session(sessid)
-        dolog("INFO", "we got this from session lookup %s" % str(userd))
+        lgr.error("we got this from session lookup %s" % str(userd))
         if userd:
-            dolog("INFO", "We attempted to look up sessid %s in cache SUCCESS" %
+            lgr.error("We attempted to look up sessid %s in cache SUCCESS" %
                   sessid)
             return userd
         else:
-            dolog("INFO", "We attempted to look up sessid %s in cache FAILED" %
+            lgr.error("We attempted to look up sessid %s in cache FAILED" %
                   sessid)
             return None
     except Exception, e:
-        dolog("INFO", "We attempted to look up sessid %s in cache FAILED with Err %s" %
+        lgr.error("We attempted to look up sessid %s in cache FAILED with Err %s" %
               (sessid, str(e)))
         raise e
 
@@ -270,7 +257,7 @@ def authenticated_identifier_to_registered_user_details(ai):
     user_service_url = get_app().config['cnx-user-url']
     url = "%s/api/users/%s" % (user_service_url, ai)
 
-    dolog("INFO", "user info - from url %s and query string %s" %
+    lgr.error("user info - from url %s and query string %s" %
                   (user_service_url, repr(payload)))
 
     try:
@@ -287,7 +274,7 @@ def authenticated_identifier_to_registered_user_details(ai):
         raise Rhaptos2Error("Problem communicating with the user service.")
     user_details = resp.json()
 
-    dolog("INFO", "Got back %s " % user_details)
+    lgr.error("Got back %s " % user_details)
     return user_details
 
 

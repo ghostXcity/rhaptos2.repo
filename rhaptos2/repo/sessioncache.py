@@ -141,18 +141,14 @@ Standalone usage
 >>>
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import psycopg2
 import json
 import datetime
 from err import Rhaptos2Error,  Rhaptos2NoSessionCookieError
-
-import logging
-lgr = logging.getLogger("sessmodule")
-
-
-def dolog(lvl, msg):
-    lgr.info(msg)
-
 
 #### (set to one hour for now)
 FIXED_SESSIONDURATION_SECS = 3600
@@ -221,13 +217,13 @@ def getconn():
 
     """
     try:
-        dolog("INFO", "CONFD is %s" % str(CONFD))
+        lgr.error("CONFD is %s" % str(CONFD))
         conn = psycopg2.connect(host=CONFD['pghost'],
                                 database=CONFD['pgdbname'],
                                 user=CONFD['pgusername'],
                                 password=CONFD['pgpassword'])
     except psycopg2.Error, e:
-        dolog("INFO", "Error making pg conn - %s" % str(e))
+        lgr.error("Error making pg conn - %s" % str(e))
         raise e
 
     return conn
@@ -309,7 +305,7 @@ def set_session(sessionid, userd):
     FIXME: bring comaprison into python for portability across cache stores.
 
     """
-    dolog("DEBUG", "sessioncache-setsession")
+    lgr.info("sessioncache-setsession")
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
@@ -323,7 +319,7 @@ def set_session(sessionid, userd):
                                         , CURRENT_TIMESTAMP
                                         , CURRENT_TIMESTAMP + INTERVAL '%s SECONDS');"""
     try:
-        dolog("DEBUG", "sessioncache - %s" % repr(userd.keys()))
+        lgr.info("sessioncache - %s" % repr(userd.keys()))
         exec_stmt(SQL, [sessionid,
                         json.dumps(userd),
                         FIXED_SESSIONDURATION_SECS
@@ -371,7 +367,7 @@ def get_session(sessionid):
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
-    dolog("INFO", "lookup %s type %s" % (sessionid, type(sessionid)))
+    lgr.error("lookup %s type %s" % (sessionid, type(sessionid)))
 
     SQL = """SELECT userdict FROM session_cache WHERE sessionid = %s
              AND CURRENT_TIMESTAMP BETWEEN

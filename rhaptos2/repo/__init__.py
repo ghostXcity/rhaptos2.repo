@@ -18,12 +18,14 @@ To acquire the application from anywhere in this package or extra packages,
 use the `get_app` function.
 
 """
+## root logger set in application startup
 import logging
+lgr = logging.getLogger(__name__)
+import os
+
 from flask import Flask, g
-from rhaptos2.repo import log
 import pkg_resources
-import logging
-from logging import FileHandler, StreamHandler
+import socket
 
 
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
