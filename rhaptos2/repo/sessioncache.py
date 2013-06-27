@@ -419,8 +419,8 @@ def _fakesessionusers(sessiontype='fixed'):
                    "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
                    "fakesessionid": "00000000-0000-0000-0000-000000000001"
                    },
-                  {"name": "edwoodward",
-                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
+                  {"name": "pumazi",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924",
                    "fakesessionid": "00000000-0000-0000-0000-000000000002"
                    }
                   ]

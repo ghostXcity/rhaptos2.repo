@@ -40,9 +40,7 @@ secure (https) - desired future toggle
 further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
 
 
-userdict example::
 
-    {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
 
 """
 ## root logger set in application startup
@@ -90,7 +88,7 @@ def store_userdata_in_request(userd, sessionid):
     userd['user_uri'] = userd['user_id']
     g.userd = userd
     g.sessionid = sessionid
-    lgr.error("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
+    lgr.info("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
          (g.sessionid, userd['user_uri'], g.requestid))
     ### Now flask actually calls __call__
 
@@ -355,6 +353,18 @@ def set_autosession():
     It should fail in production
 
     """
+    userdict_example ={"interests": None, "identifiers": [{"identifierstring":
+    "https://michaelmulich.myopenid.com", "user_id":
+    "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype":
+    "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924",
+    "suffix": None, "firstname": None, "title": None, "middlename": None,
+    "lastname": None, "imageurl": None, "otherlangs": None,
+    "affiliationinstitution_url": None, "email": None, "version": None,
+    "location": None, "recommendations": None, "preferredlang": None,
+    "fullname": "Michael Mulich", "homepage": None, "affiliationinstitution":
+    None, "biography": None}
+
+    
     if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
@@ -363,7 +373,7 @@ def set_autosession():
     # only likely to occur here...
 
     # FIXME get the real userdict template
-    standarduser = {'fullname': 'Paul Brian', 'user_id': 'cnxuser:1234'}
+    standarduser = userdict_example
     sessionid = create_session(standarduser)
     store_userdata_in_request(standarduser, sessionid)
     ### fake in three users of id 0001 002 etc
