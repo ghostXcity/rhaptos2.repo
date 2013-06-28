@@ -660,7 +660,6 @@ def test_whoami():
                     URL="http://localhost:8000/me/"
     )
     assert resp.status_int == 200
-    assert resp.json["fullname"] == "pbrian"
     assert resp.json["user_uri"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
 
 
