@@ -27,7 +27,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rhaptos2 0.0.1 documentation" href="index.html" />
     <link rel="next" title="Authentication API" href="authenticationAPI.html" />
-    <link rel="prev" title="Logging" href="proposals_and_stories/logging-clear-out.html" /> 
+    <link rel="prev" title="Add Google Analytics support" href="proposals_and_stories/add-google-analytics.html" /> 
   </head>
   <body>
     <div class="related">
@@ -43,7 +43,7 @@
           <a href="authenticationAPI.html" title="Authentication API"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="proposals_and_stories/logging-clear-out.html" title="Logging"
+          <a href="proposals_and_stories/add-google-analytics.html" title="Add Google Analytics support"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>
@@ -308,6 +308,9 @@ FIXME - there has to be a better way</p>
 <dt id="rhaptos2.repo.views.folder_get">
 <tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">folder_get</tt><big>(</big><em>folderuri</em>, <em>requesting_user_uri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#folder_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.folder_get" title="Permalink to this definition">¶</a></dt>
 <dd><p>return folder as an appropriate json based response string</p>
+<p>This is returned not as the generic representation of a folder, but as
+a &#8220;soft&#8221; form, with names of folder children as well as &#8220;hard&#8221; uuids.
+This is why the folder_get is special cased here.</p>
 <p>.__complex__ -&gt; creates a version of an object that can be run through a std json.dump</p>
 <p>Why am I passing in the same userid in two successive objects</p>
 <ol class="arabic simple">
@@ -339,6 +342,14 @@ We will need to descend the hierarchy to</li>
 </dd></dl>
 
 <dl class="function">
+<dt id="rhaptos2.repo.views.home">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">home</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#home"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.home" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trial page to help with the logic of redicrttion and logins</p>
+<p>This logic is convoluted agian and this
+probably should be uin handle_auith</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="rhaptos2.repo.views.index">
 <tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">index</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.index" title="Permalink to this definition">¶</a></dt>
 <dd><p>The index page for an api.cnx.org might point to say docs
@@ -357,16 +368,6 @@ It may be neater to bring the index.html page into here later on.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rhaptos2.repo.views.logging_endpoint">
-<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">logging_endpoint</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#logging_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.logging_endpoint" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.views.metric_endpoint">
-<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">metric_endpoint</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#metric_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.metric_endpoint" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
 <dt id="rhaptos2.repo.views.module_router">
 <tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">module_router</tt><big>(</big><em>moduleuri</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#module_router"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.module_router" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -382,6 +383,17 @@ payload of POST / PUT requests incl unicode,</p>
 <dt id="rhaptos2.repo.views.requestid">
 <tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">requestid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#requestid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.requestid" title="Permalink to this definition">¶</a></dt>
 <dd><p>before_request is supplied with this to run before each __call_</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rhaptos2.repo.views.temp_session">
+<tt class="descclassname">rhaptos2.repo.views.</tt><tt class="descname">temp_session</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/views.html#temp_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.views.temp_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>When a user wants to edit anonymously, they need to hit this
+first.  This is to avoid the logic problems in knowing
+if a user should be redirected if they have one but not two cookies etc.</p>
+<p>Here we generate a temperoiary userid (that is <em>not</em> linked to cnx-user)
+then setup a session based on that userid.  All work will be lost
+at end of session.</p>
 </dd></dl>
 
 <dl class="function">
@@ -666,8 +678,8 @@ over XSS escaping. FIXME</p>
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="proposals_and_stories/logging-clear-out.html"
-                        title="previous chapter">Logging</a></p>
+  <p class="topless"><a href="proposals_and_stories/add-google-analytics.html"
+                        title="previous chapter">Add Google Analytics support</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="authenticationAPI.html"
                         title="next chapter">Authentication API</a></p>
@@ -706,7 +718,7 @@ over XSS escaping. FIXME</p>
           <a href="authenticationAPI.html" title="Authentication API"
              >next</a> |</li>
         <li class="right" >
-          <a href="proposals_and_stories/logging-clear-out.html" title="Logging"
+          <a href="proposals_and_stories/add-google-analytics.html" title="Add Google Analytics support"
              >previous</a> |</li>
         <li><a href="index.html">rhaptos2 0.0.1 documentation</a> &raquo;</li> 
       </ul>

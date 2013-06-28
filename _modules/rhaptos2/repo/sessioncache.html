@@ -192,18 +192,14 @@
 <span class="sd">&gt;&gt;&gt;</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="c">## root logger set in application startup</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
 <span class="kn">import</span> <span class="nn">psycopg2</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span><span class="p">,</span>  <span class="n">Rhaptos2NoSessionCookieError</span>
-
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;sessmodule&quot;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">dolog</span><span class="p">(</span><span class="n">lvl</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
-    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-
 
 <span class="c">#### (set to one hour for now)</span>
 <span class="n">FIXED_SESSIONDURATION_SECS</span> <span class="o">=</span> <span class="mi">3600</span>
@@ -272,13 +268,13 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;CONFD is </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">CONFD</span><span class="p">))</span>
         <span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pghost&#39;</span><span class="p">],</span>
                                 <span class="n">database</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgdbname&#39;</span><span class="p">],</span>
                                 <span class="n">user</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgusername&#39;</span><span class="p">],</span>
                                 <span class="n">password</span><span class="o">=</span><span class="n">CONFD</span><span class="p">[</span><span class="s">&#39;pgpassword&#39;</span><span class="p">])</span>
     <span class="k">except</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Error making pg conn - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error making pg conn - </span><span class="si">%s</span><span class="s"> - config was </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">CONFD</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">e</span>
 
     <span class="k">return</span> <span class="n">conn</span>
@@ -360,7 +356,7 @@
 <span class="sd">    FIXME: bring comaprison into python for portability across cache stores.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s">&quot;sessioncache-setsession&quot;</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;sessioncache-setsession&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_uuid_format</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
             <span class="s">&quot;Incorrect UUID format for sessionid </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sessionid</span><span class="p">)</span>
@@ -374,7 +370,7 @@
 <span class="s">                                        , CURRENT_TIMESTAMP</span>
 <span class="s">                                        , CURRENT_TIMESTAMP + INTERVAL &#39;</span><span class="si">%s</span><span class="s"> SECONDS&#39;);&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s">&quot;sessioncache - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">userd</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;sessioncache - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">userd</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
         <span class="n">exec_stmt</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="p">[</span><span class="n">sessionid</span><span class="p">,</span>
                         <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">userd</span><span class="p">),</span>
                         <span class="n">FIXED_SESSIONDURATION_SECS</span>
@@ -422,7 +418,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_uuid_format</span><span class="p">(</span><span class="n">sessionid</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span>
             <span class="s">&quot;Incorrect UUID format for sessionid </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sessionid</span><span class="p">)</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;lookup </span><span class="si">%s</span><span class="s"> type </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">sessionid</span><span class="p">)))</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;lookup </span><span class="si">%s</span><span class="s"> type </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">sessionid</span><span class="p">)))</span>
 
     <span class="n">SQL</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;SELECT userdict FROM session_cache WHERE sessionid = </span><span class="si">%s</span><span class="s"></span>
 <span class="s">             AND CURRENT_TIMESTAMP BETWEEN</span>
@@ -453,7 +449,6 @@
 <span class="sd">[u&#39;interests&#39;, u&#39;user_id&#39;, u&#39;suffix&#39;, u&#39;firstname&#39;, u&#39;title&#39;, u&#39;middlename&#39;, u&#39;lastname&#39;, u&#39;imageurl&#39;, u&#39;identifiers&#39;, u&#39;affiliationinstitution_url&#39;, u&#39;email&#39;, u&#39;version&#39;, u&#39;location&#39;, u&#39;recommendations&#39;, u&#39;preferredlang&#39;, u&#39;affiliationinstitution&#39;, u&#39;otherlangs&#39;, u&#39;homepage&#39;, u&#39;fullname&#39;, u&#39;biography&#39;]</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">print</span> <span class="s">&quot;Calling fake sessioon&quot;</span>
     <span class="n">developertmpl</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;{&quot;interests&quot;: null,</span>
 <span class="s">                        &quot;identifiers&quot;: [{&quot;identifierstring&quot;:  &quot;https://</span><span class="si">%(name)s</span><span class="s">.myopenid.com&quot;,</span>
 <span class="s">                                         &quot;user_id&quot;: &quot;</span><span class="si">%(uri)s</span><span class="s">&quot;,</span>
@@ -475,8 +470,8 @@
                    <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6921&quot;</span><span class="p">,</span>
                    <span class="s">&quot;fakesessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000001&quot;</span>
                    <span class="p">},</span>
-                  <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;edwoodward&quot;</span><span class="p">,</span>
-                   <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6922&quot;</span><span class="p">,</span>
+                  <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;pumazi&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;uri&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span>
                    <span class="s">&quot;fakesessionid&quot;</span><span class="p">:</span> <span class="s">&quot;00000000-0000-0000-0000-000000000002&quot;</span>
                    <span class="p">}</span>
                   <span class="p">]</span>

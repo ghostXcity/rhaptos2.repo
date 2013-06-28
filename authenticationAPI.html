@@ -63,28 +63,60 @@ to ensure users can work easily with minimal interruptions</p>
 </div>
 <div class="section" id="module-rhaptos2.repo.auth">
 <span id="rhaptos2-repo-auth"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.auth" title="rhaptos2.repo.auth"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.auth</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.auth" title="Permalink to this headline">¶</a></h2>
-<p><a href="#id1"><span class="problematic" id="id2">:module:`auth`</span></a> supplies the logic to authenticate users and then store that authentication
-for later requests.
-It is strongly linked with <a href="#id3"><span class="problematic" id="id4">:module:`sessioncache`</span></a>.</p>
-<p>Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however
-the logic over authorisation will remain.</p>
-<p>Overview</p>
-<p>auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session
-or the user is unable to authenticate</p>
-<p>after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt</p>
-<div class="section" id="known-issues">
-<h3>known issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h3>
-<p>requesting_user_uri This is passed around a lot This is suboptimal, and I think
-should be replaced with passing around the environ dict as a means of linking
-functions with the request calling them</p>
-<p>I am still passing around the userd in <tt class="docutils literal"><span class="pre">g.</span></tt> This is fairly silly
-but seems consistent for flask. Will need rethink.</p>
-<p>secure (https) - desired future toggle</p>
-<p>further notes at <a class="reference external" href="http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html">http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</a></p>
-<p>userdict example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&quot;interests&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;identifiers&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s">&quot;identifierstring&quot;</span><span class="p">:</span> <span class="s">&quot;https://michaelmulich.myopenid.com&quot;</span><span class="p">,</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span> <span class="s">&quot;identifiertype&quot;</span><span class="p">:</span> <span class="s">&quot;openid&quot;</span><span class="p">}],</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span> <span class="s">&quot;suffix&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;firstname&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;middlename&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;lastname&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;imageurl&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;otherlangs&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;affiliationinstitution_url&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;email&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;version&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;location&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;recommendations&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;preferredlang&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;fullname&quot;</span><span class="p">:</span> <span class="s">&quot;Michael Mulich&quot;</span><span class="p">,</span> <span class="s">&quot;homepage&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;affiliationinstitution&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span> <span class="s">&quot;biography&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">}</span>
-</pre></div>
+<div class="section" id="how-does-authentication-authorisation-and-sessions-work">
+<h3>How does Authentication, Authorisation and Sessions work?<a class="headerlink" href="#how-does-authentication-authorisation-and-sessions-work" title="Permalink to this headline">¶</a></h3>
+<p>We are operating a Single-Sign-On service, using <cite>Valruse</cite> to do the
+authentication.</p>
+<div class="section" id="workflow">
+<h4>Workflow<a class="headerlink" href="#workflow" title="Permalink to this headline">¶</a></h4>
+<p>A user will hit the repo-home page, and :func:<a href="#id1"><span class="problematic" id="id2">`</span></a>handle_user_authentication`will be fired,
+and based on the cookies stored in the user browser we will know one of three things
+about the user.</p>
+<ul class="simple">
+<li>Never seen before</li>
+<li>Known user, no in session</li>
+<li>Known user, in session</li>
+<li>Edge cases</li>
+</ul>
+<p>Usually they will choose to <em>login</em> and will be directed to the login page on
+cnx-user.  Here, the cnx-user will authenticate them in some fashion (OpenID)
+and the <em>redirect</em> the user browser back to the repo, with a <em>token</em>.</p>
+<p>The repo then looks up this token against the cnx-user service.  And hey presto,
+if the token matches, the repo knows they can trust the browser.  (assuming SSL
+all the way)</p>
+<p>The redirect hits at the <cite>/valid</cite> endpoint in the repo, which will check the
+token against the cnx-user, and then</p>
+<div class="highlight-python"><pre>authenticated_identifier_to_registered_user_details
+ given a authenticated user ID (OpenID), look up the user details
+ on cnx-user
+create_session()</pre>
 </div>
+<p>At this point, we now have a user who logged in against <cite>cnx-user</cite>, has then proven to cnx-repo
+that they did log in, and now has a session cookie set in their browser that the repo can
+trust as password-replacement for a set period.</p>
+</div>
+</div>
+<div class="section" id="temporary-sessions">
+<h3>Temporary sessions<a class="headerlink" href="#temporary-sessions" title="Permalink to this headline">¶</a></h3>
+<p>Temporary sessions, or <em>anonymous editing</em> is where a user <em>does not login</em> but uses the repo
+anonymously, perhaps creating test modules.</p>
+<p>This is supported by hitting the endpoint <cite>/tempsession</cite> which will trigger the view <cite>temp_session</cite>.
+This in turn calls <a class="reference internal" href="#rhaptos2.repo.auth.set_temp_session" title="rhaptos2.repo.auth.set_temp_session"><tt class="xref py py-func docutils literal"><span class="pre">set_temp_session()</span></tt></a>.  Here we create both a random sessionID (as per usual for sessions)
+and we <em>also</em> create a random <cite>user_uri</cite>.  This user_uri is used exactly as if it were a real registered user,
+but it is never sent back to the cnx-user, instead it solely is used in ACLs on the unpub repo.</p>
+<p>This way, at the end of a temp session, the user effectively loses all their edits.  This may want to be avoided,
+and is possible but not yet implemented.</p>
+<div class="section" id="known-issues">
+<h4>known issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li>requesting_user_uri This is passed around a lot This is suboptimal, and I think
+should be replaced with passing around the environ dict as a means of linking
+functions with the request calling them</li>
+<li>I am still passing around the userd in <tt class="docutils literal"><span class="pre">g.</span></tt> This is fairly silly
+but seems consistent for flask. Will need rethink.</li>
+<li>secure (https) - desired future toggle</li>
+<li>further notes at <a class="reference external" href="http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html">http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</a></li>
+</ul>
 <dl class="function">
 <dt id="rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details">
 <tt class="descclassname">rhaptos2.repo.auth.</tt><tt class="descname">authenticated_identifier_to_registered_user_details</tt><big>(</big><em>ai</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/auth.html#authenticated_identifier_to_registered_user_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.auth.authenticated_identifier_to_registered_user_details" title="Permalink to this definition">¶</a></dt>
@@ -395,6 +427,7 @@ service / session</p>
 
 </div>
 </div>
+</div>
 <div class="section" id="module-rhaptos2.repo.sessioncache">
 <span id="rhaptos2-repo-sessioncache"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.sessioncache" title="rhaptos2.repo.sessioncache"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.sessioncache</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.sessioncache" title="Permalink to this headline">¶</a></h2>
 <p><tt class="xref py py-mod docutils literal"><span class="pre">sessioncache</span></tt> is a standalone module providing the ability to
@@ -678,98 +711,6 @@ comparing on database.</p>
 </div>
 </div>
 </div>
-<div class="section" id="module-rhaptos2.repo.weblogging">
-<span id="rhaptos2-repo-weblogging"></span><h2><a class="reference internal" href="#module-rhaptos2.repo.weblogging" title="rhaptos2.repo.weblogging"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.weblogging</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.weblogging" title="Permalink to this headline">¶</a></h2>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body"><a class="reference external" href="mailto:paul&#37;&#52;&#48;mikadosoftware&#46;com">paul<span>&#64;</span>mikadosoftware<span>&#46;</span>com</a> &lt;Paul Brian&gt;</td>
-</tr>
-</tbody>
-</table>
-<p>This is initially a simple URL to be listened to:</p>
-<div class="highlight-python"><pre>/logging</pre>
-</div>
-<p>and</p>
-<blockquote>
-<div>/metrics</div></blockquote>
-<p>The <cite>logging</cite> endpoint will take a message string and apply it to
-the local syslog, which we expect will be configured to centralise
-over rsyslogd.</p>
-<p>The <cite>metrics</cite> endpoint will take a triple, of the below form and
-convert it into a <cite>stasd</cite> call to be stored on the graphite database.</p>
-<div class="section" id="logging">
-<h3>logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h3>
-<p>If it receives a POST of the correct form, it will pass that post onto
-syslog on the local machine.</p>
-<p>Form:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&#39;log-message&#39;</span><span class="p">:</span><span class="s">&#39;&lt;txt&gt;&#39;</span><span class="p">,</span>
- <span class="s">&#39;log-message-version&#39;</span><span class="p">:</span> <span class="s">&#39;0.0.1&#39;</span><span class="p">}</span>
-</pre></div>
-</div>
-<p>There is no log level, or error code - it did not seem necessary in initial
-discussions.  Again can revisit</p>
-</div>
-<div class="section" id="metrics">
-<h3>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h3>
-<p>Form:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&#39;metric-label&#39;</span><span class="p">:</span><span class="s">&#39;org.cnx.login.successful&#39;</span><span class="p">,</span>
- <span class="s">&#39;metric-type&#39;</span><span class="p">:</span> <span class="s">&#39;incr&#39;</span><span class="p">,</span>
- <span class="s">&#39;metric-schema-version&#39;</span><span class="p">:</span> <span class="s">&#39;0.0.1&#39;</span><span class="p">}</span>
-</pre></div>
-</div>
-<p>We currently only support label/incr on the metric side - this is for
-simplicity, as writing timing tests got complex and I see little use
-for them at the moment. We can revisit.</p>
-</div>
-<div class="section" id="improvements">
-<h3>Improvements<a class="headerlink" href="#improvements" title="Permalink to this headline">¶</a></h3>
-<p>Run this as a WSGI middleware, so it is simple to import into
-the chain.</p>
-</div>
-<div class="section" id="security-considerations">
-<h3>Security considerations<a class="headerlink" href="#security-considerations" title="Permalink to this headline">¶</a></h3>
-<p>Fundamentally no different from any web service.
-I expect we shall need to use some form of long running token and
-keep the conversastions in SSL to prevent simplistic DDOS attacks.</p>
-<dl class="function">
-<dt id="rhaptos2.repo.weblogging.configure_statsd">
-<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">configure_statsd</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#configure_statsd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.configure_statsd" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.weblogging.configure_weblogging">
-<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">configure_weblogging</tt><big>(</big><em>confd</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#configure_weblogging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.configure_weblogging" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.weblogging.log_endpoint">
-<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">log_endpoint</tt><big>(</big><em>json_formatted_payload</em>, <em>context={}</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#log_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.log_endpoint" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.weblogging.metric_endpoint">
-<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">metric_endpoint</tt><big>(</big><em>json_formatted_payload</em>, <em>context={}</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#metric_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.metric_endpoint" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="rhaptos2.repo.weblogging.validate_msg_return_dict">
-<tt class="descclassname">rhaptos2.repo.weblogging.</tt><tt class="descname">validate_msg_return_dict</tt><big>(</big><em>json_formatted_payload</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/weblogging.html#validate_msg_return_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.weblogging.validate_msg_return_dict" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">configure_weblogging</span><span class="p">({})</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">payload_good</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;{&quot;metric-label&quot;:&quot;org.cnx.login.successful&quot;,</span>
-<span class="gp">... </span><span class="s">&quot;metric-type&quot;: &quot;incr&quot;,</span>
-<span class="gp">... </span><span class="s">&quot;metric-value&quot;: null,</span>
-<span class="gp">... </span><span class="s">&quot;metric-schema-version&quot;: &quot;0.0.1&quot;}&#39;&#39;&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">validate_msg_return_dict</span><span class="p">(</span><span class="n">payload_good</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span>
-<span class="go">({u&#39;metric-type&#39;: u&#39;incr&#39;, u&#39;metric-value&#39;: None, u&#39;metric-label&#39;: u&#39;org.cnx.login.successful&#39;, u&#39;metric-schema-version&#39;: u&#39;0.0.1&#39;}, True)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-</div>
-</div>
 <div class="section" id="future-developments">
 <h2>Future Developments<a class="headerlink" href="#future-developments" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -791,7 +732,14 @@ keep the conversastions in SSL to prevent simplistic DDOS attacks.</p>
 <li><a class="reference internal" href="#">Authentication API</a><ul>
 <li><a class="reference internal" href="#summary">Summary</a></li>
 <li><a class="reference internal" href="#module-rhaptos2.repo.auth"><tt class="docutils literal"><span class="pre">rhaptos2.repo.auth</span></tt></a><ul>
+<li><a class="reference internal" href="#how-does-authentication-authorisation-and-sessions-work">How does Authentication, Authorisation and Sessions work?</a><ul>
+<li><a class="reference internal" href="#workflow">Workflow</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#temporary-sessions">Temporary sessions</a><ul>
 <li><a class="reference internal" href="#known-issues">known issues</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-rhaptos2.repo.sessioncache"><tt class="docutils literal"><span class="pre">rhaptos2.repo.sessioncache</span></tt></a><ul>
@@ -803,13 +751,6 @@ keep the conversastions in SSL to prevent simplistic DDOS attacks.</p>
 <li><a class="reference internal" href="#standalone-usage">Standalone usage</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-rhaptos2.repo.weblogging"><tt class="docutils literal"><span class="pre">rhaptos2.repo.weblogging</span></tt></a><ul>
-<li><a class="reference internal" href="#logging">logging</a></li>
-<li><a class="reference internal" href="#metrics">Metrics</a></li>
-<li><a class="reference internal" href="#improvements">Improvements</a></li>
-<li><a class="reference internal" href="#security-considerations">Security considerations</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#future-developments">Future Developments</a></li>

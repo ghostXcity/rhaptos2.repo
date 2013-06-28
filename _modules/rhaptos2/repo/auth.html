@@ -60,46 +60,84 @@
 <span class="c"># See LICENCE.txt for details.</span>
 <span class="c">###</span>
 
-<span class="sd">&quot;&quot;&quot;:module:`auth` supplies the logic to authenticate users and then store that authentication</span>
-<span class="sd">for later requests.</span>
-<span class="sd">It is strongly linked with :module:`sessioncache`.</span>
+<span class="sd">&quot;&quot;&quot;How does Authentication, Authorisation and Sessions work?</span>
+<span class="sd">---------------------------------------------------------</span>
 
-<span class="sd">Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however</span>
-<span class="sd">the logic over authorisation will remain.</span>
+<span class="sd">We are operating a Single-Sign-On service, using `Valruse` to do the</span>
+<span class="sd">authentication.</span>
+
+<span class="sd">Workflow</span>
+<span class="sd">~~~~~~~~</span>
+
+<span class="sd">A user will hit the repo-home page, and :func:`handle_user_authentication`will be fired,</span>
+<span class="sd">and based on the cookies stored in the user browser we will know one of three things</span>
+<span class="sd">about the user.</span>
+
+<span class="sd">* Never seen before</span>
+<span class="sd">* Known user, no in session</span>
+<span class="sd">* Known user, in session</span>
+<span class="sd">* Edge cases</span>
+
+<span class="sd">Usually they will choose to *login* and will be directed to the login page on</span>
+<span class="sd">cnx-user.  Here, the cnx-user will authenticate them in some fashion (OpenID)</span>
+<span class="sd">and the *redirect* the user browser back to the repo, with a *token*.</span>
+
+<span class="sd">The repo then looks up this token against the cnx-user service.  And hey presto,</span>
+<span class="sd">if the token matches, the repo knows they can trust the browser.  (assuming SSL</span>
+<span class="sd">all the way)</span>
+
+<span class="sd">The redirect hits at the `/valid` endpoint in the repo, which will check the</span>
+<span class="sd">token against the cnx-user, and then ::</span>
 
 
-<span class="sd">Overview</span>
+<span class="sd">   authenticated_identifier_to_registered_user_details</span>
+<span class="sd">    given a authenticated user ID (OpenID), look up the user details</span>
+<span class="sd">    on cnx-user</span>
+<span class="sd">   create_session()</span>
 
-<span class="sd">auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session</span>
-<span class="sd">or the user is unable to authenticate</span>
+<span class="sd">At this point, we now have a user who logged in against `cnx-user`, has then proven to cnx-repo</span>
+<span class="sd">that they did log in, and now has a session cookie set in their browser that the repo can</span>
+<span class="sd">trust as password-replacement for a set period.</span>
 
-<span class="sd">after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt</span>
+<span class="sd">Temporary sessions</span>
+<span class="sd">------------------</span>
+
+<span class="sd">Temporary sessions, or *anonymous editing* is where a user *does not login* but uses the repo</span>
+<span class="sd">anonymously, perhaps creating test modules.</span>
+
+<span class="sd">This is supported by hitting the endpoint `/tempsession` which will trigger the view `temp_session`.</span>
+<span class="sd">This in turn calls :func:`set_temp_session`.  Here we create both a random sessionID (as per usual for sessions)</span>
+<span class="sd">and we *also* create a random `user_uri`.  This user_uri is used exactly as if it were a real registered user,</span>
+<span class="sd">but it is never sent back to the cnx-user, instead it solely is used in ACLs on the unpub repo.</span>
+
+<span class="sd">This way, at the end of a temp session, the user effectively loses all their edits.  This may want to be avoided,</span>
+<span class="sd">and is possible but not yet implemented.</span>
+
+
 
 
 <span class="sd">known issues</span>
 <span class="sd">~~~~~~~~~~~~</span>
 
-<span class="sd">requesting_user_uri This is passed around a lot This is suboptimal, and I think</span>
-<span class="sd">should be replaced with passing around the environ dict as a means of linking</span>
-<span class="sd">functions with the request calling them</span>
+<span class="sd">* requesting_user_uri This is passed around a lot This is suboptimal, and I think</span>
+<span class="sd">  should be replaced with passing around the environ dict as a means of linking</span>
+<span class="sd">  functions with the request calling them</span>
 
-<span class="sd">I am still passing around the userd in ``g.`` This is fairly silly</span>
-<span class="sd">but seems consistent for flask. Will need rethink.</span>
+<span class="sd">* I am still passing around the userd in ``g.`` This is fairly silly</span>
+<span class="sd">  but seems consistent for flask. Will need rethink.</span>
 
-<span class="sd">secure (https) - desired future toggle</span>
+<span class="sd">* secure (https) - desired future toggle</span>
 
-<span class="sd">further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</span>
-
-
-<span class="sd">userdict example::</span>
-
-<span class="sd">    {&quot;interests&quot;: null, &quot;identifiers&quot;: [{&quot;identifierstring&quot;: &quot;https://michaelmulich.myopenid.com&quot;, &quot;user_id&quot;: &quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;, &quot;identifiertype&quot;: &quot;openid&quot;}], &quot;user_id&quot;: &quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;, &quot;suffix&quot;: null, &quot;firstname&quot;: null, &quot;title&quot;: null, &quot;middlename&quot;: null, &quot;lastname&quot;: null, &quot;imageurl&quot;: null, &quot;otherlangs&quot;: null, &quot;affiliationinstitution_url&quot;: null, &quot;email&quot;: null, &quot;version&quot;: null, &quot;location&quot;: null, &quot;recommendations&quot;: null, &quot;preferredlang&quot;: null, &quot;fullname&quot;: &quot;Michael Mulich&quot;, &quot;homepage&quot;: null, &quot;affiliationinstitution&quot;: null, &quot;biography&quot;: null}</span>
+<span class="sd">* further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="c">## root logger set in application startup</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
 
 <span class="kn">import</span> <span class="nn">flask</span>
@@ -113,17 +151,12 @@
 <span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">get_app</span><span class="p">,</span> <span class="n">sessioncache</span>
 
 
-<span class="c"># XXX This is a temporary log fix</span>
-<span class="c">#     The full fix is in branch fix-logging-importing</span>
-<span class="c">#     This is a workaround to handle the circular import</span>
-<span class="n">_lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;authmodule&quot;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">dolog</span><span class="p">(</span><span class="n">lvl</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
-    <span class="n">_lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-
 <span class="c"># Paths which do not require authorization.</span>
-<span class="n">DMZ_PATHS</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/valid&#39;</span><span class="p">,</span> <span class="s">&#39;/autosession&#39;</span><span class="p">,</span> <span class="s">&#39;/favicon.ico&#39;</span><span class="p">,)</span>
+<span class="n">DMZ_PATHS</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/valid&#39;</span><span class="p">,</span> <span class="s">&#39;/autosession&#39;</span><span class="p">,</span> <span class="s">&#39;/favicon.ico&#39;</span><span class="p">,</span> <span class="s">&#39;/home&#39;</span><span class="p">,</span> <span class="s">&#39;/tempsession&#39;</span><span class="p">)</span>
 <span class="c"># The key used in session cookies.</span>
 <span class="n">CNX_SESSION_ID</span> <span class="o">=</span> <span class="s">&quot;cnxsessionid&quot;</span>
+
+
 
 
 <span class="c">########################</span>
@@ -143,7 +176,7 @@
     <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_id&#39;</span><span class="p">]</span>
     <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="o">=</span> <span class="n">userd</span>
     <span class="n">g</span><span class="o">.</span><span class="n">sessionid</span> <span class="o">=</span> <span class="n">sessionid</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;SESSION LINKER, sessionid:</span><span class="si">%s</span><span class="s">::user_uri:</span><span class="si">%s</span><span class="s">::requestid:</span><span class="si">%s</span><span class="s">::&quot;</span> <span class="o">%</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;SESSION LINKER, sessionid:</span><span class="si">%s</span><span class="s">::user_uri:</span><span class="si">%s</span><span class="s">::requestid:</span><span class="si">%s</span><span class="s">::&quot;</span> <span class="o">%</span>
          <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">sessionid</span><span class="p">,</span> <span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_uri&#39;</span><span class="p">],</span> <span class="n">g</span><span class="o">.</span><span class="n">requestid</span><span class="p">))</span>
     <span class="c">### Now flask actually calls __call__</span>
 
@@ -217,29 +250,34 @@
     <span class="c">### options: have /login served by another app - ala Velruse?</span>
     <span class="k">if</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">path</span> <span class="ow">in</span> <span class="n">DMZ_PATHS</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">None</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Auth test for </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Auth test for </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
 
     <span class="c">### convert the cookie to a registered users details</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span> <span class="o">=</span> <span class="n">session_to_user</span><span class="p">(</span>
             <span class="n">flask_request</span><span class="o">.</span><span class="n">cookies</span><span class="p">,</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">Rhaptos2NoSessionCookieError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">dolog</span><span class="p">(</span>
-            <span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Session Lookup returned NoCookieError, so redirect to login&quot;</span><span class="p">)</span>
-        <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
-        <span class="c"># We end here for now - later we shall fix tempsessions</span>
-        <span class="c"># userdata = set_temp_session()</span>
-
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Session Lookup returned NoCookieError, so redirect to login&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s">&#39;cnxprofile&#39;</span> <span class="ow">in</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">cookies</span><span class="p">:</span>
+            <span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span> <span class="o">=</span> <span class="n">set_temp_session</span><span class="p">()</span>    
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
+        <span class="c">### FIXME - add in temp session &amp; fake userid.</span>
+        
+        
     <span class="c"># We are at start of request cycle, so tell everything downstream who User</span>
-    <span class="c"># is.</span>
+    <span class="c"># is.  If userdata not set, create a temp user and move on.</span>
     <span class="k">if</span> <span class="n">userdata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">userd</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="n">dolog</span><span class="p">(</span>
-            <span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Session Lookup returned None User, so redirect to login&quot;</span><span class="p">)</span>
-        <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
-
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Session Lookup returned None User, so redirect to login&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s">&#39;cnxprofile&#39;</span> <span class="ow">in</span> <span class="n">flask_request</span><span class="o">.</span><span class="n">cookies</span><span class="p">:</span>
+            <span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span> <span class="o">=</span> <span class="n">set_temp_session</span><span class="p">()</span>
+            <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">userdata</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">abort</span><span class="p">(</span><span class="mi">401</span><span class="p">)</span>
+        
 <span class="c">##########################</span>
 <span class="c">## Session Cookie Handling</span>
 <span class="c">##########################</span>
@@ -282,20 +320,20 @@
 <span class="sd">            or Error if lookup failed for other reason.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;begin look up sessid </span><span class="si">%s</span><span class="s"> in cache&quot;</span> <span class="o">%</span> <span class="n">sessid</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;begin look up sessid </span><span class="si">%s</span><span class="s"> in cache&quot;</span> <span class="o">%</span> <span class="n">sessid</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">userd</span> <span class="o">=</span> <span class="n">sessioncache</span><span class="o">.</span><span class="n">get_session</span><span class="p">(</span><span class="n">sessid</span><span class="p">)</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;we got this from session lookup </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">userd</span><span class="p">))</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;we got this from session lookup </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">userd</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">userd</span><span class="p">:</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache SUCCESS&quot;</span> <span class="o">%</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache SUCCESS&quot;</span> <span class="o">%</span>
                   <span class="n">sessid</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">userd</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED&quot;</span> <span class="o">%</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED&quot;</span> <span class="o">%</span>
                   <span class="n">sessid</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">None</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED with Err </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;We attempted to look up sessid </span><span class="si">%s</span><span class="s"> in cache FAILED with Err </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
               <span class="p">(</span><span class="n">sessid</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
         <span class="k">raise</span> <span class="n">e</span>
 
@@ -314,7 +352,7 @@
     <span class="n">user_service_url</span> <span class="o">=</span> <span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;cnx-user-url&#39;</span><span class="p">]</span>
     <span class="n">url</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">/api/users/</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">user_service_url</span><span class="p">,</span> <span class="n">ai</span><span class="p">)</span>
 
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;user info - from url </span><span class="si">%s</span><span class="s"> and query string </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;user info - from url </span><span class="si">%s</span><span class="s"> and query string </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
                   <span class="p">(</span><span class="n">user_service_url</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">payload</span><span class="p">)))</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -331,7 +369,7 @@
         <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;Problem communicating with the user service.&quot;</span><span class="p">)</span>
     <span class="n">user_details</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
 
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Got back </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="n">user_details</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Got back </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="n">user_details</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">user_details</span>
 
 </div>
@@ -365,9 +403,9 @@
         <span class="c">#     the client-side code. We should supply the client-side code with</span>
         <span class="c">#     the id and url to the user profile. The user already has</span>
         <span class="c">#     authorization to acquire their data.</span>
-        <span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s">&#39;cnxprofile&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s">&#39;cnxprofile&#39;</span><span class="p">,</span> <span class="s">&#39;FOO&#39;</span><span class="p">,</span>
                         <span class="n">httponly</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                        <span class="n">expires</span><span class="o">=-</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">expires</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">+</span><span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">365</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">resp</span>
 
     <span class="n">g</span><span class="o">.</span><span class="n">deferred_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">begin_session</span><span class="p">)</span>
@@ -403,6 +441,18 @@
 <span class="sd">    It should fail in production</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">userdict_example</span> <span class="o">=</span><span class="p">{</span><span class="s">&quot;interests&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;identifiers&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s">&quot;identifierstring&quot;</span><span class="p">:</span>
+    <span class="s">&quot;https://michaelmulich.myopenid.com&quot;</span><span class="p">,</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span>
+    <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span> <span class="s">&quot;identifiertype&quot;</span><span class="p">:</span>
+    <span class="s">&quot;openid&quot;</span><span class="p">}],</span> <span class="s">&quot;user_id&quot;</span><span class="p">:</span> <span class="s">&quot;cnxuser:75e06194-baee-4395-8e1a-566b656f6924&quot;</span><span class="p">,</span>
+    <span class="s">&quot;suffix&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;firstname&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;middlename&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&quot;lastname&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;imageurl&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;otherlangs&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&quot;affiliationinstitution_url&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;email&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;version&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&quot;location&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;recommendations&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;preferredlang&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&quot;fullname&quot;</span><span class="p">:</span> <span class="s">&quot;Michael Mulich&quot;</span><span class="p">,</span> <span class="s">&quot;homepage&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;affiliationinstitution&quot;</span><span class="p">:</span>
+    <span class="bp">None</span><span class="p">,</span> <span class="s">&quot;biography&quot;</span><span class="p">:</span> <span class="bp">None</span><span class="p">}</span>
+
+    
     <span class="k">if</span> <span class="ow">not</span> <span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">Rhaptos2Error</span><span class="p">(</span><span class="s">&quot;autosession should fail in prod.&quot;</span><span class="p">)</span>
 
@@ -411,11 +461,13 @@
     <span class="c"># only likely to occur here...</span>
 
     <span class="c"># FIXME get the real userdict template</span>
-    <span class="n">standarduser</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;fullname&#39;</span><span class="p">:</span> <span class="s">&#39;Paul Brian&#39;</span><span class="p">,</span> <span class="s">&#39;user_id&#39;</span><span class="p">:</span> <span class="s">&#39;cnxuser:1234&#39;</span><span class="p">}</span>
+    <span class="n">standarduser</span> <span class="o">=</span> <span class="n">userdict_example</span>
     <span class="n">sessionid</span> <span class="o">=</span> <span class="n">create_session</span><span class="p">(</span><span class="n">standarduser</span><span class="p">)</span>
     <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">standarduser</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
+    <span class="n">lgr</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Session </span><span class="si">%s</span><span class="s"> now has </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sessionid</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">userd</span><span class="p">[</span><span class="s">&#39;user_id&#39;</span><span class="p">]))</span>
     <span class="c">### fake in three users of id 0001 002 etc</span>
     <span class="n">sessioncache</span><span class="o">.</span><span class="n">_fakesessionusers</span><span class="p">(</span><span class="n">sessiontype</span><span class="o">=</span><span class="s">&#39;fixed&#39;</span><span class="p">)</span>
+    <span class="n">store_userdata_in_request</span><span class="p">(</span><span class="n">standarduser</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">standarduser</span>
 
 </div>
@@ -434,8 +486,8 @@
     <span class="n">useruri</span> <span class="o">=</span> <span class="n">create_temp_user</span><span class="p">(</span>
         <span class="s">&quot;temporary&quot;</span><span class="p">,</span> <span class="s">&quot;http:/openid.cnx.org/</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
     <span class="n">tempuserdict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;fullname&#39;</span><span class="p">:</span> <span class="s">&quot;temporary user&quot;</span><span class="p">,</span> <span class="s">&#39;user_id&#39;</span><span class="p">:</span> <span class="n">useruri</span><span class="p">}</span>
-    <span class="n">create_session</span><span class="p">(</span><span class="n">tempuserdict</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tempuserdict</span>
+    <span class="n">sessionid</span> <span class="o">=</span> <span class="n">create_session</span><span class="p">(</span><span class="n">tempuserdict</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">tempuserdict</span><span class="p">,</span> <span class="n">sessionid</span><span class="p">)</span>
 
 </div>
 <div class="viewcode-block" id="create_temp_user"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.create_temp_user">[docs]</a><span class="k">def</span> <span class="nf">create_temp_user</span><span class="p">(</span><span class="n">identifiertype</span><span class="p">,</span> <span class="n">identifierstring</span><span class="p">):</span>
@@ -462,19 +514,6 @@
     <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
     <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Access-Control-Allow-Credentials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;true&quot;</span>
     <span class="k">return</span> <span class="n">resp</span>
-
-<span class="c"># ??? Why is this logic in this module? Shouldn&#39;t it be grouped with the other</span>
-<span class="c">#     logging facilities.</span>
-<span class="k">def</span> <span class="nf">callstatsd</span><span class="p">(</span><span class="n">dottedcounter</span><span class="p">):</span>
-    <span class="c"># Try to call logging. If not connected to a network this throws</span>
-    <span class="c"># &quot;socket.gaierror: [Errno 8] nodename nor servname provided, or not known&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">statsd</span><span class="o">.</span><span class="n">StatsClient</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_host&#39;</span><span class="p">],</span>
-                               <span class="nb">int</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;globals&#39;</span><span class="p">][</span><span class="s">&#39;statsd_port&#39;</span><span class="p">]))</span>
-        <span class="n">c</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">dottedcounter</span><span class="p">)</span>
-        <span class="c"># todo: really return c and keep elsewhere for efficieny I suspect</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">pass</span>
 
 <div class="viewcode-block" id="logout"><a class="viewcode-back" href="../../../authenticationAPI.html#rhaptos2.repo.auth.logout">[docs]</a><span class="k">def</span> <span class="nf">logout</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;kill the session in cache, remove the cookie from client&quot;&quot;&quot;</span>

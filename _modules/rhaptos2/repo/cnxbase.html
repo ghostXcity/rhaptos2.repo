@@ -90,11 +90,14 @@
 
 
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="c">## root logger set in application startup</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">lgr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">err</span> <span class="kn">import</span> <span class="n">Rhaptos2Error</span>
 <span class="kn">from</span> <span class="nn">werkzeug.exceptions</span> <span class="kn">import</span> <span class="n">BadRequest</span>
-<span class="kn">from</span> <span class="nn">rhaptos2.repo</span> <span class="kn">import</span> <span class="n">dolog</span>  <span class="c"># depednacy?</span>
 <span class="kn">import</span> <span class="nn">string</span>
 
 <div class="viewcode-block" id="CNXBase"><a class="viewcode-back" href="../../../viewmodelAPI.html#rhaptos2.repo.cnxbase.CNXBase">[docs]</a><span class="k">class</span> <span class="nc">CNXBase</span><span class="p">():</span>
@@ -321,18 +324,18 @@
         <span class="n">del_uris</span> <span class="o">=</span> <span class="n">set_curr_uris</span> <span class="o">-</span> <span class="n">set_proposed_uris</span>
         <span class="n">add_uris</span> <span class="o">=</span> <span class="n">set_proposed_uris</span> <span class="o">-</span> <span class="n">set_curr_uris</span>
 
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">set_proposed_uris</span><span class="p">))</span>
-        <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">set_curr_uris</span><span class="p">))</span>        
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">set_proposed_uris</span><span class="p">))</span>
+        <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">set_curr_uris</span><span class="p">))</span>        
 
         
         <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">add_uris</span><span class="p">:</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;will add following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">add_uris</span><span class="p">))</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;will add following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">add_uris</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">adduserrole</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userroleklass</span><span class="p">,</span>
                               <span class="p">{</span><span class="s">&#39;user_uri&#39;</span><span class="p">:</span> <span class="n">user_uri</span><span class="p">,</span>
                                <span class="s">&#39;role_type&#39;</span><span class="p">:</span> <span class="s">&#39;aclrw&#39;</span><span class="p">},</span>
                                <span class="n">requesting_user_uri</span><span class="o">=</span><span class="n">requesting_user_uri</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">user_uri</span> <span class="ow">in</span> <span class="n">del_uris</span><span class="p">:</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;will deelte following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">del_uris</span><span class="p">))</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;will deelte following: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">del_uris</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prep_delete_userrole</span><span class="p">(</span><span class="n">user_uri</span><span class="p">)</span>
             
 
@@ -442,22 +445,22 @@
                                <span class="k">if</span> <span class="n">u</span><span class="o">.</span><span class="n">role_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;aclrw&quot;</span><span class="p">,)]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAILED - Unknown action type  </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">action</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">False</span>
 
         <span class="k">if</span> <span class="n">requesting_user_uri</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAILED - None user supplied&quot;</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">False</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">requesting_user_uri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_user_list</span><span class="p">:</span>
                 <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;FAIL - user not in valid list </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">valid_user_list</span><span class="p">)</span>
-                <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+                <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
                 <span class="k">return</span> <span class="bp">False</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c"># At last!</span>
                 <span class="n">s</span> <span class="o">+=</span> <span class="s">&quot;SUCCESS user in valid list </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">valid_user_list</span><span class="p">)</span>
-                <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+                <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
                 <span class="k">return</span> <span class="bp">True</span>
 <span class="c">###</span>
 </div></div>
@@ -474,10 +477,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">whitelist</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">whitespace</span>
-    <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Start XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>                
+    <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Start XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>                
     <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">html_fragment</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">whitelist</span><span class="p">:</span>
-            <span class="n">dolog</span><span class="p">(</span><span class="s">&quot;INFO&quot;</span><span class="p">,</span> <span class="s">&quot;Failed XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>            
+            <span class="n">lgr</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed XSS whitelist - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">html_fragment</span><span class="p">)</span>            
             <span class="k">return</span> <span class="bp">False</span>
     <span class="k">return</span> <span class="bp">True</span>
     

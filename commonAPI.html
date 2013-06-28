@@ -132,50 +132,8 @@ and stores all other sections under a key of the same name</p>
 <div class="section" id="module-rhaptos2.repo.err">
 <span id="rhaptos2-repo-err"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.err" title="rhaptos2.repo.err"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.err</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.err" title="Permalink to this headline">¶</a></h1>
 </div>
-<div class="section" id="module-rhaptos2.repo.log">
-<span id="rhaptos2-repo-log"></span><h1><a class="reference internal" href="#module-rhaptos2.repo.log" title="rhaptos2.repo.log"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a><a class="headerlink" href="#module-rhaptos2.repo.log" title="Permalink to this headline">¶</a></h1>
-<p>Provide common logging facilites for all rhaptos2 components.</p>
-<p>We expect to create two log <em>handlers</em> in the application</p>
-<ol class="arabic simple">
-<li>to log audit messages to stderr</li>
-<li>to fire off statsd events</li>
-</ol>
-<p>We combine both into one logger, I think that is the best approach.</p>
-<p>See set_logger in rhaptos2.repo for useage</p>
-<p>Changelog:</p>
-<dl class="docutils">
-<dt>2012-09-13 <span class="classifier-delimiter">:</span> <span class="classifier">removed the get_logger facility, basically each app is</span></dt>
-<dd>responsible for setting up its own logger.  This merely
-supplies a custom Handler for statsd</dd>
-</dl>
-<dl class="class">
-<dt id="rhaptos2.repo.log.StatsdHandler">
-<em class="property">class </em><tt class="descclassname">rhaptos2.repo.log.</tt><tt class="descname">StatsdHandler</tt><big>(</big><em>host</em>, <em>port</em>, <em>debug=False</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/log.html#StatsdHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.log.StatsdHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Logging Handler class that emits statsd calls to graphite, then stdout</p>
-<p>It <em>only</em> does incr logs, ie event counting.
-Thats probably appropriate for most all log related stats</p>
-<p>issues - we init with host and port, probably a bad idea.
-Just do not want to muck around with config mdule for logging yet.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;doctest&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">StatsdHandler</span><span class="p">(</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">2222</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">lg</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;an error&quot;</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;statsd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s">&#39;a.b&#39;</span><span class="p">,</span> <span class="s">&#39;e.f&#39;</span><span class="p">]})</span>
-<span class="go">Firing a.b</span>
-<span class="go">Firing e.f</span>
-</pre></div>
-</div>
-<p>So we take it on trust that statsd fired.
-This is a unsolved problem with statsd.</p>
-<dl class="method">
-<dt id="rhaptos2.repo.log.StatsdHandler.emit">
-<tt class="descname">emit</tt><big>(</big><em>record</em><big>)</big><a class="reference internal" href="_modules/rhaptos2/repo/log.html#StatsdHandler.emit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rhaptos2.repo.log.StatsdHandler.emit" title="Permalink to this definition">¶</a></dt>
-<dd><p>given a LogRecord r, extract the dotted names if any and fire off</p>
-<p>Hmm, testing this in doctest (in anything) is hard....
-So A totally contrived test</p>
-</dd></dl>
-
-</dd></dl>
-
+<div class="section" id="rhaptos2-repo-log">
+<h1><a class="reference external" href="http://frozone.readthedocs.org/en/latest/commonAPI.html#rhaptos2.repo.log" title="(in rhaptos2 v0.0.1)"><tt class="xref py py-mod docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a><a class="headerlink" href="#rhaptos2-repo-log" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
@@ -190,7 +148,7 @@ So A totally contrived test</p>
 <li><a class="reference internal" href="#module-rhaptos2.repo.backend"><tt class="docutils literal"><span class="pre">rhaptos2.repo.backend</span></tt></a></li>
 <li><a class="reference internal" href="#module-rhaptos2.repo.configuration"><tt class="docutils literal"><span class="pre">rhaptos2.repo.configuration</span></tt></a></li>
 <li><a class="reference internal" href="#module-rhaptos2.repo.err"><tt class="docutils literal"><span class="pre">rhaptos2.repo.err</span></tt></a></li>
-<li><a class="reference internal" href="#module-rhaptos2.repo.log"><tt class="docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a></li>
+<li><a class="reference internal" href="#rhaptos2-repo-log"><tt class="docutils literal"><span class="pre">rhaptos2.repo.log</span></tt></a></li>
 </ul>
 
   <h4>Previous topic</h4>
