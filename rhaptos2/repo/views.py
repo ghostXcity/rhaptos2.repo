@@ -141,11 +141,20 @@ def home():
         You are not logged in.
         You can now choose to either
         <table>
-        <tr><td><a href="%s">login</a></td>
-            <td>Try the site <a href="/tempsession">anonymously</a></td></tr>
+        <tr><td>
+        Enter your OpenID Provider URL:
+<form method="POST" action="%s/server/login/openid">
+<input type="text" name="openid_identifier" id="field-0">
+<input type="hidden" name="came_from" id="field-1" value="%s/home">
+<INPUT type="submit" value="Login"> 
+</form>
+
+        </td>
+            <td>Or Try the site <a href="/tempsession">anonymously</a></td></tr>
         </table>
         Please note all work will be lost at the end of anonymous sessions.
-        """ % get_app().config['globals']['userserver']
+        """ % (get_app().config['globals']['userserver'],
+              get_app().config['www_server_name'])
     else:
         lgr.info("at home: %s %s" % (userdata, sessionid))
         return """You are logged in as %s - why not <a href="/">go to the site</a> and edit""" % userdata['fullname']
