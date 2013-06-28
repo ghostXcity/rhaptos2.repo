@@ -58,7 +58,7 @@ from flask import (
 
 from rhaptos2.repo import (get_app,
                            auth, VERSION, model,
-                           backend)
+                           backend, weblogging)
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
@@ -108,18 +108,12 @@ def apply_cors(resp_as_pytype):
 
 def logging_endpoint():
     """
+    this is /logging - it will take a POST of json doc and pass it
+    to the weblogging module, which will take care of details.
     """
-    req = obtain_payload(request)
-    weblogging.log_endpoint(req)
+    payld_as_json = obtain_payload(request)
+    weblogging.logging_router(payld_as_json)
     return ""
-
-def metric_endpoint():
-    """
-    """
-    req = obtain_payload(request)
-    weblogging.metric_endpoint(req)
-    return ""
-
     
     
 def index():

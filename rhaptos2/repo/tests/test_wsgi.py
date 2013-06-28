@@ -38,7 +38,8 @@ lgr = logging.getLogger(__name__)
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
-                           sessioncache)
+                           sessioncache, dolog,
+                           weblogging)
 from webtest import TestApp, TestRequest
 import cookielib
 
@@ -291,7 +292,11 @@ APIMAP = {'module':
          {"GET": urlparse.urljoin(USERHOST, "workspace/"),
           },
 
+          'logging':
+         {"POST": urlparse.urljoin(USERHOST, "logging"),
+          },
 
+          
           }
 
 
