@@ -157,7 +157,8 @@ def home():
               get_app().config['www_server_name'])
     else:
         lgr.info("at home: %s %s" % (userdata, sessionid))
-        return """You are logged in as %s - why not <a href="/">go to the site</a> and edit""" % userdata['fullname']
+        return """You are in a valid session - why not <a href="/">go to the site</a> and edit.
+                  In production this would jsut redirect"""
 
 def whoamiGET():
     '''

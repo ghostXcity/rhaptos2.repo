@@ -39,7 +39,7 @@ The redirect hits at the `/valid` endpoint in the repo, which will check the
 token against the cnx-user, and then ::
 
 
-   authenticated_identifier_to_registered_user_details
+   user_uuid_to_user_details
     given a authenticated user ID (OpenID), look up the user details
     on cnx-user
    create_session()
@@ -287,38 +287,19 @@ def lookup_session(sessid):
         raise e
 
 
-def authenticated_identifier_to_registered_user_details(ai):
+def user_uuid_to_user_details(ai):
     """
-    Given an ``authenticated_identifier (ai)`` request full user details from
-    the ``user service``
+    misnmaed now - given user_id from cnx-user return a
+    user_detail dict
+    
+    returns dict of userdetails - is only userID
 
-    returns dict of userdetails (success),
-            None (user not registerd)
-            or error (user service down).
 
     """
-    payload = {'user': ai}
-    user_service_url = get_app().config['cnx-user-url']
-    url = "%s/api/users/%s" % (user_service_url, ai)
-
-    lgr.info("user info - from url %s and query string %s" %
-                  (user_service_url, repr(payload)))
-
-    try:
-        resp = requests.get(url, params=payload)
-    except requests.exceptions.RequestException:
-        raise Rhaptos2Error("Problem communicating with the user service.")
-
-    if resp.status_code == 404:
-        return None
-    if resp.status_code == 403:
-        raise Rhaptos2Error("Access to user details denied. Do you have "
-                            "permissions to use the user service?")
-    if resp.status_code != 200:
-        raise Rhaptos2Error("Problem communicating with the user service.")
-    user_details = resp.json()
-
-    lgr.error("Got back %s " % user_details)
+    user_details = {'user_uri':'cnxuser:%s' % ai,
+                    'user_uri':ai}
+    
+    lgr.error("Have created user_details dict %s " % user_details)
     return user_details
 
 
@@ -497,8 +478,9 @@ def valid():
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
-    user_details = authenticated_identifier_to_registered_user_details(user_id)
-    create_session(user_details)
+    user_details = user_uuid_to_user_details(user_id)
+    sessionid = create_session(user_details)
+    store_userdata_in_request(user_details, sessionid)
     return redirect(next_location)
 
 if __name__ == '__main__':
