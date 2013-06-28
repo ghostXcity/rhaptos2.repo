@@ -371,34 +371,14 @@ def set_autosession():
     It should fail in production
 
     """
-    userdict_example ={"interests": None, "identifiers": [{"identifierstring":
-    "https://michaelmulich.myopenid.com", "user_id":
-    "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype":
-    "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924",
-    "suffix": None, "firstname": None, "title": None, "middlename": None,
-    "lastname": None, "imageurl": None, "otherlangs": None,
-    "affiliationinstitution_url": None, "email": None, "version": None,
-    "location": None, "recommendations": None, "preferredlang": None,
-    "fullname": "Michael Mulich", "homepage": None, "affiliationinstitution":
-    None, "biography": None}
-
     
     if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
-    # check if session already live for this user?
-    # Hmm I have not written such code yet - seems a problem
-    # only likely to occur here...
-
-    # FIXME get the real userdict template
-    standarduser = userdict_example
-    sessionid = create_session(standarduser)
-    store_userdata_in_request(standarduser, sessionid)
-    lgr.info("Session %s now has %s" % (sessionid, g.userd['user_id']))
+    tempuserdict, sessionid = set_temp_session()
     ### fake in three users of id 0001 002 etc
     sessioncache._fakesessionusers(sessiontype='fixed')
-    store_userdata_in_request(standarduser, sessionid)
-    return standarduser
+    return tempuserdict
 
 
 def set_temp_session():
@@ -412,27 +392,29 @@ def set_temp_session():
 
     However work saved will be irrecoverable after session expires...
 
+    NB - we have "made up" a user_id and uri.  It is not registered in cnx-user.
+    This may cause problems with distributed cacheing unless we share session-caches.
+    
     """
-    useruri = create_temp_user(
-        "temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
-    tempuserdict = {'fullname': "temporary user", 'user_id': useruri}
+    ### userdict only needs hold the user_uri
+    uid = str(uuid.uuid4())
+    tempuserdict = {"user_uri":"cnxuser:%s" % uid,
+                    "user_id":uid
+                    }
     sessionid = create_session(tempuserdict)
+    store_userdata_in_request(tempuserdict, sessionid)    
+    lgr.info("Faked Session %s now linked to %s" % (sessionid, g.userd['user_id']))
     return (tempuserdict, sessionid)
 
-
-def create_temp_user(identifiertype, identifierstring):
+def mkuser_detail(uid=None):
     """
-    We should ping to user service and create a temporary userid
-    linked to a made up identifier.  This can then be linked to the
-    unregistered user when they finally register.
-
-    FIXME - needs to actually talk to userservice.
-    THis is however a asynchronous problem, solve under session id
     """
-    ### vist the user dbase, get back a user_uri
-    stubbeduri = "cnxuser:" + str(uuid.uuid4())
-    return stubbeduri
+    tempuserdict = {"user_uri":"cnxuser:%s" % uid,
+                    "user_id":uid
+                    }
+    return tempuserdict
 
+    
 def whoami():
     """based on session cookie
     returns userd dict of user details, equivalent to mediatype from
