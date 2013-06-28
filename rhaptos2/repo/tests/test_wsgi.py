@@ -714,6 +714,19 @@ def test_whoami():
     assert resp.status_int == 200
     assert resp.json["user_id"] == GOODUSERID
 
+@with_setup(funcsetup)
+def test_atc_logging():
+    testmsg = {"message-type":"log",
+           "log-message":"This is log msg",
+           "metric-label": None,
+           "metric-value": None,
+           "metric-type": None
+          }
+
+    resp = wapp_post(TESTAPP, "logging", testmsg, GOODUSERSESSIONID)
+    assert resp.status_int == 200
+
+    
 
 if __name__ == '__main__':
     import doctest
