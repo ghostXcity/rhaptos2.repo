@@ -9,38 +9,75 @@
 # See LICENCE.txt for details.
 ###
 
-""":module:`auth` supplies the logic to authenticate users and then store that authentication
-for later requests.
-It is strongly linked with :module:`sessioncache`.
+"""How does Authentication, Authorisation and Sessions work?
+---------------------------------------------------------
 
-Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however
-the logic over authorisation will remain.
+We are operating a Single-Sign-On service, using `Valruse` to do the
+authentication.
+
+Workflow
+~~~~~~~~
+
+A user will hit the repo-home page, and :func:`handle_user_authentication`will be fired,
+and based on the cookies stored in the user browser we will know one of three things
+about the user.
+
+* Never seen before
+* Known user, no in session
+* Known user, in session
+* Edge cases
+
+Usually they will choose to *login* and will be directed to the login page on
+cnx-user.  Here, the cnx-user will authenticate them in some fashion (OpenID)
+and the *redirect* the user browser back to the repo, with a *token*.
+
+The repo then looks up this token against the cnx-user service.  And hey presto,
+if the token matches, the repo knows they can trust the browser.  (assuming SSL
+all the way)
+
+The redirect hits at the `/valid` endpoint in the repo, which will check the
+token against the cnx-user, and then ::
 
 
-Overview
+   authenticated_identifier_to_registered_user_details
+    given a authenticated user ID (OpenID), look up the user details
+    on cnx-user
+   create_session()
 
-auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session
-or the user is unable to authenticate
+At this point, we now have a user who logged in against `cnx-user`, has then proven to cnx-repo
+that they did log in, and now has a session cookie set in their browser that the repo can
+trust as password-replacement for a set period.
 
-after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt
+Temporary sessions
+------------------
+
+Temporary sessions, or *anonymous editing* is where a user *does not login* but uses the repo
+anonymously, perhaps creating test modules.
+
+This is supported by hitting the endpoint `/tempsession` which will trigger the view `temp_session`.
+This in turn calls :func:`set_temp_session`.  Here we create both a random sessionID (as per usual for sessions)
+and we *also* create a random `user_uri`.  This user_uri is used exactly as if it were a real registered user,
+but it is never sent back to the cnx-user, instead it solely is used in ACLs on the unpub repo.
+
+This way, at the end of a temp session, the user effectively loses all their edits.  This may want to be avoided,
+and is possible but not yet implemented.
+
+
 
 
 known issues
 ~~~~~~~~~~~~
 
-requesting_user_uri This is passed around a lot This is suboptimal, and I think
-should be replaced with passing around the environ dict as a means of linking
-functions with the request calling them
+* requesting_user_uri This is passed around a lot This is suboptimal, and I think
+  should be replaced with passing around the environ dict as a means of linking
+  functions with the request calling them
 
-I am still passing around the userd in ``g.`` This is fairly silly
-but seems consistent for flask. Will need rethink.
+* I am still passing around the userd in ``g.`` This is fairly silly
+  but seems consistent for flask. Will need rethink.
 
-secure (https) - desired future toggle
+* secure (https) - desired future toggle
 
-further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
-
-
-
+* further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
 
 """
 ## root logger set in application startup
