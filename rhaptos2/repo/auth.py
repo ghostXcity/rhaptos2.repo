@@ -301,7 +301,7 @@ def authenticated_identifier_to_registered_user_details(ai):
     user_service_url = get_app().config['cnx-user-url']
     url = "%s/api/users/%s" % (user_service_url, ai)
 
-    lgr.error("user info - from url %s and query string %s" %
+    lgr.info("user info - from url %s and query string %s" %
                   (user_service_url, repr(payload)))
 
     try:
@@ -493,6 +493,7 @@ def valid():
         raise Rhaptos2Error("Had problems communicating with the "
                             "authentication service")
     user_id = resp.json()['id']
+    lgr.info("cnx-user service returned user_id %s for token %s" % (user_id, user_token))
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
