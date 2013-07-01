@@ -74,7 +74,7 @@ def assign_routing_rules(app):
     
     app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
-    app.add_url_rule("/home", view_func=views.home, methods=['GET', ])    
+    app.add_url_rule("/home", view_func=views.home, methods=['GET', ])
 
 
     

@@ -123,7 +123,7 @@ def store_userdata_in_request(userd, sessionid):
     ### For now keep ``g`` the source of data on current thread-local request.
     ### later we transfer to putting it all on environ for extra portability
     userd['user_uri'] = userd['user_id']
-    g.userd = userd
+    g.user_details = userd
     g.sessionid = sessionid
     lgr.info("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
          (g.sessionid, userd['user_uri'], g.requestid))
@@ -190,7 +190,7 @@ def handle_user_authentication(flask_request):
 
     """
     # clear down storage area.
-    g.userd = None
+    g.user_details = None
     g.sessionid = None
 
     ### if someone is trying to login, it is the *only* time they should
@@ -236,8 +236,6 @@ def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
     Given a request environment and cookie
 
-
-
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
     >>> userd = session_to_user(cookies, env)
@@ -264,7 +262,7 @@ def lookup_session(sessid):
     we should *storngly* look into redis-style lcoal disk cacheing
     performance monitoring of request life cycle?
 
-    returns python dict of ``user_dict`` format.
+    returns python dict of ``user_details`` format.
             or None if no session ID in cache
             or Error if lookup failed for other reason.
 
@@ -289,12 +287,14 @@ def lookup_session(sessid):
 
 def user_uuid_to_user_details(ai):
     """
-    misnmaed now - given user_id from cnx-user return a
-    user_detail dict
+    Given a user_id from cnx-user create a
+    user_detail dict.
     
-    returns dict of userdetails - is only userID
+    :param ai: authenticated identifier.  This *used* to be openID URL,
+               now we directly get back the common user ID from the user serv.ce
 
-
+    user_details no longer holds any user meta data aparrt from the user UUID.
+    
     """
     user_details = {'user_uri':'cnxuser:%s' % ai,
                     'user_uri':ai}
@@ -420,7 +420,7 @@ def whoami():
     returns userd dict of user details, equivalent to mediatype from
     service / session
     """
-    return g.userd
+    return g.user_details
 
 def apply_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"

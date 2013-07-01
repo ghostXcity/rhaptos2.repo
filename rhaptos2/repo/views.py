@@ -172,7 +172,7 @@ def whoamiGET():
 
     '''
     ### todo: return 401 code and let ajax client put up login.
-    userd = auth.whoami()  # same as g.userd
+    userd = auth.whoami()  # same as g.user_details
 
     if userd:
         jsond = json.dumps(userd)
@@ -295,7 +295,7 @@ def folder_router(folderuri):
     """
     """
     lgr.error("In folder router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    requesting_user_uri = g.user_details['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -330,7 +330,7 @@ def collection_router(collectionuri):
     """
     """
     lgr.error("In collection router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    requesting_user_uri = g.user_details['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -365,7 +365,7 @@ def module_router(moduleuri):
     """
     """
     lgr.error("In module router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    requesting_user_uri = g.user_details['user_uri']
     payload = obtain_payload(request)
 
     if request.method == "GET":
@@ -418,8 +418,8 @@ def folder_get(folderuri, requesting_user_uri):
     (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes
         on backend.py
     """
-    fldr = model.obj_from_urn(folderuri, g.userd['user_uri'])
-    fldr_complex = fldr.__complex__(g.userd['user_uri'])
+    fldr = model.obj_from_urn(folderuri, g.user_details['user_uri'])
+    fldr_complex = fldr.__complex__(g.user_details['user_uri'])
 
     resp = flask.make_response(json.dumps(fldr_complex))
     resp.content_type = 'application/json; charset=utf-8'
