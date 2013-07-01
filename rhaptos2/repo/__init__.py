@@ -71,13 +71,11 @@ def assign_routing_rules(app):
         "/autosession", view_func=views.auto_session, methods=['GET', ])
     app.add_url_rule(
         "/tempsession", view_func=views.temp_session, methods=['GET', ])
-    
+
     app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
     app.add_url_rule("/home", view_func=views.home, methods=['GET', ])
 
-
-    
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
     app.add_url_rule('/folder/<path:folderuri>', view_func=views.folder_router, methods=[
@@ -100,7 +98,7 @@ def assign_routing_rules(app):
 
 def make_app(config, as_standalone=False):
     """WSGI application factory
-    
+
     The ``as_standalone`` parameter (toggled by `--devserver` in commandline) is
     used to tell the factory to serve the static Authoring Tools Client (ATC)
     client JavaScript code from a directory. In a deployed situation this would
@@ -119,7 +117,7 @@ def make_app(config, as_standalone=False):
     except socket.gaierror, se:
         pass
     except Exception, e:
-        raise e        
+        raise e
 
     # Set the application
     app = set_app(app)
@@ -147,40 +145,39 @@ def set_up_logging(app):
         log_to_syslog = Y
         syslogfile = /dev/log
 
-    
+
     """
     config = app.config
 
-    default_formatter = logging.Formatter(\
-       "%(asctime)s:%(levelname)s:%(name)s:%(message)s")
+    default_formatter = logging.Formatter(
+        "%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     ### root logger - used everywhere *except*
     ### log messages sent during configuration collection.
     root = logging.getLogger(__name__)
     root.setLevel(config['globals']['loglevel'])
-    
+
     ### console output - turn off in config, simplified output.
     if config['globals']['log_to_console'] == 'Y':
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.ERROR)
-        console_handler.setFormatter("%(levelname)s : %(message)s")    
+        console_handler.setFormatter("%(levelname)s : %(message)s")
         root.addHandler(console_handler)
-    
+
     ## write to syslog - defaults to INFO
     if config['globals']['log_to_syslog'] == 'Y':
-        syslog_handler = logging.handlers.SysLogHandler(address=config['globals']['syslogfile'])
+        syslog_handler = logging.handlers.SysLogHandler(
+            address=config['globals']['syslogfile'])
         syslog_handler.setLevel(logging.INFO)
         syslog_handler.setFormatter(default_formatter)
         root.addHandler(syslog_handler)
-    
-
 
     ### local file loggers for development
     ### eventlog records everything, errorlog just for errors
     if config['globals']['log_to_filesystem'] == 'Y':
 
         eventlogpath = os.path.join(config['globals']['local_log_dir'],
-                                  "repo-error.log")
+                                    "repo-error.log")
 
         errlogpath = os.path.join(config['globals']['local_log_dir'],
                                   "repo-error.log")
@@ -196,7 +193,4 @@ def set_up_logging(app):
         root.addHandler(error_handler)
         root.addHandler(event_handler)
 
-      
     root.info("logger set up on %s as %s" % (__name__, str(root)))
-    
-    

@@ -63,10 +63,11 @@ from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
 
+
 def requestid():
     """
     before_request is supplied with this to run before each __call_
-    
+
     """
     g.requestid = uuid.uuid4()
     g.request_id = g.requestid
@@ -125,6 +126,7 @@ def index():
     resp = flask.redirect('/js/')
     return resp
 
+
 def home():
     """
     A trial page to help with the logic of redicrttion and logins
@@ -132,10 +134,10 @@ def home():
     This logic is convoluted agian and this
     probably should be uin handle_auith
     """
-    
+
     try:
         userdata, sessionid = auth.session_to_user(
-                               request.cookies, request.environ)
+            request.cookies, request.environ)
     except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>
         You are not logged in.
@@ -146,7 +148,7 @@ def home():
 <form method="POST" action="%s/server/login/openid">
 <input type="text" name="openid_identifier" id="field-0">
 <input type="hidden" name="came_from" id="field-1" value="%s/home">
-<INPUT type="submit" value="Login"> 
+<INPUT type="submit" value="Login">
 </form>
 
         </td>
@@ -154,11 +156,12 @@ def home():
         </table>
         Please note all work will be lost at the end of anonymous sessions.
         """ % (get_app().config['globals']['userserver'],
-              get_app().config['www_server_name'])
+               get_app().config['www_server_name'])
     else:
         lgr.info("at home: %s %s" % (userdata, sessionid))
         return """You are in a valid session - why not <a href="/">go to the site</a> and edit.
                   In production this would jsut redirect"""
+
 
 def whoamiGET():
     '''
@@ -248,6 +251,7 @@ def auto_session():
 
     return "Session created - please see headers"
 
+
 def temp_session():
     """
     When a user wants to edit anonymously, they need to hit this
@@ -257,14 +261,13 @@ def temp_session():
     Here we generate a temperoiary userid (that is *not* linked to cnx-user)
     then setup a session based on that userid.  All work will be lost
     at end of session.
-    
+
     """
     sessionid = auth.set_temp_session()
     resp = flask.redirect("/")
     return resp
 
 
-    
 MEDIA_MODELS_BY_TYPE = {
     "application/vnd.org.cnx.collection": model.Collection,
     "application/vnd.org.cnx.module": model.Module,
@@ -290,7 +293,7 @@ def obtain_payload(werkzeug_request_obj):
 ## "Routers". genericly handle very similar actions
 ## but without 'reimplmenting' Flask disaptching
 ############################################################
-    
+
 def folder_router(folderuri):
     """
     """
@@ -397,7 +400,8 @@ def module_router(moduleuri):
 ##########################################################
 ## specific views called by "routers" above.
 ##########################################################
-        
+
+
 def folder_get(folderuri, requesting_user_uri):
     """
     return folder as an appropriate json based response string

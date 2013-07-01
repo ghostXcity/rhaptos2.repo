@@ -142,10 +142,11 @@ class Collection(Base, CNXBase):
     userroles = relationship("UserRoleCollection",
                              backref="cnxcollection",
                              cascade="all, delete-orphan")
-    
-    ### cheat to ensure can use a CNXBase function instead of 3 repeted code chunks
+
+    # cheat to ensure can use a CNXBase function instead of 3 repeted code
+    # chunks
     userroleklass = UserRoleCollection
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """ """
         self.userroleklass = UserRoleCollection
@@ -181,10 +182,7 @@ class Collection(Base, CNXBase):
     #     db_session.commit()
 
 
-        
-
 ################# Modules ##################################
-
 class UserRoleModule(Base, CNXBase):
 
     """The roles and users assigned for a given folder
@@ -237,13 +235,12 @@ class Module(Base, CNXBase):
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
     googleTrackingID = Column(String)
-    
+
     userroles = relationship("UserRoleModule",
                              backref="cnxmodule",
                              cascade="all, delete-orphan")
     userroleklass = UserRoleModule
-    
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """
         setup a Module - validate given ID, extract data from db if needed
@@ -267,9 +264,9 @@ class Module(Base, CNXBase):
         else:
             self.id_ = "cnxmodule:" + str(uuid.uuid4())
         self.dateCreatedUTC = self.get_utcnow()
-        super(Base, self).__init__()#trigger all SQLA Base calss inits.
-        #self.save(db_session) #SAve to disk.
-        
+        super(Base, self).__init__()  # trigger all SQLA Base calss inits.
+        # self.save(db_session) #SAve to disk.
+
     def __repr__(self):
         return "Module:(%s)-%s" % (self.id_, self.title)
 
@@ -297,7 +294,7 @@ class UserRoleFolder(Base, CNXBase):
     :todo: storing timezones naively here needs fixing
 
 
-    
+
     """
     __tablename__ = 'userrole_folder'
     folder_uuid = Column(String, ForeignKey('cnxfolder.id_'),
@@ -330,12 +327,13 @@ class Folder(Base, CNXBase):
     userroles = relationship("UserRoleFolder",
                              backref="cnxfolder",
                              cascade="all, delete-orphan")
-    
+
     userroleklass = UserRoleFolder
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """ """
-        ### A cheat really - need to access this later on and not sure how to extrac t from SQLA
+        # A cheat really - need to access this later on and not sure how to
+        # extrac t from SQLA
         self.userroleklass = UserRoleFolder
         self.mediaType = "application/vnd.org.cnx.folder"
 
@@ -365,9 +363,6 @@ class Folder(Base, CNXBase):
     #     db_session.add(self)
     #     db_session.commit()
 
-         
-
-            
     def __complex__(self, requesting_user_uri, softform=True):
         """overwrite the std __complex__, and become recursive
 

@@ -83,7 +83,8 @@ def get_config(ini_file_path=None):
         d = read_ini(ini_file_path)
         confd.update(d)
     except Rhaptos2Error, e:
-        lgr.error("unable to parse conf file %s because %s" % (ini_file_path, str(e)))
+        lgr.error("unable to parse conf file %s because %s" %
+                  (ini_file_path, str(e)))
         raise e
     return confd
 

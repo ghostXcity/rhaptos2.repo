@@ -49,6 +49,7 @@ from err import Rhaptos2Error
 from werkzeug.exceptions import BadRequest
 import string
 
+
 class CNXBase():
     """
 
@@ -124,12 +125,14 @@ class CNXBase():
                     "Tried to set attr %s when no matching table column" % k)
             elif k == "acl":
                 ## convert acls into userrole assignments
-                self.update_userroles(d['acl'], requesting_user_uri=requesting_user_uri)
+                self.update_userroles(d[
+                                      'acl'], requesting_user_uri=requesting_user_uri)
                 setattr(self, k, d['acl'])
             elif k == "googleTrackingID":
                 ### validate the ID - it must not have
                 if not simple_xss_validation(d[k]):
-                    raise BadRequest(description="googleTrackingID cannot have script-like charaters in it")
+                    raise BadRequest(
+                        description="googleTrackingID cannot have script-like charaters in it")
                 else:
                     setattr(self, k, d[k])
             else:
@@ -200,7 +203,7 @@ class CNXBase():
         else:
             outstr = getattr(self, col.name)
         return outstr
-        
+
     def prep_delete_userrole(self, user_uri, role_type=None):
         """policy: we are ignoring role type for now.  Any delete will delete
         the user, there should only be one roletype per user, and one user per
@@ -210,11 +213,11 @@ class CNXBase():
         trans).  If we ever change policy we need to fix that
 
         """
-        
+
         for usr in self.userroles:
             if usr.user_uri == user_uri:
                 self.userroles.remove(usr)
-        
+
     def set_acls(self, setter_user_uri, acllist, userrole_klass=None):
         """set the user acls on this object.
 
@@ -248,7 +251,8 @@ class CNXBase():
         else:
             for usrdict in acllist:
                 # I am losing modified info...
-                self.adduserrole(userrole_klass, usrdict, requesting_user_uri=setter_user_uri)
+                self.adduserrole(
+                    userrole_klass, usrdict, requesting_user_uri=setter_user_uri)
 
     def update_userroles(self, proposed_acl_list, requesting_user_uri):
         """
@@ -257,39 +261,35 @@ class CNXBase():
         The proposed list is *always* accurate, *except* if it leaves off the
         current requesting_user_uri, which is always added. (This may lead to some
         strange behaviour or test issues so be flexible)
-        
+
         """
         #: We assume one auth check will suffice as there is by policy one
         #: acl only (aclrw).  More fine grained policy will need more checks.
-        proceed = self.is_action_auth(action="PUT", requesting_user_uri=requesting_user_uri)
+        proceed = self.is_action_auth(
+            action="PUT", requesting_user_uri=requesting_user_uri)
         if not proceed:
-            raise Rhaptos2Error("Action forbidden for user %s cannot update userroles" % requesting_user_uri)
-
+            raise Rhaptos2Error(
+                "Action forbidden for user %s cannot update userroles" % requesting_user_uri)
 
         ### am i not matching sessons to useruris?
-        
         set_curr_uris = set(self.userroles)
         set_proposed_uris = set(proposed_acl_list)
         del_uris = set_curr_uris - set_proposed_uris
         add_uris = set_proposed_uris - set_curr_uris
 
         lgr.error(str(set_proposed_uris))
-        lgr.error(str(set_curr_uris))        
+        lgr.error(str(set_curr_uris))
 
-        
         for user_uri in add_uris:
             lgr.error("will add following: %s" % str(add_uris))
             self.adduserrole(self.userroleklass,
-                              {'user_uri': user_uri,
-                               'role_type': 'aclrw'},
-                               requesting_user_uri=requesting_user_uri)
+                             {'user_uri': user_uri,
+                              'role_type': 'aclrw'},
+                             requesting_user_uri=requesting_user_uri)
         for user_uri in del_uris:
             lgr.error("will deelte following: %s" % str(del_uris))
             self.prep_delete_userrole(user_uri)
-            
 
-
-                
     def adduserrole(self, userrole_klass, usrdict, requesting_user_uri):
         """ keeping a common funciton in one place
 
@@ -413,6 +413,7 @@ class CNXBase():
                 return True
 ###
 
+
 def simple_xss_validation(html_fragment):
     """
 
@@ -426,17 +427,16 @@ def simple_xss_validation(html_fragment):
     """
 
     whitelist = string.ascii_letters + string.digits + "-" + string.whitespace
-    lgr.error("Start XSS whitelist - %s" % html_fragment)                
+    lgr.error("Start XSS whitelist - %s" % html_fragment)
     for char in html_fragment:
         if char not in whitelist:
-            lgr.error("Failed XSS whitelist - %s" % html_fragment)            
+            lgr.error("Failed XSS whitelist - %s" % html_fragment)
             return False
     return True
-    
+
 
 if __name__ == '__main__':
     import doctest
     val = doctest.ELLIPSIS+doctest.REPORT_ONLY_FIRST_FAILURE + \
         doctest.IGNORE_EXCEPTION_DETAIL
     doctest.testmod(optionflags=val)
-    

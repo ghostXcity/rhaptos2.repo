@@ -50,6 +50,7 @@ from waitress import serve
 
 ########################################################
 
+
 def main():
     opts, args = parse_args()
     config = Configuration.from_file(opts.conf)
@@ -57,6 +58,7 @@ def main():
                   as_devserver=opts.devserver,
                   jslocation=opts.jslocation)
     wsgi_run(app, opts, args)
+
 
 def get_app(opts, args, config, as_devserver=False, jslocation=None):
     """

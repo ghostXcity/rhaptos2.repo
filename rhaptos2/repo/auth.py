@@ -106,14 +106,9 @@ DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home', '/tempsession')
 CNX_SESSION_ID = "cnxsessionid"
 
 
-
-
 ########################
 # User Auth flow
 ########################
-
-
-
 def store_userdata_in_request(user_details, sessionid):
     """
     given a userdict, keep it in the request cycle for later reference.
@@ -125,7 +120,7 @@ def store_userdata_in_request(user_details, sessionid):
     g.user_details = user_details
     g.sessionid = sessionid
     lgr.info("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
-         (g.sessionid, user_details['user_uri'], g.requestid))
+            (g.sessionid, user_details['user_uri'], g.requestid))
     ### Now flask actually calls __call__
 
 
@@ -198,7 +193,7 @@ def handle_user_authentication(flask_request):
     ### options: have /login served by another app - ala Velruse?
     if flask_request.path in DMZ_PATHS:
         return None
-        
+
     lgr.error("Auth test for %s" % flask_request.path)
 
     ### convert the cookie to a registered users details
@@ -206,14 +201,14 @@ def handle_user_authentication(flask_request):
         userdata, sessionid = session_to_user(
             flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
-        lgr.error("Session Lookup returned NoCookieError, so redirect to login")
+        lgr.error(
+            "Session Lookup returned NoCookieError, so redirect to login")
         if 'cnxprofile' in flask_request.cookies:
-            userdata, sessionid = set_temp_session()    
+            userdata, sessionid = set_temp_session()
         else:
             abort(401)
         ### FIXME - add in temp session & fake userid.
-        
-        
+
     # We are at start of request cycle, so tell everything downstream who User
     # is.  If userdata not set, create a temp user and move on.
     if userdata is not None:
@@ -225,7 +220,7 @@ def handle_user_authentication(flask_request):
             store_userdata_in_request(userdata, sessionid)
         else:
             abort(401)
-        
+
 ##########################
 ## Session Cookie Handling
 ##########################
@@ -272,15 +267,15 @@ def lookup_session(sessid):
         lgr.error("we got this from session lookup %s" % str(userd))
         if userd:
             lgr.error("We attempted to look up sessid %s in cache SUCCESS" %
-                  sessid)
+                      sessid)
             return userd
         else:
             lgr.error("We attempted to look up sessid %s in cache FAILED" %
-                  sessid)
+                      sessid)
             return None
     except Exception, e:
         lgr.error("We attempted to look up sessid %s in cache FAILED with Err %s" %
-              (sessid, str(e)))
+                 (sessid, str(e)))
         raise e
 
 
@@ -288,16 +283,16 @@ def user_uuid_to_user_details(ai):
     """
     Given a user_id from cnx-user create a
     user_detail dict.
-    
+
     :param ai: authenticated identifier.  This *used* to be openID URL,
                now we directly get back the common user ID from the user serv.ce
 
     user_details no longer holds any user meta data aparrt from the user UUID.
-    
+
     """
-    user_details = {'user_uri':'cnxuser:%s' % ai,
-                    'user_id':ai}
-    
+    user_details = {'user_uri': 'cnxuser:%s' % ai,
+                    'user_id': ai}
+
     lgr.error("Have created user_details dict %s " % user_details)
     return user_details
 
@@ -370,7 +365,7 @@ def set_autosession():
     It should fail in production
 
     """
-    
+
     if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
@@ -393,29 +388,31 @@ def set_temp_session():
 
     NB - we have "made up" a user_id and uri.  It is not registered in cnx-user.
     This may cause problems with distributed cacheing unless we share session-caches.
-    
+
     """
     ### userdict only needs hold the user_uri
     uid = str(uuid.uuid4())
     user_details, sessionid = user_uuid_to_valid_session(uid)
-    lgr.info("Faked Session %s now linked to %s" % (sessionid, g.user_details['user_id']))
+    lgr.info("Faked Session %s now linked to %s" %
+             (sessionid, g.user_details['user_id']))
     return (user_details, sessionid)
+
 
 def user_uuid_to_valid_session(uid):
     """
     Given a single UUID set up a session and return a user_details dict
-    
+
     Several different functions need this series of steps so it is encapsulated here.
     """
-    
+
     user_details = user_uuid_to_user_details(uid)
     sessionid = create_session(user_details)
     lgr.info("uid->session : user_details: %s sessionid: %s" % (user_details,
-                                                             sessionid))
+                                                                sessionid))
     store_userdata_in_request(user_details, sessionid)
     return (user_details, sessionid)
 
-    
+
 def whoami():
     """based on session cookie
     returns userd dict of user details, equivalent to mediatype from
@@ -423,10 +420,12 @@ def whoami():
     """
     return g.user_details
 
+
 def apply_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
+
 
 def logout():
     """kill the session in cache, remove the cookie from client"""
@@ -438,6 +437,7 @@ def logout():
 
 # cnx-user requires that a service have a /valid route to handle users when
 #   they return from authenticating.
+
 
 def valid():
     """cnx-user /valid view for capturing valid authentication requests."""
@@ -457,7 +457,8 @@ def valid():
         raise Rhaptos2Error("Had problems communicating with the "
                             "authentication service")
     user_id = resp.json()['id']
-    lgr.info("cnx-user service returned user_id %s for token %s" % (user_id, user_token))
+    lgr.info("cnx-user service returned user_id %s for token %s" %
+             (user_id, user_token))
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
