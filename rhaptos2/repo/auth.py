@@ -114,7 +114,7 @@ CNX_SESSION_ID = "cnxsessionid"
 
 
 
-def store_userdata_in_request(userd, sessionid):
+def store_userdata_in_request(user_details, sessionid):
     """
     given a userdict, keep it in the request cycle for later reference.
     Best practise here will depend on web framework.
@@ -122,11 +122,10 @@ def store_userdata_in_request(userd, sessionid):
     """
     ### For now keep ``g`` the source of data on current thread-local request.
     ### later we transfer to putting it all on environ for extra portability
-    userd['user_uri'] = userd['user_id']
-    g.user_details = userd
+    g.user_details = user_details
     g.sessionid = sessionid
     lgr.info("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
-         (g.sessionid, userd['user_uri'], g.requestid))
+         (g.sessionid, user_details['user_uri'], g.requestid))
     ### Now flask actually calls __call__
 
 
@@ -297,7 +296,7 @@ def user_uuid_to_user_details(ai):
     
     """
     user_details = {'user_uri':'cnxuser:%s' % ai,
-                    'user_uri':ai}
+                    'user_id':ai}
     
     lgr.error("Have created user_details dict %s " % user_details)
     return user_details
@@ -398,21 +397,23 @@ def set_temp_session():
     """
     ### userdict only needs hold the user_uri
     uid = str(uuid.uuid4())
-    tempuserdict = {"user_uri":"cnxuser:%s" % uid,
-                    "user_id":uid
-                    }
-    sessionid = create_session(tempuserdict)
-    store_userdata_in_request(tempuserdict, sessionid)    
-    lgr.info("Faked Session %s now linked to %s" % (sessionid, g.userd['user_id']))
-    return (tempuserdict, sessionid)
+    user_details, sessionid = user_uuid_to_valid_session(uid)
+    lgr.info("Faked Session %s now linked to %s" % (sessionid, g.user_details['user_id']))
+    return (user_details, sessionid)
 
-def mkuser_detail(uid=None):
+def user_uuid_to_valid_session(uid):
     """
+    Given a single UUID set up a session and return a user_details dict
+    
+    Several different functions need this series of steps so it is encapsulated here.
     """
-    tempuserdict = {"user_uri":"cnxuser:%s" % uid,
-                    "user_id":uid
-                    }
-    return tempuserdict
+    
+    user_details = user_uuid_to_user_details(uid)
+    sessionid = create_session(user_details)
+    lgr.info("uid->session : user_details: %s sessionid: %s" % (user_details,
+                                                             sessionid))
+    store_userdata_in_request(user_details, sessionid)
+    return (user_details, sessionid)
 
     
 def whoami():
@@ -460,9 +461,7 @@ def valid():
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
-    user_details = user_uuid_to_user_details(user_id)
-    sessionid = create_session(user_details)
-    store_userdata_in_request(user_details, sessionid)
+    user_uuid_to_valid_session(user_id)
     return redirect(next_location)
 
 if __name__ == '__main__':
