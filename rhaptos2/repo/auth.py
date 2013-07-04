@@ -56,7 +56,7 @@ anonymously, perhaps creating test modules.
 
 This is supported by hitting the endpoint `/tempsession` which will trigger the view `temp_session`.
 This in turn calls :func:`set_temp_session`.  Here we create both a random sessionID (as per usual for sessions)
-and we *also* create a random `user_uri`.  This user_uri is used exactly as if it were a real registered user,
+and we *also* create a random `user_id`.  This user_id is used exactly as if it were a real registered user,
 but it is never sent back to the cnx-user, instead it solely is used in ACLs on the unpub repo.
 
 This way, at the end of a temp session, the user effectively loses all their edits.  This may want to be avoided,
@@ -68,7 +68,7 @@ and is possible but not yet implemented.
 known issues
 ~~~~~~~~~~~~
 
-* requesting_user_uri This is passed around a lot This is suboptimal, and I think
+* requesting_user_id This is passed around a lot This is suboptimal, and I think
   should be replaced with passing around the environ dict as a means of linking
   functions with the request calling them
 
@@ -119,8 +119,8 @@ def store_userdata_in_request(user_details, sessionid):
     ### later we transfer to putting it all on environ for extra portability
     g.user_details = user_details
     g.sessionid = sessionid
-    lgr.info("SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
-            (g.sessionid, user_details['user_uri'], g.requestid))
+    lgr.info("SESSION LINKER, sessionid:%s::user_id:%s::requestid:%s::" %
+            (g.sessionid, user_details['user_id'], g.requestid))
     ### Now flask actually calls __call__
 
 
@@ -290,8 +290,7 @@ def user_uuid_to_user_details(ai):
     user_details no longer holds any user meta data aparrt from the user UUID.
 
     """
-    user_details = {'user_uri': 'cnxuser:%s' % ai,
-                    'user_id': ai}
+    user_details = {'user_id': ai}
 
     lgr.error("Have created user_details dict %s " % user_details)
     return user_details
@@ -390,7 +389,7 @@ def set_temp_session():
     This may cause problems with distributed cacheing unless we share session-caches.
 
     """
-    ### userdict only needs hold the user_uri
+    ### userdict only needs hold the user_id
     uid = str(uuid.uuid4())
     user_details, sessionid = user_uuid_to_valid_session(uid)
     lgr.info("Faked Session %s now linked to %s" %

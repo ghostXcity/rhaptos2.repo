@@ -196,8 +196,8 @@ def workspaceGET():
         abort(403)
     else:
         wout = {}
-        lgr.error("Calling workspace with %s" % userd['user_uri'])
-        w = model.workspace_by_user(userd['user_uri'])
+        lgr.error("Calling workspace with %s" % userd['user_id'])
+        w = model.workspace_by_user(userd['user_id'])
         lgr.error(repr(w))
         ## w is a list of models (folders, cols etc).
         # it would require some flattening or a JSONEncoder but we just want
@@ -298,11 +298,11 @@ def folder_router(folderuri):
     """
     """
     lgr.error("In folder router, %s" % request.method)
-    requesting_user_uri = g.user_details['user_uri']
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return folder_get(folderuri, requesting_user_uri)
+        return folder_get(folderuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -311,7 +311,7 @@ def folder_router(folderuri):
                 code=400)
         else:
             return generic_post(model.Folder,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -320,10 +320,10 @@ def folder_router(folderuri):
                 code=400)
         else:
             return generic_put(model.Folder, folderuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(folderuri, requesting_user_uri)
+        return generic_delete(folderuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
@@ -333,11 +333,11 @@ def collection_router(collectionuri):
     """
     """
     lgr.error("In collection router, %s" % request.method)
-    requesting_user_uri = g.user_details['user_uri']
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return generic_get(collectionuri, requesting_user_uri)
+        return generic_get(collectionuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -346,7 +346,7 @@ def collection_router(collectionuri):
                 code=400)
         else:
             return generic_post(model.Collection,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -355,10 +355,10 @@ def collection_router(collectionuri):
                 code=400)
         else:
             return generic_put(model.Collection, collectionuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(collectionuri, requesting_user_uri)
+        return generic_delete(collectionuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
@@ -368,11 +368,11 @@ def module_router(moduleuri):
     """
     """
     lgr.error("In module router, %s" % request.method)
-    requesting_user_uri = g.user_details['user_uri']
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return generic_get(moduleuri, requesting_user_uri)
+        return generic_get(moduleuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -380,7 +380,7 @@ def module_router(moduleuri):
                 "Received a Null payload, expecting JSON")
         else:
             return generic_post(model.Module,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -389,10 +389,10 @@ def module_router(moduleuri):
                 code=400)
         else:
             return generic_put(model.Module, moduleuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(moduleuri, requesting_user_uri)
+        return generic_delete(moduleuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
@@ -402,7 +402,7 @@ def module_router(moduleuri):
 ##########################################################
 
 
-def folder_get(folderuri, requesting_user_uri):
+def folder_get(folderuri, requesting_user_id):
     """
     return folder as an appropriate json based response string
 
@@ -422,8 +422,8 @@ def folder_get(folderuri, requesting_user_uri):
     (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes
         on backend.py
     """
-    fldr = model.obj_from_urn(folderuri, g.user_details['user_uri'])
-    fldr_complex = fldr.__complex__(g.user_details['user_uri'])
+    fldr = model.obj_from_urn(folderuri, g.user_details['user_id'])
+    fldr_complex = fldr.__complex__(g.user_details['user_id'])
 
     resp = flask.make_response(json.dumps(fldr_complex))
     resp.content_type = 'application/json; charset=utf-8'
@@ -431,17 +431,17 @@ def folder_get(folderuri, requesting_user_uri):
     return resp
 
 
-def generic_get(uri, requesting_user_uri):
-    # mod = model.get_by_id(klass, uri, requesting_user_uri)
-    mod = model.obj_from_urn(uri, requesting_user_uri)
+def generic_get(uri, requesting_user_id):
+    # mod = model.get_by_id(klass, uri, requesting_user_id)
+    mod = model.obj_from_urn(uri, requesting_user_id)
     resp = flask.make_response(json.dumps(
-                               mod.__complex__(requesting_user_uri)))
+                               mod.__complex__(requesting_user_id)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
     return resp
 
 
-def generic_post(klass, payload_as_dict, requesting_user_uri):
+def generic_post(klass, payload_as_dict, requesting_user_id):
     """Post an appropriately formatted dict to klass
 
     .. todo::
@@ -449,9 +449,9 @@ def generic_post(klass, payload_as_dict, requesting_user_uri):
        it to be recreated.
 
     """
-    owner = requesting_user_uri
+    owner = requesting_user_id
     fldr = model.post_o(klass, payload_as_dict,
-                        requesting_user_uri=owner)
+                        requesting_user_id=owner)
     resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
@@ -459,21 +459,21 @@ def generic_post(klass, payload_as_dict, requesting_user_uri):
 
 
 def generic_put(klass, resource_uri, payload_as_dict,
-                requesting_user_uri):
+                requesting_user_id):
 
-    owner = requesting_user_uri
+    owner = requesting_user_id
     fldr = model.put_o(payload_as_dict, klass, resource_uri,
-                       requesting_user_uri=owner)
+                       requesting_user_id=owner)
     resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
     return resp
 
 
-def generic_delete(uri, requesting_user_uri):
+def generic_delete(uri, requesting_user_id):
     """ """
-    owner = requesting_user_uri
-    model.delete_o(uri, requesting_user_uri=owner)
+    owner = requesting_user_id
+    model.delete_o(uri, requesting_user_id=owner)
     resp = flask.make_response("%s is no more" % uri)
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
