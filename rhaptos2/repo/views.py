@@ -76,10 +76,7 @@ def requestid():
     ### Before the app.__call__ is called, perform processing of user auth
     ### status.  If this throws err, we redirect or similar, else __call__ app
     ### proceeds
-    try:
-        resp = auth.handle_user_authentication(request)
-    except Exception, e:
-        raise e
+    resp = auth.handle_user_authentication(request)
     if resp is not None:
         if hasattr(resp, "__call__") is True:
             return resp
