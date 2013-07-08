@@ -38,7 +38,7 @@ lgr = logging.getLogger(__name__)
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
-                           sessioncache, dolog,
+                           sessioncache,
                            weblogging)
 from webtest import TestApp, TestRequest
 import cookielib
