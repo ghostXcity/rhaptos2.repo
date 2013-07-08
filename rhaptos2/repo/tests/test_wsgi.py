@@ -132,11 +132,10 @@ def capture_conversation(webob_request, webob_response):
 
     restrest assumes you are sending in webob objects
     """
-    pass
-    #rst = restrest.restrest(webob_request, webob_response, shortformat=False)
-    #fo = open("/tmp/output.rst", "a")
-    #fo.write(rst)
-    #fo.close()
+    rst = restrest.restrest(webob_request, webob_response, shortformat=False)
+    fo = open("/tmp/output.rst", "a")
+    fo.write(rst)
+    fo.close()
 
 def parse_args():
     parser = OptionParser()
