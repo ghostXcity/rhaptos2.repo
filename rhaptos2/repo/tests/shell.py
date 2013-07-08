@@ -7,10 +7,10 @@ from rhaptos2.repo.tests import decl
 from rhaptos2.repo.backend import db_session
 from rhaptos2.common import conf
 from rhaptos2.repo import sessioncache
-d = {'pghost':'127.0.0.1',
-     'pgusername':'repo',
-     'pgpassword':'repopass',
-     'pgdbname':'dbtest'}
+d = {'pghost': '127.0.0.1',
+     'pgusername': 'repo',
+     'pgpassword': 'repopass',
+     'pgdbname': 'dbtest'}
 
 sessioncache.set_config(d)
 

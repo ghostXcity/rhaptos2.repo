@@ -30,15 +30,15 @@ should declare the causes which impel them to the separation.</p>
 """,
 
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "editors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]         
+         ['Paula Nancy Millstone Jennings', ]
 
          }
 
@@ -69,15 +69,15 @@ such Government, and to provide new Guards for their future
 security.</p>
 """,
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "editors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]         
+         ['Paula Nancy Millstone Jennings', ]
 
          }
 
@@ -195,15 +195,15 @@ act which may define a Tyrant, is unfit to be the ruler of a free
 people.
 """,
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "editors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]  
+         ['Paula Nancy Millstone Jennings', ]
 
          }
 
@@ -225,15 +225,15 @@ mankind, Enemies in War, in Peace Friends.</p>
 
 """,
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "authors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]         
+         ['Paula Nancy Millstone Jennings', ]
          }
 
 
@@ -257,15 +257,15 @@ Lives, our Fortunes and our sacred Honor.</p>
 
 """,
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "editors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]  
+         ['Paula Nancy Millstone Jennings', ]
 
          }
 
@@ -288,15 +288,15 @@ sect6 = {"id_":  "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
     Georgia: Button Gwinnett, Lyman Hall, George Walton
 """,
          "authors":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
+         ["Paula Nancy Millstone Jennings", ],
          "editors":
-          ['Paula Nancy Millstone Jennings',],
+         ['Paula Nancy Millstone Jennings', ],
          "translators":
-          ['Paula Nancy Millstone Jennings',]
+         ['Paula Nancy Millstone Jennings', ]
 
          }
 
@@ -310,7 +310,7 @@ fldr = {"id_":      "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707",
                     "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae",
                     "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389",
                     "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
-                    ],
+                 ],
         }
 
 collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
@@ -320,18 +320,18 @@ collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
               "subjects": ["Social Sciences", ],
               "keywords": ["Life", "Liberty", "Happiness"],
               "summary": "No.",
-              
-         "authors":
-          ["Paula Nancy Millstone Jennings", ],
-         "maintainers":
-          ["Paula Nancy Millstone Jennings", ],
-         "copyrightHolders":
-          ["Paula Nancy Millstone Jennings", ],
-         "editors":
-          ['Paula Nancy Millstone Jennings',],
-         "translators":
-          ['Paula Nancy Millstone Jennings',],  
-              
+
+              "authors":
+              ["Paula Nancy Millstone Jennings", ],
+              "maintainers":
+              ["Paula Nancy Millstone Jennings", ],
+              "copyrightHolders":
+              ["Paula Nancy Millstone Jennings", ],
+              "editors":
+              ['Paula Nancy Millstone Jennings', ],
+              "translators":
+              ['Paula Nancy Millstone Jennings', ],
+
               "body": '''<ul><li><a href="cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126">Introduction</li>
 <li><a href="cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b">Preamble</li>
 <li><a href="cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6">Indictment</li>
@@ -339,14 +339,13 @@ collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
 <li><a href="cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389">Conclusion</li>
 <li><a href="cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8">Signatures</li>
 </ul>'''
-              
+
               }
 
 collection_small = copy.deepcopy(collection)
 collection_small['body'] = '''<ul><li><a href="cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126">Introduction</li>
 <li><a href="cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b">Preamble</li>
 </ul>'''
-
 
 
 declarationdict = {"sect1": sect1, "sect2": sect2,
@@ -388,4 +387,3 @@ acllist = [
      'user_id': users['michael'].useruri,
      'role_type': 'aclro'}
 ]
-

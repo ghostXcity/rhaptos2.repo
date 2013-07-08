@@ -106,6 +106,7 @@ def apply_cors(resp_as_pytype):
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
+
 def logging_endpoint():
     """
     this is /logging - it will take a POST of json doc and pass it
@@ -114,8 +115,8 @@ def logging_endpoint():
     payld_as_json = obtain_payload(request)
     weblogging.logging_router(payld_as_json)
     return ""
-    
-    
+
+
 def index():
     """
     .. dicussion::

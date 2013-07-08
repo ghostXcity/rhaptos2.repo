@@ -43,7 +43,7 @@ Why would we want the log to be SSL protected? Might be an idea?
 
 The common metric of simply adding one to a global counter
 is shown here.  We are capturing the number of times anyone
-types in the word penguin.  
+types in the word penguin.
 
     {'message-type':'metric',
      'log-message':null,
@@ -122,19 +122,21 @@ def configure_weblogging(confd):
     """
     configure_statsd(confd)
 
+
 def configure_statsd(confd):
     """
     """
     import statsd
     global stats_client_connected
-    stats_client_connected = statsd.StatsClient(confd['globals']['statsd_host'],
-                           confd['globals']['statsd_port'])
+    stats_client_connected = statsd.StatsClient(
+        confd['globals']['statsd_host'],
+        confd['globals']['statsd_port'])
 
 
 ## called by application startup
 def validate_msg_return_dict(json_formatted_payload):
     """
-    >>> 
+    >>>
     >>> payload_good = '''{"message-type":"log",
     ...            "log-message":"This is log msg",
     ...            "metric-label": null,
@@ -157,47 +159,49 @@ def validate_msg_return_dict(json_formatted_payload):
     else:
         return (payload, True)
 
-    
+
 def logging_router(json_formatted_payload):
     """pass in a json message, this will check it, then action the message.
     """
-    #validate and convert to dict
+    # validate and convert to dict
     payload, isValid = validate_msg_return_dict(json_formatted_payload)
     if not isValid:
-        return 
+        return
     if payload['message-type'] == 'log':
         log_endpoint(payload)
     elif payload['message-type'] == 'metric':
         metric_endpoint(payload)
     else:
-        lgr.error("message-type supplied was %s - not supported." % payload['message-type'])
-        
+        lgr.error("message-type supplied was %s - not supported." %
+                  payload['message-type'])
+
+
 def log_endpoint(payload):
     """
     given a dict, log it to syslog
-    
+
     """
     msg_dict = payload
     try:
         lgr.warn(msg_dict['log-message'])
-    except Exception,e:
+    except Exception, e:
         lgr.error("/logging recvd incorrect log payload %s" % repr(payload))
-    
+
 
 def metric_endpoint(payload):
     """
     given a dict, fire off to statsd
-    
+
     """
-    try:    
+    try:
         if msg_dict['metric-type'] == 'incr':
             stats_client_connected.incr(msg_dict['metric-label'])
         else:
-            lgr.error("/metric not support metric-type of %s" % msg_dict['metric-type'])
+            lgr.error("/metric not support metric-type of %s" %
+                      msg_dict['metric-type'])
     except Exception, e:
         lgr.error("Failed to log incoming metric %s" % repr(payload))
-                  
-    
+
 
 if __name__ == '__main__':
     import doctest

@@ -42,7 +42,6 @@ Output is returned to you from restrest, do with it what you will.
 """
 
 
-
 def sanestr(s, cutoff=55):
     """When printing headers and content
        replace reams of text with ellipsis and otherwise neaten stuff up"""
@@ -55,10 +54,10 @@ def sanestr(s, cutoff=55):
 
 def format_req_body(txt):
     """ """
-    if txt == None or len(txt)==0:
+    if txt == None or len(txt) == 0:
         return ""
     else:
-        #assume its a json dict
+        # assume its a json dict
         s = "\n\nBody::\n\n"
         try:
             pydatatype = json.loads(txt)
@@ -68,6 +67,7 @@ def format_req_body(txt):
             return s + indenttxt(jsonstr)
         except:
             return s + indenttxt(txt)
+
 
 def format_req(req):
     """Neatly format the request """
@@ -85,13 +85,16 @@ def format_req(req):
 
     return s + body
 
+
 def indenttxt(txt, indent=4):
     indentedtxt = ''
-    if not txt: return indentedtxt
+    if not txt:
+        return indentedtxt
 
     for line in txt.split("\n"):
         indentedtxt += " "*indent + sanestr(line, 79) + "\n"
     return indentedtxt
+
 
 def format_content(resp):
     """ """
@@ -99,13 +102,13 @@ def format_content(resp):
         d = resp.json()
         txt = json.dumps(d, sort_keys=True, indent=4)
     except:
-        #ok not json. Likely mass of html, or non existent
+        # ok not json. Likely mass of html, or non existent
         try:
             txt = resp.text[:55] + "..."
         except AttributeError, e:
             lgr.info("Failed to get text from response - %s" % str(e))
             txt = "null"
-        
+
     return indenttxt(txt)
 
 
@@ -120,6 +123,7 @@ def format_resp(resp):
 
     return s
 
+
 def restrest(req, resp, shortformat=True):
     """Simple tool to document a HTTP "conversation" using the
        requests library
@@ -128,20 +132,20 @@ def restrest(req, resp, shortformat=True):
             restrest(resp)
 
     At the moment only supporting WebOb, requests was originally supported
-    
+
     :params req: a request object of WebOb type
-    :params resp: a response object of WebOb type    
+    :params resp: a response object of WebOb type
     :params shortformat: Boolean.  If True output more readable
                          body and headers, replacing extra text with ellipsis
                          If false output everything as is.
        """
 
-    ### Quick dirty solution 
+    ### Quick dirty solution
     if not shortformat:
         req_str = str(req)
         resp_str = str(resp)
-        req_str = "    "+ req_str.replace("\n", "\n    ")
-        resp_str = "    "+ resp_str.replace("\n", "\n    ")        
+        req_str = "    " + req_str.replace("\n", "\n    ")
+        resp_str = "    " + resp_str.replace("\n", "\n    ")
     else:
         req_str = format_req(req)
         resp_str = format_resp(resp)
@@ -151,6 +155,5 @@ def restrest(req, resp, shortformat=True):
 
 if __name__ == '__main__':
 
-    resp = requests.get("http://www.google.com", data={"foo":"bar"})
+    resp = requests.get("http://www.google.com", data={"foo": "bar"})
     print restrest(resp.request, resp)
-
