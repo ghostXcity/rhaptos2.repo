@@ -194,7 +194,7 @@ def handle_user_authentication(flask_request):
     if flask_request.path in DMZ_PATHS:
         return None
 
-    lgr.error("Auth test for %s" % flask_request.path)
+    lgr.info("Auth test for %s" % flask_request.path)
 
     ### convert the cookie to a registered users details
     try:
@@ -261,12 +261,12 @@ def lookup_session(sessid):
             or Error if lookup failed for other reason.
 
     """
-    lgr.error("begin look up sessid %s in cache" % sessid)
+    lgr.info("begin look up sessid %s in cache" % sessid)
     try:
         userd = sessioncache.get_session(sessid)
-        lgr.error("we got this from session lookup %s" % str(userd))
+        lgr.info("we got this from session lookup %s" % str(userd))
         if userd:
-            lgr.error("We attempted to look up sessid %s in cache SUCCESS" %
+            lgr.info("We attempted to look up sessid %s in cache SUCCESS" %
                       sessid)
             return userd
         else:
@@ -292,7 +292,7 @@ def user_uuid_to_user_details(ai):
     """
     user_details = {'user_id': ai}
 
-    lgr.error("Have created user_details dict %s " % user_details)
+    lgr.info("Have created user_details dict %s " % user_details)
     return user_details
 
 

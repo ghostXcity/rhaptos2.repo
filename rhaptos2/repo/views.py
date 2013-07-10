@@ -193,9 +193,9 @@ def workspaceGET():
         abort(403)
     else:
         wout = {}
-        lgr.error("Calling workspace with %s" % userd['user_id'])
+        lgr.info("Calling workspace with %s" % userd['user_id'])
         w = model.workspace_by_user(userd['user_id'])
-        lgr.error(repr(w))
+        lgr.info(repr(w))
         ## w is a list of models (folders, cols etc).
         # it would require some flattening or a JSONEncoder but we just want
         # short form for now
@@ -294,7 +294,7 @@ def obtain_payload(werkzeug_request_obj):
 def folder_router(folderuri):
     """
     """
-    lgr.error("In folder router, %s" % request.method)
+    lgr.info("In folder router, %s" % request.method)
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
@@ -329,7 +329,7 @@ def folder_router(folderuri):
 def collection_router(collectionuri):
     """
     """
-    lgr.error("In collection router, %s" % request.method)
+    lgr.info("In collection router, %s" % request.method)
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
@@ -364,7 +364,7 @@ def collection_router(collectionuri):
 def module_router(moduleuri):
     """
     """
-    lgr.error("In module router, %s" % request.method)
+    lgr.info("In module router, %s" % request.method)
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 

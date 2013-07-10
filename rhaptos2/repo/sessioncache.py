@@ -367,7 +367,7 @@ def get_session(sessionid):
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
-    lgr.error("lookup %s type %s" % (sessionid, type(sessionid)))
+    lgr.info("lookup %s type %s" % (sessionid, type(sessionid)))
 
     SQL = """SELECT userdict FROM session_cache WHERE sessionid = %s
              AND CURRENT_TIMESTAMP BETWEEN

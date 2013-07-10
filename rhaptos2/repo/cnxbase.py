@@ -277,17 +277,17 @@ class CNXBase():
         del_uris = set_curr_uris - set_proposed_uris
         add_uris = set_proposed_uris - set_curr_uris
 
-        lgr.error(str(set_proposed_uris))
-        lgr.error(str(set_curr_uris))
+        lgr.info(str(set_proposed_uris))
+        lgr.info(str(set_curr_uris))
 
         for user_id in add_uris:
-            lgr.error("will add following: %s" % str(add_uris))
+            lgr.info("will add following: %s" % str(add_uris))
             self.adduserrole(self.userroleklass,
                              {'user_id': user_id,
                               'role_type': 'aclrw'},
                              requesting_user_id=requesting_user_id)
         for user_id in del_uris:
-            lgr.error("will deelte following: %s" % str(del_uris))
+            lgr.info("will deelte following: %s" % str(del_uris))
             self.prep_delete_userrole(user_id)
 
     def adduserrole(self, userrole_klass, usrdict, requesting_user_id):
@@ -409,7 +409,7 @@ class CNXBase():
             else:
                 # At last!
                 s += "SUCCESS user in valid list %s" % str(valid_user_list)
-                lgr.error(s)
+                lgr.info(s)
                 return True
 ###
 
@@ -427,7 +427,7 @@ def simple_xss_validation(html_fragment):
     """
 
     whitelist = string.ascii_letters + string.digits + "-" + string.whitespace
-    lgr.error("Start XSS whitelist - %s" % html_fragment)
+    lgr.info("Start XSS whitelist - %s" % html_fragment)
     for char in html_fragment:
         if char not in whitelist:
             lgr.error("Failed XSS whitelist - %s" % html_fragment)
