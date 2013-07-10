@@ -18,10 +18,14 @@ To acquire the application from anywhere in this package or extra packages,
 use the `get_app` function.
 
 """
+## root logger set in application startup
 import logging
+lgr = logging.getLogger(__name__)
+import os
+
 from flask import Flask, g
-from rhaptos2.repo import log
 import pkg_resources
+import socket
 
 
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
@@ -51,6 +55,7 @@ def assign_routing_rules(app):
     Avoid having to have a wsgi / flask app in global namespace of views.
     We need to replace decorators that assume app already exists at import (or decorator first call time)
 
+    FIXME - tidy this up!
     """
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
@@ -64,8 +69,12 @@ def assign_routing_rules(app):
         "/version/", view_func=views.versionGET, methods=['GET', ])
     app.add_url_rule(
         "/autosession", view_func=views.auto_session, methods=['GET', ])
+    app.add_url_rule(
+        "/tempsession", view_func=views.temp_session, methods=['GET', ])
+
     app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
+    app.add_url_rule("/home", view_func=views.home, methods=['GET', ])
 
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
@@ -89,10 +98,11 @@ def assign_routing_rules(app):
 
 def make_app(config, as_standalone=False):
     """WSGI application factory
-    The ``as_standalone`` parameter is used to tell the factory to serve the
-    static Authoring Tools Client (ATC) client JavaScript code from a
-    directory. In a deployed situation this would normally be configured
-    and served by the webserver.
+
+    The ``as_standalone`` parameter (toggled by `--devserver` in commandline) is
+    used to tell the factory to serve the static Authoring Tools Client (ATC)
+    client JavaScript code from a directory. In a deployed situation this would
+    normally be configured and served by the webserver.
 
     """
     app = Flask(__name__)
@@ -101,96 +111,86 @@ def make_app(config, as_standalone=False):
 
     # Try to set up logging. If not connected to a network this throws
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
+    # Silences too much, tried to be specific.
     try:
         set_up_logging(app)
-    except:
+    except socket.gaierror, se:
         pass
+    except Exception, e:
+        raise e
 
     # Set the application
     app = set_app(app)
 
-    # Initialize the views
-    # This import circular avoidinace trick is horrible
-    # I will review log and import process and want to put it all in a single
-    # setup in run.
-    from rhaptos2.repo import auth  # noqa
-    from rhaptos2.repo import views  # noqa
-
     return app
-
-
-def dolog(lvl, msg, caller=None, statsd=None):
-    """wrapper function purely for adding context to log stmts
-
-    I am trying to keep this simple, no parsing of the stack etc.
-
-    caller is the function passed when the dolog func is called.  We
-    jsut grab its name extras is likely to hold a list of strings that
-    are the buckets
-
-
-    >>> dolog("ERROR", "whoops", os.path.isdir, ['a.b.c',])
-
-    """
-
-    lvls = {
-        "CRITICAL": 50,
-        "ERROR": 40,
-        "WARNING": 30,
-        "INFO": 20,
-        "DEBUG": 10,
-        "NOTSET": 0
-    }
-    try:
-        goodlvl = lvls[lvl]
-    except:
-        goodlvl = 20  # !!!
-
-    # create an extras dict, that holds curreent user, request and action notes
-    if caller:
-        calledby = "rhaptos2.loggedin." + str(caller.__name__)
-    else:
-        calledby = "rhaptos2.loggedin.unknown"
-
-    if statsd:
-        statsd.append(calledby)
-    else:
-        statsd = [calledby, ]
-
-    try:
-        request_id = g.request_id
-    except:
-        request_id = "no_request_id"
-
-    try:
-        user_id = g.userID
-    except:
-        user_id = "no_user_id"
-
-    extra = {'statsd': statsd,
-             'user_id': user_id,
-             'request_id': request_id}
-
-    try:
-        _app.logger.log(goodlvl, msg, extra=extra)
-    except Exception, e:
-        print extra, msg, e
 
 
 def set_up_logging(app):
     """Set up the logging within the application.
 
+    We have three logging outputs - console, filesystem and syslog
+    syslog is only expected to exist for production purposes.
+    console by default logs only errors and is a convenience for developoers
+    filesystem is for digging deeper.
+
+    They are controlled via the following in .ini files::
+
+        loglevel = DEBUG
+        use_logging = Y
+        log_to_console = Y
+
+        log_to_filesystem = Y
+        local_log_dir = /opt/cnx/log/
+
+        log_to_syslog = Y
+        syslogfile = /dev/log
+
+
     """
     config = app.config
 
-    # Define the logging handlers
-    stream_handler = logging.StreamHandler()
+    default_formatter = logging.Formatter(
+        "%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
-    # Define the log formatting.
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s  "
-                                  "- %(message)s")
+    ### root logger - used everywhere *except*
+    ### log messages sent during configuration collection.
+    root = logging.getLogger(__name__)
+    root.setLevel(config['globals']['loglevel'])
 
-    stream_handler.setFormatter(formatter)
-    # Set the handlers on the application.
-    for handler in (stream_handler,):
-        app.logger.addHandler(handler)
+    ### console output - turn off in config, simplified output.
+    if config['globals']['log_to_console'] == 'Y':
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.ERROR)
+        console_handler.setFormatter("%(levelname)s : %(message)s")
+        root.addHandler(console_handler)
+
+    ## write to syslog - defaults to INFO
+    if config['globals']['log_to_syslog'] == 'Y':
+        syslog_handler = logging.handlers.SysLogHandler(
+            address=config['globals']['syslogfile'])
+        syslog_handler.setLevel(logging.INFO)
+        syslog_handler.setFormatter(default_formatter)
+        root.addHandler(syslog_handler)
+
+    ### local file loggers for development
+    ### eventlog records everything, errorlog just for errors
+    if config['globals']['log_to_filesystem'] == 'Y':
+
+        eventlogpath = os.path.join(config['globals']['local_log_dir'],
+                                    "repo-error.log")
+
+        errlogpath = os.path.join(config['globals']['local_log_dir'],
+                                  "repo-error.log")
+
+        error_handler = logging.FileHandler(errlogpath, "a")
+        error_handler.setLevel(logging.ERROR)
+        error_handler.setFormatter(default_formatter)
+
+        event_handler = logging.FileHandler(eventlogpath, "a")
+        event_handler.setLevel(logging.INFO)
+        event_handler.setFormatter(default_formatter)
+
+        root.addHandler(error_handler)
+        root.addHandler(event_handler)
+
+    root.info("logger set up on %s as %s" % (__name__, str(root)))

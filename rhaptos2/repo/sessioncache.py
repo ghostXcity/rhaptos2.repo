@@ -141,18 +141,14 @@ Standalone usage
 >>>
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import psycopg2
 import json
 import datetime
 from err import Rhaptos2Error,  Rhaptos2NoSessionCookieError
-
-import logging
-lgr = logging.getLogger("sessmodule")
-
-
-def dolog(lvl, msg):
-    lgr.info(msg)
-
 
 #### (set to one hour for now)
 FIXED_SESSIONDURATION_SECS = 3600
@@ -221,13 +217,13 @@ def getconn():
 
     """
     try:
-        dolog("INFO", "CONFD is %s" % str(CONFD))
         conn = psycopg2.connect(host=CONFD['pghost'],
                                 database=CONFD['pgdbname'],
                                 user=CONFD['pgusername'],
                                 password=CONFD['pgpassword'])
     except psycopg2.Error, e:
-        dolog("INFO", "Error making pg conn - %s" % str(e))
+        lgr.error("Error making pg conn - %s - config was %s" %
+                  str(e), CONFD)
         raise e
 
     return conn
@@ -309,7 +305,7 @@ def set_session(sessionid, userd):
     FIXME: bring comaprison into python for portability across cache stores.
 
     """
-    dolog("DEBUG", "sessioncache-setsession")
+    lgr.info("sessioncache-setsession")
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
@@ -323,7 +319,7 @@ def set_session(sessionid, userd):
                                         , CURRENT_TIMESTAMP
                                         , CURRENT_TIMESTAMP + INTERVAL '%s SECONDS');"""
     try:
-        dolog("DEBUG", "sessioncache - %s" % repr(userd.keys()))
+        lgr.info("sessioncache - %s" % repr(userd.keys()))
         exec_stmt(SQL, [sessionid,
                         json.dumps(userd),
                         FIXED_SESSIONDURATION_SECS
@@ -371,7 +367,7 @@ def get_session(sessionid):
     if not validate_uuid_format(sessionid):
         raise Rhaptos2Error(
             "Incorrect UUID format for sessionid %s" % sessionid)
-    dolog("INFO", "lookup %s type %s" % (sessionid, type(sessionid)))
+    lgr.info("lookup %s type %s" % (sessionid, type(sessionid)))
 
     SQL = """SELECT userdict FROM session_cache WHERE sessionid = %s
              AND CURRENT_TIMESTAMP BETWEEN
@@ -402,7 +398,6 @@ def _fakesessionusers(sessiontype='fixed'):
 [u'interests', u'user_id', u'suffix', u'firstname', u'title', u'middlename', u'lastname', u'imageurl', u'identifiers', u'affiliationinstitution_url', u'email', u'version', u'location', u'recommendations', u'preferredlang', u'affiliationinstitution', u'otherlangs', u'homepage', u'fullname', u'biography']
 
     """
-    print "Calling fake sessioon"
     developertmpl = """{"interests": null,
                         "identifiers": [{"identifierstring":  "https://%(name)s.myopenid.com",
                                          "user_id": "%(uri)s",
@@ -424,8 +419,8 @@ def _fakesessionusers(sessiontype='fixed'):
                    "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
                    "fakesessionid": "00000000-0000-0000-0000-000000000001"
                    },
-                  {"name": "edwoodward",
-                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
+                  {"name": "pumazi",
+                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924",
                    "fakesessionid": "00000000-0000-0000-0000-000000000002"
                    }
                   ]

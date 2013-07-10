@@ -76,6 +76,10 @@ So, this basically implies a protocol for objects / classes
 
 """
 
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 from sqlalchemy import (ForeignKey,
                         Column, String,
                         Enum, DateTime,
@@ -84,7 +88,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 import uuid
 from cnxbase import CNXBase
-from rhaptos2.repo import dolog
 from rhaptos2.repo.backend import Base, db_session
 from err import (Rhaptos2Error,
                  Rhaptos2SecurityError,
@@ -102,15 +105,15 @@ class UserRoleCollection(Base, CNXBase):
     __tablename__ = 'userrole_collection'
     collection_uuid = Column(String, ForeignKey('cnxcollection.id_'),
                              primary_key=True)
-    user_uri = Column(String, primary_key=True)
+    user_id = Column(String, primary_key=True)
     role_type = Column(Enum('aclrw', 'aclro', name="cnxrole_type"),
                        primary_key=True)
     beginDateUTC = Column(DateTime)
     endDateUTC = Column(DateTime)  # noqa
-    UniqueConstraint(collection_uuid, user_uri, name="uniq_collection_user")
+    UniqueConstraint(collection_uuid, user_id, name="uniq_collection_user")
 
     def __repr__(self):
-        return "%s-%s" % (self.role_type, self.user_uri)
+        return "%s-%s" % (self.role_type, self.user_id)
 
 
 class Collection(Base, CNXBase):
@@ -139,18 +142,19 @@ class Collection(Base, CNXBase):
     userroles = relationship("UserRoleCollection",
                              backref="cnxcollection",
                              cascade="all, delete-orphan")
-    
-    ### cheat to ensure can use a CNXBase function instead of 3 repeted code chunks
+
+    # cheat to ensure can use a CNXBase function instead of 3 repeted code
+    # chunks
     userroleklass = UserRoleCollection
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """ """
         self.userroleklass = UserRoleCollection
         self.mediaType = "application/vnd.org.cnx.collection"
         if creator_uuid:
             self.adduserrole(UserRoleCollection,
-                             {'user_uri': creator_uuid, 'role_type': 'aclrw'},
-                             requesting_user_uri=creator_uuid)
+                             {'user_id': creator_uuid, 'role_type': 'aclrw'},
+                             requesting_user_id=creator_uuid)
         else:
             raise Rhaptos2Error("Foldersmust be created with a creator UUID ")
 
@@ -178,10 +182,7 @@ class Collection(Base, CNXBase):
     #     db_session.commit()
 
 
-        
-
 ################# Modules ##################################
-
 class UserRoleModule(Base, CNXBase):
 
     """The roles and users assigned for a given folder
@@ -189,16 +190,16 @@ class UserRoleModule(Base, CNXBase):
     __tablename__ = 'userrole_module'
     module_uri = Column(String, ForeignKey('cnxmodule.id_'),
                         primary_key=True)
-    user_uri = Column(String, primary_key=True)
+    user_id = Column(String, primary_key=True)
     role_type = Column(Enum('aclrw', 'aclro',
                             name="cnxrole_type"),
                        )
     beginDateUTC = Column(DateTime)
     endDateUTC = Column(DateTime)  # noqa
-    UniqueConstraint(module_uri, user_uri, name="uniq_mod_user")
+    UniqueConstraint(module_uri, user_id, name="uniq_mod_user")
 
     def __repr__(self):
-        return "%s-%s" % (self.role_type, self.user_uri)
+        return "%s-%s" % (self.role_type, self.user_id)
 
 
 class Module(Base, CNXBase):
@@ -234,13 +235,12 @@ class Module(Base, CNXBase):
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
     googleTrackingID = Column(String)
-    
+
     userroles = relationship("UserRoleModule",
                              backref="cnxmodule",
                              cascade="all, delete-orphan")
     userroleklass = UserRoleModule
-    
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """
         setup a Module - validate given ID, extract data from db if needed
@@ -254,8 +254,8 @@ class Module(Base, CNXBase):
 
         if creator_uuid:
             self.adduserrole(UserRoleModule,
-                             {'user_uri': creator_uuid, 'role_type': 'aclrw'},
-                             requesting_user_uri=creator_uuid)
+                             {'user_id': creator_uuid, 'role_type': 'aclrw'},
+                             requesting_user_id=creator_uuid)
         else:
             raise Rhaptos2Error("Modules need owner provided at init ")
 
@@ -264,9 +264,9 @@ class Module(Base, CNXBase):
         else:
             self.id_ = "cnxmodule:" + str(uuid.uuid4())
         self.dateCreatedUTC = self.get_utcnow()
-        super(Base, self).__init__()#trigger all SQLA Base calss inits.
-        #self.save(db_session) #SAve to disk.
-        
+        super(Base, self).__init__()  # trigger all SQLA Base calss inits.
+        # self.save(db_session) #SAve to disk.
+
     def __repr__(self):
         return "Module:(%s)-%s" % (self.id_, self.title)
 
@@ -294,21 +294,21 @@ class UserRoleFolder(Base, CNXBase):
     :todo: storing timezones naively here needs fixing
 
 
-    
+
     """
     __tablename__ = 'userrole_folder'
     folder_uuid = Column(String, ForeignKey('cnxfolder.id_'),
                          primary_key=True)
-    user_uri = Column(String, primary_key=True)
+    user_id = Column(String, primary_key=True)
     role_type = Column(Enum('aclrw', 'aclro',
                        name="cnxrole_type"),
                        primary_key=True)
     beginDateUTC = Column(DateTime)
     endDateUTC = Column(DateTime)
-    UniqueConstraint(folder_uuid, user_uri, name="uniq_fldr_user")
+    UniqueConstraint(folder_uuid, user_id, name="uniq_fldr_user")
 
     def __repr__(self):
-        return "%s-%s" % (self.role_type, self.user_uri)
+        return "%s-%s" % (self.role_type, self.user_id)
 
 
 class Folder(Base, CNXBase):
@@ -327,19 +327,20 @@ class Folder(Base, CNXBase):
     userroles = relationship("UserRoleFolder",
                              backref="cnxfolder",
                              cascade="all, delete-orphan")
-    
+
     userroleklass = UserRoleFolder
-    
+
     def __init__(self, id_=None, creator_uuid=None):
         """ """
-        ### A cheat really - need to access this later on and not sure how to extrac t from SQLA
+        # A cheat really - need to access this later on and not sure how to
+        # extrac t from SQLA
         self.userroleklass = UserRoleFolder
         self.mediaType = "application/vnd.org.cnx.folder"
 
         if creator_uuid:
             self.adduserrole(UserRoleFolder,
-                             {'user_uri': creator_uuid, 'role_type': 'aclrw'},
-                             requesting_user_uri=creator_uuid)
+                             {'user_id': creator_uuid, 'role_type': 'aclrw'},
+                             requesting_user_id=creator_uuid)
         else:
             raise Rhaptos2Error("Foldersmust be created with a creator UUID ")
         if id_:
@@ -362,10 +363,7 @@ class Folder(Base, CNXBase):
     #     db_session.add(self)
     #     db_session.commit()
 
-         
-
-            
-    def __complex__(self, requesting_user_uri, softform=True):
+    def __complex__(self, requesting_user_id, softform=True):
         """overwrite the std __complex__, and become recursive
 
         The "body" of a folder is a array of uris to other items (list of
@@ -392,29 +390,29 @@ class Folder(Base, CNXBase):
 
         """
         if not softform:
-            return super(Folder, self).__complex__(requesting_user_uri, softform)
+            return super(Folder, self).__complex__(requesting_user_id, softform)
 
         short_format_list = []
         if self.body:
             for urn in self.body:
                 try:
-                    subfolder = obj_from_urn(urn, requesting_user_uri)
+                    subfolder = obj_from_urn(urn, requesting_user_id)
                     short_format_list.append({"id": subfolder.id_,
                                               "title": subfolder.title,
                                               "mediaType": subfolder.mediaType})
                     ### exceptions: if you cannot read a single child item
                     ### we still want to return rest of the folder
                 except Rhaptos2SecurityError, e:
-                    dolog("INFO", "Error thrown in folder recursion %s" % e)
+                    lgr.error("Error thrown in folder recursion %s" % e)
                 except Rhaptos2Error, e:
-                    dolog("INFO", "Error thrown in folder recursion %s" % e)
+                    lgr.error("Error thrown in folder recursion %s" % e)
                     # todo: should we be ignoring bnroken links??
                 except Exception, e:
                     raise e
 
         ## so get the object as a json-suitable python object
         ## now alter the body to be the result of recursive ouutpu
-        fldr = super(Folder, self).__complex__(requesting_user_uri)
+        fldr = super(Folder, self).__complex__(requesting_user_id)
         fldr['body'] = short_format_list
         return fldr
 
@@ -444,7 +442,7 @@ def klass_from_uri(URI):
     return mapper[val]
 
 
-def obj_from_urn(URN, requesting_user_uri, klass=None):
+def obj_from_urn(URN, requesting_user_id, klass=None):
     """
     THis is the refactored version of get_by_id
 
@@ -462,7 +460,7 @@ def obj_from_urn(URN, requesting_user_uri, klass=None):
         try:
             klass = klass_from_uri(URN)
         except:
-            dolog("INFO", "Failed getting klass %s" % URN)
+            lgr.error("Failed getting klass %s" % URN)
             abort(400)
 
     q = db_session.query(klass)
@@ -475,9 +473,9 @@ def obj_from_urn(URN, requesting_user_uri, klass=None):
         raise Rhaptos2Error("Too many matches")
 
     newu = rs[0]
-    if not change_approval(newu, {}, requesting_user_uri, "GET"):
+    if not change_approval(newu, {}, requesting_user_id, "GET"):
         raise Rhaptos2AccessNotAllowedError("user %s not allowed access to %s"
-                                            % (requesting_user_uri,
+                                            % (requesting_user_id,
                                                 URN))
     return newu
 
@@ -508,7 +506,7 @@ def obj_from_urn(URN, requesting_user_uri, klass=None):
 #     return newu
 
 
-def post_o(klass, incomingd, requesting_user_uri):
+def post_o(klass, incomingd, requesting_user_id):
     """Given a dict representing the complete set
     of fields then create a new user and those fields
 
@@ -517,46 +515,46 @@ def post_o(klass, incomingd, requesting_user_uri):
 
     returns User object, for later saveing to DB"""
 
-    u = klass(creator_uuid=requesting_user_uri)
+    u = klass(creator_uuid=requesting_user_id)
 
     # parser = verify_schema_version(None)
     # incomingd = parser(json_str)
-    u.populate_self(incomingd, requesting_user_uri=requesting_user_uri)
-    if not change_approval(u, incomingd, requesting_user_uri, "POST"):
+    u.populate_self(incomingd, requesting_user_id=requesting_user_id)
+    if not change_approval(u, incomingd, requesting_user_id, "POST"):
         abort(403)
     u.save(db_session)
     return u
 
 
-# def acl_setter(klass, uri, requesting_user_uri, acls_list):
+# def acl_setter(klass, uri, requesting_user_id, acls_list):
 #     """ """
-#     obj = get_by_id(klass, uri, requesting_user_uri)
-#     if not change_approval(obj, None, requesting_user_uri, "PUT"):
+#     obj = get_by_id(klass, uri, requesting_user_id)
+#     if not change_approval(obj, None, requesting_user_id, "PUT"):
 #         abort(403)
-#     obj.set_acls(requesting_user_uri, acls_list)
+#     obj.set_acls(requesting_user_id, acls_list)
 #     return obj
 
 
-def put_o(jsond, klass, ID, requesting_user_uri):
+def put_o(jsond, klass, ID, requesting_user_id):
     """Given a user_id, and a json_str representing the "Updated" fields
        then update those fields for that user_id """
 
-    uobj = obj_from_urn(ID, requesting_user_uri)
-    if not change_approval(uobj, jsond, requesting_user_uri, "PUT"):
-        dolog("INFO", "Failed change approval %s %s " % (ID, requesting_user_uri))
+    uobj = obj_from_urn(ID, requesting_user_id)
+    if not change_approval(uobj, jsond, requesting_user_id, "PUT"):
+        lgr.error("Failed change approval %s %s " % (ID, requesting_user_id))
         abort(403)
     #.. todo:: parser = verify_schema_version(None)
-    uobj.populate_self(jsond, requesting_user_uri=requesting_user_uri)
+    uobj.populate_self(jsond, requesting_user_id=requesting_user_id)
     uobj.save(db_session)
     return uobj
 
 
-def delete_o(resource_uri, requesting_user_uri):
+def delete_o(resource_uri, requesting_user_id):
     """ """
-    fldr = obj_from_urn(resource_uri, requesting_user_uri)
-    if not change_approval(fldr, None, requesting_user_uri, "DELETE"):
+    fldr = obj_from_urn(resource_uri, requesting_user_id)
+    if not change_approval(fldr, None, requesting_user_id, "DELETE"):
         raise Rhaptos2AccessNotAllowedError(
-            "User %s cannot delete %s" % (requesting_user_uri,
+            "User %s cannot delete %s" % (requesting_user_id,
                                           resource_uri))
     else:
         fldr.delete(db_session)
@@ -566,32 +564,32 @@ def close_session():
     db_session.remove()
 
 
-def change_approval(uobj, jsond, requesting_user_uri, requesttype):
+def change_approval(uobj, jsond, requesting_user_id, requesttype):
     """
     is the change valid for the given ACL context?
     returns True / False
 
     """
     return uobj.is_action_auth(action=requesttype,
-                               requesting_user_uri=requesting_user_uri)
+                               requesting_user_id=requesting_user_id)
 
 
-def workspace_by_user(user_uri):
+def workspace_by_user(user_id):
     """Its at times like these I just want to pass SQL in... """
 
     qm = db_session.query(Module)
     qm = qm.join(Module.userroles)
-    qm = qm.filter(UserRoleModule.user_uri == user_uri)
+    qm = qm.filter(UserRoleModule.user_id == user_id)
     rs1 = qm.all()
 
     qf = db_session.query(Folder)
     qf = qf.join(Folder.userroles)
-    qf = qf.filter(UserRoleFolder.user_uri == user_uri)
+    qf = qf.filter(UserRoleFolder.user_id == user_id)
     rs2 = qf.all()
 
     qc = db_session.query(Collection)
     qc = qc.join(Collection.userroles)
-    qc = qc.filter(UserRoleCollection.user_uri == user_uri)
+    qc = qc.filter(UserRoleCollection.user_id == user_id)
     rs3 = qc.all()
 
     rs1.extend(rs2)

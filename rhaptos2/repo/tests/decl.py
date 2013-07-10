@@ -361,7 +361,7 @@ declarationdict = {"sect1": sect1, "sect2": sect2,
 class tempuser(object):
     """We want to match the same details as in the user dbase.
        THis is for testing only - there is no ref int between repo and users
-       openid / Name / user_uri
+       openid / Name / user_id
     """
     def __init__(self, openid, name, useruri):
         self.openid = openid
@@ -380,12 +380,12 @@ users = {
 acllist = [
     {'beginDateUTC': None,
      'endDateUTC': None,
-     'user_uri': users['ross'].useruri,
+     'user_id': users['ross'].useruri,
      'role_type': 'aclro'},
 
     {'beginDateUTC': None,
      'endDateUTC': None,
-     'user_uri': users['michael'].useruri,
+     'user_id': users['michael'].useruri,
      'role_type': 'aclro'}
 ]
 

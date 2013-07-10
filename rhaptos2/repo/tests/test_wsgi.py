@@ -32,11 +32,16 @@ the request.  Seems to work fine.
 
 """
 
+import pprint
+import logging
+lgr = logging.getLogger(__name__)
 
 import decl, restrest
 from rhaptos2.repo import (make_app, backend,
-                           sessioncache, dolog)
+                           sessioncache)
 from webtest import TestApp, TestRequest
+import cookielib
+
 from wsgiproxy.app import WSGIProxyApp
 from optparse import OptionParser
 import urlparse
@@ -74,6 +79,7 @@ def setup():
     global TESTCONFIG
     global TESTAPP
 
+    ## Tests can alter decl. THis resets everything
     reload(decl)
     
     # using nose-testconfig we obtain the config dict passed in through the
@@ -83,15 +89,24 @@ def setup():
     TESTCONFIG = convert_config(config)
     initdb(TESTCONFIG)
 
+
+    lgr.info("TESTCONFG: %s" % pprint.pformat(TESTCONFIG))
+    lgr.info("config: %s" % pprint.pformat(config))
+    cj = cookielib.CookieJar()
+    
     if 'HTTPPROXY' in config.keys():
         app = WSGIProxyApp(config['HTTPPROXY'])
-        TESTAPP = TestApp(app, extra_environ={'REMOTE_ADDR': '1.2.3.4'})
+        TESTAPP = TestApp(app, extra_environ={'REMOTE_ADDR': '1.2.3.4'}, cookiejar=cj)
+        set_constants(config['HTTPPROXY'], TESTAPP)                        
     else:
         app = make_app(TESTCONFIG)
         app.debug = True
         sessioncache.set_config(config)
-        TESTAPP = TestApp(app.wsgi_app)
+        TESTAPP = TestApp(app.wsgi_app, cookiejar=cj)
+        set_constants("", TESTAPP)                
 
+
+        
 def funcsetup():
     """
     once per test
@@ -177,41 +192,66 @@ def build_environ():
 
 
 
-### session IDs - need to link to fixed auth.py
-def get_autosession():
+### get a anonymous session - sessionid and userid
+def get_anon_session(wapp):
     """
+    connect to the wsgi server, through HTTP or webtest, and obtain
+    a session and a user ID
+    
+    requests is a much easier api to use...
+    
     """
-    resp = requests.get(USERHOST + "/autosession")
-    sessionid = resp.cookies['cnxsessionid']
-    return str(sessionid)
+    
+    r1 = wapp.get("%s/autosession" % USERHOST)
+    lgr.info(">>>>><<<<<" + str(r1))
+    lgr.info("222>>>>><<<<<" + str(wapp.cookies))
+    sessionid = wapp.cookies['cnxsessionid']
 
-###### CONSTANTS FOR TESTING.
-MODULEURI = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
-COLLECTIONURI = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
-FOLDERURI = "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
+
+    r2 = wapp.get("%s/me" % USERHOST)
+    r2 = r2.maybe_follow()
+    user_id = r2.json['user_id']
+    return (sessionid, user_id)
+
+
+MODULEURI, COLLECTIONURI, FOLDERURI, developers, USERHOST, GOODUSERSESSIONID, GOODUSERID,\
+    OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID = list((None,)*11)
 
 USERHOST = "http://localhost:8000/"
-GOODUSERSESSIONID = "00000000-0000-0000-0000-000000000000"
-OTHERUSERSESSIONID = "00000000-0000-0000-0000-000000000001"
-BADUSERSESSIONID = "00000000-0000-0000-0000-000000000002"
+def set_constants(httpproxy, wapp):
 
-developers = {"GOODUSER":
-                   {"name": "pbrian",
-                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6920",
-                   "fakesessionid": "00000000-0000-0000-0000-000000000000"
-                   },
-              "OTHERUSER":
-                  {"name": "rossreedstrm",
-                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6921",
-                   "fakesessionid": "00000000-0000-0000-0000-000000000001"
-                   },
-              "BADUSER":
-                  {"name": "edwoodward",
-                   "uri": "cnxuser:75e06194-baee-4395-8e1a-566b656f6922",
-                   "fakesessionid": "00000000-0000-0000-0000-000000000002"
-                   }
-                  }
-########################
+    global MODULEURI, COLLECTIONURI, FOLDERURI, developers, USERHOST, GOODUSERSESSIONID, GOODUSERID,\
+    OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID
+    
+    ###### CONSTANTS FOR TESTING.
+    MODULEURI = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
+    COLLECTIONURI = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+    FOLDERURI = "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
+
+    USERHOST = httpproxy
+    GOODUSERSESSIONID, GOODUSERID = get_anon_session(wapp)
+    OTHERUSERSESSIONID, OTHERUSERID = get_anon_session(wapp)
+    BADUSERSESSIONID, BADUSERID = get_anon_session(wapp)
+
+    developers = {"GOODUSER":
+                       {"name": "good user",
+                       "uri": GOODUSERID,
+                       "fakesessionid": GOODUSERSESSIONID
+                       },
+                  "OTHERUSER":
+                      {"name": "other user",
+                       "uri": OTHERUSERID,
+                       "fakesessionid": OTHERUSERSESSIONID
+                       },
+                  "BADUSER":
+                      {"name": "bad user",
+                       "uri": BADUSERID, 
+                       "fakesessionid": BADUSERSESSIONID
+                       }
+                      }
+
+    lgr.info("Developers: %s" % developers)
+    ########################
 
 def get_cookie_hdr(fakesessionid):
     """
@@ -324,7 +364,6 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     else:
         headerd = get_cookie_hdr(test_session_id)
     ###
-    print URL, "*****"
     req = TestRequest.blank(URL, method="GET",
                             headers=headerd)
     for k, v in wapp.extra_environ.items():
@@ -343,9 +382,15 @@ def wapp_post(wapp, resourcetype, data, test_session_id):
 
     """
     URL = get_url(resourcetype, id_=None, method="POST")
+
     headerd = get_cookie_hdr(test_session_id)
     ###
     data_as_json = json.dumps(data)
+
+    
+    lgr.info("URL: %s" % URL)
+    lgr.info("body: %s" % data_as_json[:100])
+    lgr.info("hdrs: %s" % headerd)    
     req = TestRequest.blank(URL, method="POST",
                             body=data_as_json,
                             headers=headerd)
@@ -400,6 +445,11 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
 ## Each builds on previous changes to DBase
 #############
 
+@with_setup(funcsetup)
+def test_show_env():
+    """display whats what    """
+    print "%s " % USERHOST
+    
 @with_setup(funcsetup)    
 def test_post_module():
     resp = wapp_post(TESTAPP,
@@ -552,11 +602,10 @@ def test_dateModifiedStamp():
     data = decl.declarationdict['module']
     data['body'] = "Declaration test text"
 
-    dolog("INFO", data)
+    lgr.info(data)
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert resp.status_int == 200
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
-
 
 @with_setup(funcsetup)
 def test_put_module_rouser():
@@ -570,7 +619,6 @@ def ntest_put_module_baduser():
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
     assert resp.status_int == 403, resp.status_int
-
 
 @with_setup(funcsetup)
 def test_put_folder_ro():
@@ -659,8 +707,7 @@ def test_whoami():
                     URL="http://localhost:8000/me/"
     )
     assert resp.status_int == 200
-    assert resp.json["fullname"] == "pbrian"
-    assert resp.json["user_uri"] == "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"
+    assert resp.json["user_id"] == GOODUSERID
 
 
 if __name__ == '__main__':

@@ -36,6 +36,9 @@ changes:
   refactor of the openid approaches.
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
 
 from rhaptos2.repo import make_app, sessioncache
 from rhaptos2.repo.configuration import Configuration
@@ -45,6 +48,8 @@ from paste.urlmap import URLMap
 from paste.urlparser import StaticURLParser, make_static
 from waitress import serve
 
+########################################################
+
 
 def main():
     opts, args = parse_args()
@@ -52,7 +57,6 @@ def main():
     app = get_app(opts, args, config,
                   as_devserver=opts.devserver,
                   jslocation=opts.jslocation)
-
     wsgi_run(app, opts, args)
 
 

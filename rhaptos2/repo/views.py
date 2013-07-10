@@ -39,14 +39,13 @@ todo: remove crash and burn
 
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import os
 import json
 from functools import wraps
-try:
-    from cStringIO import StringIO  # noqa
-except ImportError:
-    from StringIO import StringIO  # noqa
-
 import uuid
 import requests
 import flask
@@ -57,23 +56,18 @@ from flask import (
     send_from_directory
 )
 
-from rhaptos2.repo import (get_app, dolog,
+from rhaptos2.repo import (get_app,
                            auth, VERSION, model,
                            backend)
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
-########
-## module level globals -
-## FIXME: prefer to avoid this through urlmapping
-## unclear if can fix for SA
-########
-# app = get_app()
 
 
 def requestid():
     """
     before_request is supplied with this to run before each __call_
+
     """
     g.requestid = uuid.uuid4()
     g.request_id = g.requestid
@@ -82,10 +76,7 @@ def requestid():
     ### Before the app.__call__ is called, perform processing of user auth
     ### status.  If this throws err, we redirect or similar, else __call__ app
     ### proceeds
-    try:
-        resp = auth.handle_user_authentication(request)
-    except Exception, e:
-        raise e
+    resp = auth.handle_user_authentication(request)
     if resp is not None:
         if hasattr(resp, "__call__") is True:
             return resp
@@ -108,7 +99,6 @@ def apply_cors(resp_as_pytype):
        take the output of a app_end and convert it to a Flask response
        with appropriate Json-ified wrappings.
 
-
     '''
     resp = flask.make_response(resp_as_pytype)
     resp.content_type = 'application/json; charset=utf-8'
@@ -129,9 +119,45 @@ def index():
 
     TODO: either use a config value, or bring a index template in here
     """
-    dolog("INFO", "THis is request %s" % g.requestid)
+    lgr.info("THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
+
+
+def home():
+    """
+    A trial page to help with the logic of redicrttion and logins
+
+    This logic is convoluted agian and this
+    probably should be uin handle_auith
+    """
+
+    try:
+        userdata, sessionid = auth.session_to_user(
+            request.cookies, request.environ)
+    except Exception, e:
+        return """<p>~~~ Bootstrap hotness here ~~~~</p>
+        You are not logged in.
+        You can now choose to either
+        <table>
+        <tr><td>
+        Enter your OpenID Provider URL:
+<form method="POST" action="%s/server/login/openid">
+<input type="text" name="openid_identifier" id="field-0">
+<input type="hidden" name="came_from" id="field-1" value="%s/home">
+<INPUT type="submit" value="Login">
+</form>
+
+        </td>
+            <td>Or Try the site <a href="/tempsession">anonymously</a></td></tr>
+        </table>
+        Please note all work will be lost at the end of anonymous sessions.
+        """ % (get_app().config['globals']['userserver'],
+               get_app().config['www_server_name'])
+    else:
+        lgr.info("at home: %s %s" % (userdata, sessionid))
+        return """You are in a valid session - why not <a href="/">go to the site</a> and edit.
+                  In production this would jsut redirect"""
 
 
 def whoamiGET():
@@ -146,7 +172,7 @@ def whoamiGET():
 
     '''
     ### todo: return 401 code and let ajax client put up login.
-    userd = auth.whoami()  # same as g.userd
+    userd = auth.whoami()  # same as g.user_details
 
     if userd:
         jsond = json.dumps(userd)
@@ -167,17 +193,15 @@ def workspaceGET():
         abort(403)
     else:
         wout = {}
-        dolog("INFO", "Calling workspace with %s" % userd['user_uri'])
-        w = model.workspace_by_user(userd['user_uri'])
-        dolog("INFO", repr(w))
+        lgr.info("Calling workspace with %s" % userd['user_id'])
+        w = model.workspace_by_user(userd['user_id'])
+        lgr.info(repr(w))
         ## w is a list of models (folders, cols etc).
         # it would require some flattening or a JSONEncoder but we just want
         # short form for now
         short_format_list = [{
             "id": i.id_, "title": i.title, "mediaType": i.mediaType} for i in w]
         flatten = json.dumps(short_format_list)
-
-    auth.callstatsd('rhaptos2.e2repo.workspace.GET')
     resp = apply_cors(flatten)
     return resp
 
@@ -225,6 +249,22 @@ def auto_session():
     return "Session created - please see headers"
 
 
+def temp_session():
+    """
+    When a user wants to edit anonymously, they need to hit this
+    first.  This is to avoid the logic problems in knowing
+    if a user should be redirected if they have one but not two cookies etc.
+
+    Here we generate a temperoiary userid (that is *not* linked to cnx-user)
+    then setup a session based on that userid.  All work will be lost
+    at end of session.
+
+    """
+    sessionid = auth.set_temp_session()
+    resp = flask.redirect("/")
+    return resp
+
+
 MEDIA_MODELS_BY_TYPE = {
     "application/vnd.org.cnx.collection": model.Collection,
     "application/vnd.org.cnx.module": model.Module,
@@ -246,15 +286,20 @@ def obtain_payload(werkzeug_request_obj):
     return jsond
 
 
+############################################################
+## "Routers". genericly handle very similar actions
+## but without 'reimplmenting' Flask disaptching
+############################################################
+
 def folder_router(folderuri):
     """
     """
-    dolog("INFO", "In folder router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    lgr.info("In folder router, %s" % request.method)
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return folder_get(folderuri, requesting_user_uri)
+        return folder_get(folderuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -263,7 +308,7 @@ def folder_router(folderuri):
                 code=400)
         else:
             return generic_post(model.Folder,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -272,10 +317,10 @@ def folder_router(folderuri):
                 code=400)
         else:
             return generic_put(model.Folder, folderuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(folderuri, requesting_user_uri)
+        return generic_delete(folderuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
@@ -284,12 +329,12 @@ def folder_router(folderuri):
 def collection_router(collectionuri):
     """
     """
-    dolog("INFO", "In collection router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    lgr.info("In collection router, %s" % request.method)
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return generic_get(collectionuri, requesting_user_uri)
+        return generic_get(collectionuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -298,7 +343,7 @@ def collection_router(collectionuri):
                 code=400)
         else:
             return generic_post(model.Collection,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -307,10 +352,10 @@ def collection_router(collectionuri):
                 code=400)
         else:
             return generic_put(model.Collection, collectionuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(collectionuri, requesting_user_uri)
+        return generic_delete(collectionuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
@@ -319,12 +364,12 @@ def collection_router(collectionuri):
 def module_router(moduleuri):
     """
     """
-    dolog("INFO", "In module router, %s" % request.method)
-    requesting_user_uri = g.userd['user_uri']
+    lgr.info("In module router, %s" % request.method)
+    requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
 
     if request.method == "GET":
-        return generic_get(moduleuri, requesting_user_uri)
+        return generic_get(moduleuri, requesting_user_id)
 
     elif request.method == "POST":
         if payload is None:
@@ -332,7 +377,7 @@ def module_router(moduleuri):
                 "Received a Null payload, expecting JSON")
         else:
             return generic_post(model.Module,
-                                payload, requesting_user_uri)
+                                payload, requesting_user_id)
 
     elif request.method == "PUT":
         if payload is None:
@@ -341,18 +386,26 @@ def module_router(moduleuri):
                 code=400)
         else:
             return generic_put(model.Module, moduleuri,
-                               payload, requesting_user_uri)
+                               payload, requesting_user_id)
 
     elif request.method == "DELETE":
-        return generic_delete(moduleuri, requesting_user_uri)
+        return generic_delete(moduleuri, requesting_user_id)
 
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
+##########################################################
+## specific views called by "routers" above.
+##########################################################
 
-def folder_get(folderuri, requesting_user_uri):
+
+def folder_get(folderuri, requesting_user_id):
     """
     return folder as an appropriate json based response string
+
+    This is returned not as the generic representation of a folder, but as
+    a "soft" form, with names of folder children as well as "hard" uuids.
+    This is why the folder_get is special cased here.
 
     .__complex__ -> creates a version of an object that can be run through a std json.dump
 
@@ -366,8 +419,8 @@ def folder_get(folderuri, requesting_user_uri):
     (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes
         on backend.py
     """
-    fldr = model.obj_from_urn(folderuri, g.userd['user_uri'])
-    fldr_complex = fldr.__complex__(g.userd['user_uri'])
+    fldr = model.obj_from_urn(folderuri, g.user_details['user_id'])
+    fldr_complex = fldr.__complex__(g.user_details['user_id'])
 
     resp = flask.make_response(json.dumps(fldr_complex))
     resp.content_type = 'application/json; charset=utf-8'
@@ -375,17 +428,17 @@ def folder_get(folderuri, requesting_user_uri):
     return resp
 
 
-def generic_get(uri, requesting_user_uri):
-    # mod = model.get_by_id(klass, uri, requesting_user_uri)
-    mod = model.obj_from_urn(uri, requesting_user_uri)
+def generic_get(uri, requesting_user_id):
+    # mod = model.get_by_id(klass, uri, requesting_user_id)
+    mod = model.obj_from_urn(uri, requesting_user_id)
     resp = flask.make_response(json.dumps(
-                               mod.__complex__(requesting_user_uri)))
+                               mod.__complex__(requesting_user_id)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
     return resp
 
 
-def generic_post(klass, payload_as_dict, requesting_user_uri):
+def generic_post(klass, payload_as_dict, requesting_user_id):
     """Post an appropriately formatted dict to klass
 
     .. todo::
@@ -393,9 +446,9 @@ def generic_post(klass, payload_as_dict, requesting_user_uri):
        it to be recreated.
 
     """
-    owner = requesting_user_uri
+    owner = requesting_user_id
     fldr = model.post_o(klass, payload_as_dict,
-                        requesting_user_uri=owner)
+                        requesting_user_id=owner)
     resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
@@ -403,21 +456,21 @@ def generic_post(klass, payload_as_dict, requesting_user_uri):
 
 
 def generic_put(klass, resource_uri, payload_as_dict,
-                requesting_user_uri):
+                requesting_user_id):
 
-    owner = requesting_user_uri
+    owner = requesting_user_id
     fldr = model.put_o(payload_as_dict, klass, resource_uri,
-                       requesting_user_uri=owner)
+                       requesting_user_id=owner)
     resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'
     return resp
 
 
-def generic_delete(uri, requesting_user_uri):
+def generic_delete(uri, requesting_user_id):
     """ """
-    owner = requesting_user_uri
-    model.delete_o(uri, requesting_user_uri=owner)
+    owner = requesting_user_id
+    model.delete_o(uri, requesting_user_id=owner)
     resp = flask.make_response("%s is no more" % uri)
     resp.status_code = 200
     resp.content_type = 'application/json; charset=utf-8'

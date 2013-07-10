@@ -9,46 +9,84 @@
 # See LICENCE.txt for details.
 ###
 
-""":module:`auth` supplies the logic to authenticate users and then store that authentication
-for later requests.
-It is strongly linked with :module:`sessioncache`.
+"""How does Authentication, Authorisation and Sessions work?
+---------------------------------------------------------
 
-Future revisions will pull out the authentication chunk, to be replaced with user-profile-auth, however
-the logic over authorisation will remain.
+We are operating a Single-Sign-On service, using `Valruse` to do the
+authentication.
+
+Workflow
+~~~~~~~~
+
+A user will hit the repo-home page, and :func:`handle_user_authentication`will be fired,
+and based on the cookies stored in the user browser we will know one of three things
+about the user.
+
+* Never seen before
+* Known user, no in session
+* Known user, in session
+* Edge cases
+
+Usually they will choose to *login* and will be directed to the login page on
+cnx-user.  Here, the cnx-user will authenticate them in some fashion (OpenID)
+and the *redirect* the user browser back to the repo, with a *token*.
+
+The repo then looks up this token against the cnx-user service.  And hey presto,
+if the token matches, the repo knows they can trust the browser.  (assuming SSL
+all the way)
+
+The redirect hits at the `/valid` endpoint in the repo, which will check the
+token against the cnx-user, and then ::
 
 
-Overview
+   user_uuid_to_user_details
+    given a authenticated user ID (OpenID), look up the user details
+    on cnx-user
+   create_session()
 
-auth.handle_user_authentication is called on before_requset and will ensure we end up with a verified user in a session
-or the user is unable to authenticate
+At this point, we now have a user who logged in against `cnx-user`, has then proven to cnx-repo
+that they did log in, and now has a session cookie set in their browser that the repo can
+trust as password-replacement for a set period.
 
-after_authentication is called by the openid or similar machinery, to trigger the session cache mgmt
+Temporary sessions
+------------------
+
+Temporary sessions, or *anonymous editing* is where a user *does not login* but uses the repo
+anonymously, perhaps creating test modules.
+
+This is supported by hitting the endpoint `/tempsession` which will trigger the view `temp_session`.
+This in turn calls :func:`set_temp_session`.  Here we create both a random sessionID (as per usual for sessions)
+and we *also* create a random `user_id`.  This user_id is used exactly as if it were a real registered user,
+but it is never sent back to the cnx-user, instead it solely is used in ACLs on the unpub repo.
+
+This way, at the end of a temp session, the user effectively loses all their edits.  This may want to be avoided,
+and is possible but not yet implemented.
+
+
 
 
 known issues
 ~~~~~~~~~~~~
 
-requesting_user_uri This is passed around a lot This is suboptimal, and I think
-should be replaced with passing around the environ dict as a means of linking
-functions with the request calling them
+* requesting_user_id This is passed around a lot This is suboptimal, and I think
+  should be replaced with passing around the environ dict as a means of linking
+  functions with the request calling them
 
-I am still passing around the userd in ``g.`` This is fairly silly
-but seems consistent for flask. Will need rethink.
+* I am still passing around the userd in ``g.`` This is fairly silly
+  but seems consistent for flask. Will need rethink.
 
-secure (https) - desired future toggle
+* secure (https) - desired future toggle
 
-further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
-
-
-userdict example::
-
-    {"interests": null, "identifiers": [{"identifierstring": "https://michaelmulich.myopenid.com", "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "identifiertype": "openid"}], "user_id": "cnxuser:75e06194-baee-4395-8e1a-566b656f6924", "suffix": null, "firstname": null, "title": null, "middlename": null, "lastname": null, "imageurl": null, "otherlangs": null, "affiliationinstitution_url": null, "email": null, "version": null, "location": null, "recommendations": null, "preferredlang": null, "fullname": "Michael Mulich", "homepage": null, "affiliationinstitution": null, "biography": null}
+* further notes at http://executableopinions.mikadosoftware.com/en/latest/labs/webtest-cookie/cookie_testing.html
 
 """
+## root logger set in application startup
+import logging
+lgr = logging.getLogger(__name__)
+
 import os
 import datetime
 import json
-import logging
 import uuid
 
 import flask
@@ -62,15 +100,8 @@ from rhaptos2.repo.err import Rhaptos2Error, Rhaptos2NoSessionCookieError
 from rhaptos2.repo import get_app, sessioncache
 
 
-# XXX This is a temporary log fix
-#     The full fix is in branch fix-logging-importing
-#     This is a workaround to handle the circular import
-_lgr = logging.getLogger("authmodule")
-def dolog(lvl, msg):
-    _lgr.info(msg)
-
 # Paths which do not require authorization.
-DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',)
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home', '/tempsession')
 # The key used in session cookies.
 CNX_SESSION_ID = "cnxsessionid"
 
@@ -78,10 +109,7 @@ CNX_SESSION_ID = "cnxsessionid"
 ########################
 # User Auth flow
 ########################
-
-
-
-def store_userdata_in_request(userd, sessionid):
+def store_userdata_in_request(user_details, sessionid):
     """
     given a userdict, keep it in the request cycle for later reference.
     Best practise here will depend on web framework.
@@ -89,11 +117,10 @@ def store_userdata_in_request(userd, sessionid):
     """
     ### For now keep ``g`` the source of data on current thread-local request.
     ### later we transfer to putting it all on environ for extra portability
-    userd['user_uri'] = userd['user_id']
-    g.userd = userd
+    g.user_details = user_details
     g.sessionid = sessionid
-    dolog("INFO", "SESSION LINKER, sessionid:%s::user_uri:%s::requestid:%s::" %
-         (g.sessionid, userd['user_uri'], g.requestid))
+    lgr.info("SESSION LINKER, sessionid:%s::user_id:%s::requestid:%s::" %
+            (g.sessionid, user_details['user_id'], g.requestid))
     ### Now flask actually calls __call__
 
 
@@ -157,7 +184,7 @@ def handle_user_authentication(flask_request):
 
     """
     # clear down storage area.
-    g.userd = None
+    g.user_details = None
     g.sessionid = None
 
     ### if someone is trying to login, it is the *only* time they should
@@ -166,28 +193,33 @@ def handle_user_authentication(flask_request):
     ### options: have /login served by another app - ala Velruse?
     if flask_request.path in DMZ_PATHS:
         return None
-    dolog("INFO", "Auth test for %s" % flask_request.path)
+
+    lgr.info("Auth test for %s" % flask_request.path)
 
     ### convert the cookie to a registered users details
     try:
         userdata, sessionid = session_to_user(
             flask_request.cookies, flask_request.environ)
     except Rhaptos2NoSessionCookieError, e:
-        dolog(
-            "INFO", "Session Lookup returned NoCookieError, so redirect to login")
-        abort(401)
-        # We end here for now - later we shall fix tempsessions
-        # userdata = set_temp_session()
+        lgr.error(
+            "Session Lookup returned NoCookieError, so redirect to login")
+        if 'cnxprofile' in flask_request.cookies:
+            userdata, sessionid = set_temp_session()
+        else:
+            abort(401)
+        ### FIXME - add in temp session & fake userid.
 
     # We are at start of request cycle, so tell everything downstream who User
-    # is.
+    # is.  If userdata not set, create a temp user and move on.
     if userdata is not None:
         store_userdata_in_request(userdata, sessionid)
     else:
-        g.userd = None
-        dolog(
-            "INFO", "Session Lookup returned None User, so redirect to login")
-        abort(401)
+        lgr.error("Session Lookup returned None User, so redirect to login")
+        if 'cnxprofile' in flask_request.cookies:
+            userdata, sessionid = set_temp_session()
+            store_userdata_in_request(userdata, sessionid)
+        else:
+            abort(401)
 
 ##########################
 ## Session Cookie Handling
@@ -197,8 +229,6 @@ def handle_user_authentication(flask_request):
 def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
     Given a request environment and cookie
-
-
 
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
@@ -226,61 +256,43 @@ def lookup_session(sessid):
     we should *storngly* look into redis-style lcoal disk cacheing
     performance monitoring of request life cycle?
 
-    returns python dict of ``user_dict`` format.
+    returns python dict of ``user_details`` format.
             or None if no session ID in cache
             or Error if lookup failed for other reason.
 
     """
-    dolog("INFO", "begin look up sessid %s in cache" % sessid)
+    lgr.info("begin look up sessid %s in cache" % sessid)
     try:
         userd = sessioncache.get_session(sessid)
-        dolog("INFO", "we got this from session lookup %s" % str(userd))
+        lgr.info("we got this from session lookup %s" % str(userd))
         if userd:
-            dolog("INFO", "We attempted to look up sessid %s in cache SUCCESS" %
-                  sessid)
+            lgr.info("We attempted to look up sessid %s in cache SUCCESS" %
+                      sessid)
             return userd
         else:
-            dolog("INFO", "We attempted to look up sessid %s in cache FAILED" %
-                  sessid)
+            lgr.error("We attempted to look up sessid %s in cache FAILED" %
+                      sessid)
             return None
     except Exception, e:
-        dolog("INFO", "We attempted to look up sessid %s in cache FAILED with Err %s" %
-              (sessid, str(e)))
+        lgr.error("We attempted to look up sessid %s in cache FAILED with Err %s" %
+                 (sessid, str(e)))
         raise e
 
 
-def authenticated_identifier_to_registered_user_details(ai):
+def user_uuid_to_user_details(ai):
     """
-    Given an ``authenticated_identifier (ai)`` request full user details from
-    the ``user service``
+    Given a user_id from cnx-user create a
+    user_detail dict.
 
-    returns dict of userdetails (success),
-            None (user not registerd)
-            or error (user service down).
+    :param ai: authenticated identifier.  This *used* to be openID URL,
+               now we directly get back the common user ID from the user serv.ce
+
+    user_details no longer holds any user meta data aparrt from the user UUID.
 
     """
-    payload = {'user': ai}
-    user_service_url = get_app().config['cnx-user-url']
-    url = "%s/api/users/%s" % (user_service_url, ai)
+    user_details = {'user_id': ai}
 
-    dolog("INFO", "user info - from url %s and query string %s" %
-                  (user_service_url, repr(payload)))
-
-    try:
-        resp = requests.get(url, params=payload)
-    except requests.exceptions.RequestException:
-        raise Rhaptos2Error("Problem communicating with the user service.")
-
-    if resp.status_code == 404:
-        return None
-    if resp.status_code == 403:
-        raise Rhaptos2Error("Access to user details denied. Do you have "
-                            "permissions to use the user service?")
-    if resp.status_code != 200:
-        raise Rhaptos2Error("Problem communicating with the user service.")
-    user_details = resp.json()
-
-    dolog("INFO", "Got back %s " % user_details)
+    lgr.info("Have created user_details dict %s " % user_details)
     return user_details
 
 
@@ -314,9 +326,9 @@ def create_session(userdata):
         #     the client-side code. We should supply the client-side code with
         #     the id and url to the user profile. The user already has
         #     authorization to acquire their data.
-        resp.set_cookie('cnxprofile', '',
+        resp.set_cookie('cnxprofile', 'FOO',
                         httponly=True,
-                        expires=-0)
+                        expires=datetime.datetime.today()+datetime.timedelta(days=365))
         return resp
 
     g.deferred_callbacks.append(begin_session)
@@ -352,20 +364,14 @@ def set_autosession():
     It should fail in production
 
     """
+
     if not get_app().debug:
         raise Rhaptos2Error("autosession should fail in prod.")
 
-    # check if session already live for this user?
-    # Hmm I have not written such code yet - seems a problem
-    # only likely to occur here...
-
-    # FIXME get the real userdict template
-    standarduser = {'fullname': 'Paul Brian', 'user_id': 'cnxuser:1234'}
-    sessionid = create_session(standarduser)
-    store_userdata_in_request(standarduser, sessionid)
+    tempuserdict, sessionid = set_temp_session()
     ### fake in three users of id 0001 002 etc
     sessioncache._fakesessionusers(sessiontype='fixed')
-    return standarduser
+    return tempuserdict
 
 
 def set_temp_session():
@@ -379,51 +385,46 @@ def set_temp_session():
 
     However work saved will be irrecoverable after session expires...
 
+    NB - we have "made up" a user_id and uri.  It is not registered in cnx-user.
+    This may cause problems with distributed cacheing unless we share session-caches.
+
     """
-    useruri = create_temp_user(
-        "temporary", "http:/openid.cnx.org/%s" % str(uuid.uuid4()))
-    tempuserdict = {'fullname': "temporary user", 'user_id': useruri}
-    create_session(tempuserdict)
-    return tempuserdict
+    ### userdict only needs hold the user_id
+    uid = str(uuid.uuid4())
+    user_details, sessionid = user_uuid_to_valid_session(uid)
+    lgr.info("Faked Session %s now linked to %s" %
+             (sessionid, g.user_details['user_id']))
+    return (user_details, sessionid)
 
 
-def create_temp_user(identifiertype, identifierstring):
+def user_uuid_to_valid_session(uid):
     """
-    We should ping to user service and create a temporary userid
-    linked to a made up identifier.  This can then be linked to the
-    unregistered user when they finally register.
+    Given a single UUID set up a session and return a user_details dict
 
-    FIXME - needs to actually talk to userservice.
-    THis is however a asynchronous problem, solve under session id
+    Several different functions need this series of steps so it is encapsulated here.
     """
-    ### vist the user dbase, get back a user_uri
-    stubbeduri = "cnxuser:" + str(uuid.uuid4())
-    return stubbeduri
+
+    user_details = user_uuid_to_user_details(uid)
+    sessionid = create_session(user_details)
+    lgr.info("uid->session : user_details: %s sessionid: %s" % (user_details,
+                                                                sessionid))
+    store_userdata_in_request(user_details, sessionid)
+    return (user_details, sessionid)
+
 
 def whoami():
     """based on session cookie
     returns userd dict of user details, equivalent to mediatype from
     service / session
     """
-    return g.userd
+    return g.user_details
+
 
 def apply_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
-# ??? Why is this logic in this module? Shouldn't it be grouped with the other
-#     logging facilities.
-def callstatsd(dottedcounter):
-    # Try to call logging. If not connected to a network this throws
-    # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
-    try:
-        c = statsd.StatsClient(get_app().config['globals']['statsd_host'],
-                               int(get_app().config['globals']['statsd_port']))
-        c.incr(dottedcounter)
-        # todo: really return c and keep elsewhere for efficieny I suspect
-    except:
-        pass
 
 def logout():
     """kill the session in cache, remove the cookie from client"""
@@ -435,6 +436,7 @@ def logout():
 
 # cnx-user requires that a service have a /valid route to handle users when
 #   they return from authenticating.
+
 
 def valid():
     """cnx-user /valid view for capturing valid authentication requests."""
@@ -454,11 +456,12 @@ def valid():
         raise Rhaptos2Error("Had problems communicating with the "
                             "authentication service")
     user_id = resp.json()['id']
+    lgr.info("cnx-user service returned user_id %s for token %s" %
+             (user_id, user_token))
 
     # Now that we have the user's authenticated id, we can associate the user
     #   with the system and any previous session.
-    user_details = authenticated_identifier_to_registered_user_details(user_id)
-    create_session(user_details)
+    user_uuid_to_valid_session(user_id)
     return redirect(next_location)
 
 if __name__ == '__main__':
