@@ -317,7 +317,7 @@ class CNXBase():
             self.userroles.append(i)
 
         elif (user_id, role_type) not in [(u.user_id, u.role_type) for u
-                                           in self.userroles]:
+                                          in self.userroles]:
             # UserID has got a role, so *update*
             i = userrole_klass()
             i.from_dict(usrdict, requesting_user_id=requesting_user_id)

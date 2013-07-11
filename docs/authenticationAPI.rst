@@ -28,6 +28,13 @@ to ensure users can work easily with minimal interruptions
    :members:
 
 
+:mod:`rhaptos2.repo.weblogging`
+-------------------------------
+
+.. automodule:: rhaptos2.repo.weblogging
+   :members:
+
+
 Future Developments
 -------------------
 

@@ -36,9 +36,11 @@ import pprint
 import logging
 lgr = logging.getLogger(__name__)
 
-import decl, restrest
+import decl
+import restrest
 from rhaptos2.repo import (make_app, backend,
-                           sessioncache)
+                           sessioncache,
+                           weblogging)
 from webtest import TestApp, TestRequest
 import cookielib
 
@@ -81,7 +83,7 @@ def setup():
 
     ## Tests can alter decl. THis resets everything
     reload(decl)
-    
+
     # using nose-testconfig we obtain the config dict passed in through the
     # nosetests command line
     from testconfig import config
@@ -89,31 +91,30 @@ def setup():
     TESTCONFIG = convert_config(config)
     initdb(TESTCONFIG)
 
-
     lgr.info("TESTCONFG: %s" % pprint.pformat(TESTCONFIG))
     lgr.info("config: %s" % pprint.pformat(config))
     cj = cookielib.CookieJar()
-    
+
     if 'HTTPPROXY' in config.keys():
         app = WSGIProxyApp(config['HTTPPROXY'])
-        TESTAPP = TestApp(app, extra_environ={'REMOTE_ADDR': '1.2.3.4'}, cookiejar=cj)
-        set_constants(config['HTTPPROXY'], TESTAPP)                        
+        TESTAPP = TestApp(app, extra_environ={
+                          'REMOTE_ADDR': '1.2.3.4'}, cookiejar=cj)
+        set_constants(config['HTTPPROXY'], TESTAPP)
     else:
         app = make_app(TESTCONFIG)
         app.debug = True
         sessioncache.set_config(config)
         TESTAPP = TestApp(app.wsgi_app, cookiejar=cj)
-        set_constants("", TESTAPP)                
+        set_constants("", TESTAPP)
 
 
-        
 def funcsetup():
     """
     once per test
     """
     reload(decl)
 
-        
+
 def cleardown(config):
     backend.clean_dbase(config)
 
@@ -136,6 +137,7 @@ def capture_conversation(webob_request, webob_response):
     fo = open("/tmp/output.rst", "a")
     fo.write(rst)
     fo.close()
+
 
 def parse_args():
     parser = OptionParser()
@@ -191,22 +193,20 @@ def build_environ():
     return d
 
 
-
 ### get a anonymous session - sessionid and userid
 def get_anon_session(wapp):
     """
     connect to the wsgi server, through HTTP or webtest, and obtain
     a session and a user ID
-    
+
     requests is a much easier api to use...
-    
+
     """
-    
+
     r1 = wapp.get("%s/autosession" % USERHOST)
     lgr.info(">>>>><<<<<" + str(r1))
     lgr.info("222>>>>><<<<<" + str(wapp.cookies))
     sessionid = wapp.cookies['cnxsessionid']
-
 
     r2 = wapp.get("%s/me" % USERHOST)
     r2 = r2.maybe_follow()
@@ -215,14 +215,17 @@ def get_anon_session(wapp):
 
 
 MODULEURI, COLLECTIONURI, FOLDERURI, developers, USERHOST, GOODUSERSESSIONID, GOODUSERID,\
-    OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID = list((None,)*11)
+    OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID = list(
+        (None,)*11)
 
 USERHOST = "http://localhost:8000/"
+
+
 def set_constants(httpproxy, wapp):
 
     global MODULEURI, COLLECTIONURI, FOLDERURI, developers, USERHOST, GOODUSERSESSIONID, GOODUSERID,\
-    OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID
-    
+        OTHERUSERSESSIONID, OTHERUSERID, BADUSERSESSIONID, BADUSERID
+
     ###### CONSTANTS FOR TESTING.
     MODULEURI = "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126"
     COLLECTIONURI = "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
@@ -234,24 +237,25 @@ def set_constants(httpproxy, wapp):
     BADUSERSESSIONID, BADUSERID = get_anon_session(wapp)
 
     developers = {"GOODUSER":
-                       {"name": "good user",
-                       "uri": GOODUSERID,
-                       "fakesessionid": GOODUSERSESSIONID
-                       },
+                 {"name": "good user",
+                  "uri": GOODUSERID,
+                  "fakesessionid": GOODUSERSESSIONID
+                  },
                   "OTHERUSER":
-                      {"name": "other user",
-                       "uri": OTHERUSERID,
-                       "fakesessionid": OTHERUSERSESSIONID
-                       },
+                 {"name": "other user",
+                  "uri": OTHERUSERID,
+                  "fakesessionid": OTHERUSERSESSIONID
+                  },
                   "BADUSER":
-                      {"name": "bad user",
-                       "uri": BADUSERID, 
-                       "fakesessionid": BADUSERSESSIONID
-                       }
+                 {"name": "bad user",
+                  "uri": BADUSERID,
+                  "fakesessionid": BADUSERSESSIONID
+                  }
                       }
 
     lgr.info("Developers: %s" % developers)
     ########################
+
 
 def get_cookie_hdr(fakesessionid):
     """
@@ -291,6 +295,10 @@ APIMAP = {'module':
          {"GET": urlparse.urljoin(USERHOST, "workspace/"),
           },
 
+          'logging':
+         {"POST": urlparse.urljoin(USERHOST, "logging"),
+          },
+
 
           }
 
@@ -310,7 +318,7 @@ def get_url(resourcetype, id_=None, method=None):
     >>> get_url("module", id_="xxx", method="GET")
     'http://localhost:8000/module/xxx'
 
- 
+
     >>> get_url("collection", id_="xxx", method="GET")
     'http://localhost:8000/collection/xxx'
 
@@ -369,7 +377,7 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     for k, v in wapp.extra_environ.items():
         req.environ.setdefault(k, v)
     reqcp = req.copy()
-    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    resp = wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
     ###
     return resp
@@ -387,18 +395,17 @@ def wapp_post(wapp, resourcetype, data, test_session_id):
     ###
     data_as_json = json.dumps(data)
 
-    
     lgr.info("URL: %s" % URL)
     lgr.info("body: %s" % data_as_json[:100])
-    lgr.info("hdrs: %s" % headerd)    
+    lgr.info("hdrs: %s" % headerd)
     req = TestRequest.blank(URL, method="POST",
                             body=data_as_json,
                             headers=headerd)
-    req.content_type="application/json; charset=utf-8"
+    req.content_type = "application/json; charset=utf-8"
     for k, v in wapp.extra_environ.items():
         req.environ.setdefault(k, v)
     reqcp = req.copy()
-    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    resp = wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
     ###
     return resp
@@ -415,7 +422,7 @@ def wapp_delete(wapp, resourcetype, id_, test_session_id):
     for k, v in wapp.extra_environ.items():
         req.environ.setdefault(k, v)
     reqcp = req.copy()
-    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    resp = wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
     return resp
 
@@ -429,11 +436,11 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
     req = TestRequest.blank(URL, method="PUT",
                             body=data_as_json,
                             headers=headerd)
-    req.content_type="application/json; charset=utf-8"
+    req.content_type = "application/json; charset=utf-8"
     for k, v in wapp.extra_environ.items():
         req.environ.setdefault(k, v)
     reqcp = req.copy()
-    resp =  wapp.do_request(req, status="*", expect_errors=True)
+    resp = wapp.do_request(req, status="*", expect_errors=True)
     capture_conversation(reqcp, resp)
     ###
 
@@ -449,8 +456,9 @@ def wapp_put(wapp, resourcetype, data, test_session_id, id_=None):
 def test_show_env():
     """display whats what    """
     print "%s " % USERHOST
-    
-@with_setup(funcsetup)    
+
+
+@with_setup(funcsetup)
 def test_post_module():
     resp = wapp_post(TESTAPP,
                      "module",
@@ -459,17 +467,19 @@ def test_post_module():
     returned_module_uri = resp.json['id']
     assert returned_module_uri == MODULEURI
 
+
 @with_setup(funcsetup)
 def test_put_module():
     data = decl.declarationdict['module']
-    data['acl'] = [developers['OTHERUSER']['uri'],]
+    data['acl'] = [developers['OTHERUSER']['uri'], ]
     data['body'] = "<p> Shortened body in test_put_module"
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert developers['OTHERUSER']['uri'] in resp.json['acl']
 
     ### So, user 0002 (ross) is RW on this module
 
-@with_setup(funcsetup)    
+
+@with_setup(funcsetup)
 def test_put_module_by_otheruser():
     data = decl.declarationdict['module']
     data['body'] = "<p> OTHERUSERSESSIONID has set this"
@@ -478,12 +488,14 @@ def test_put_module_by_otheruser():
 
     ### So, user 0002 (ross) is allowed to put on this module
 
+
 @with_setup(funcsetup)
 def test_get_module():
     resp = wapp_get(TESTAPP, "module",
                     "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     GOODUSERSESSIONID)
     assert resp.status_int == 200
+
 
 @with_setup(funcsetup)
 def test_valid_fields_in_GET():
@@ -496,8 +508,6 @@ def test_valid_fields_in_GET():
     assert "translators" in resp.json.keys()
     assert "editors" in resp.json.keys()
 
-    
-    
 
 @with_setup(funcsetup)
 def test_post_folder():
@@ -510,7 +520,7 @@ def test_post_folder():
 @with_setup(funcsetup)
 def test_put_folder():
     data = decl.declarationdict['folder']
-    data['acl'] = [OTHERUSERSESSIONID,]
+    data['acl'] = [OTHERUSERSESSIONID, ]
     data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41127"]
     resp = wapp_put(TESTAPP, "folder", data, GOODUSERSESSIONID, FOLDERURI)
@@ -523,7 +533,8 @@ def test_put_folder():
 
 @with_setup(funcsetup)
 def test_get_folder():
-    resp = wapp_get(TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
+    resp = wapp_get(
+        TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
     assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
 
@@ -538,28 +549,30 @@ def test_post_collection():
 @with_setup(funcsetup)
 def test_put_collection():
     data = decl.declarationdict['collection_small']
-    data['acl'] = [OTHERUSERSESSIONID,]
-    resp = wapp_put(TESTAPP, "collection", data, GOODUSERSESSIONID, COLLECTIONURI)
+    data['acl'] = [OTHERUSERSESSIONID, ]
+    resp = wapp_put(TESTAPP, "collection",
+                    data, GOODUSERSESSIONID, COLLECTIONURI)
     assert resp.json['body'].find('href="cnxmodule:d3911c28') > -1
 
 
 @with_setup(funcsetup)
 def test_get_collection():
     resp = wapp_get(TESTAPP, "collection",
-                    "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
-                    , GOODUSERSESSIONID, None)
-    assert resp.json['id'] == "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
+                    "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", GOODUSERSESSIONID, None)
+    assert resp.json[
+        'id'] == "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7"
 
 
 @with_setup(funcsetup)
 def test_put_collection_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
-    resp = wapp_put(TESTAPP, "collection", data, BADUSERSESSIONID, COLLECTIONURI)
+    resp = wapp_put(TESTAPP, "collection",
+                    data, BADUSERSESSIONID, COLLECTIONURI)
     assert resp.status_int == 403, resp.status_int
 
 
-### Testing GAC 
+### Testing GAC
 @with_setup(funcsetup)
 def test_put_googleanalytics_module():
     """
@@ -581,9 +594,8 @@ def test_put_badgoogleanalytics_module():
     data['googleTrackingID'] = gacval
     resp = wapp_put(TESTAPP, "module", data, GOODUSERSESSIONID, MODULEURI)
     assert resp.status_int == 400
-    #data['googleTrackingID'] = ""  ##this should be dealt with in setup...    
+    # data['googleTrackingID'] = ""  ##this should be dealt with in setup...
 
-    
 
 @with_setup(funcsetup)
 def test_put_googleanalytics_collection():
@@ -595,7 +607,8 @@ def test_put_googleanalytics_collection():
                     GOODUSERSESSIONID, COLLECTIONURI)
     assert 'googleTrackingID' in resp.json.keys()
 
-###            
+###
+
 
 @with_setup(funcsetup)
 def test_dateModifiedStamp():
@@ -607,6 +620,7 @@ def test_dateModifiedStamp():
     assert resp.status_int == 200
     assert resp.json['dateLastModifiedUTC'] != resp.json['dateCreatedUTC']
 
+
 @with_setup(funcsetup)
 def test_put_module_rouser():
     data = decl.declarationdict['module']
@@ -614,11 +628,13 @@ def test_put_module_rouser():
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
     assert resp.status_int == 403, resp.status_int
 
+
 def ntest_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
     assert resp.status_int == 403, resp.status_int
+
 
 @with_setup(funcsetup)
 def test_put_folder_ro():
@@ -646,7 +662,6 @@ def test_read_module_baduser():
     assert resp.status_int == 403, resp.status_int
 
 
-
 @with_setup(funcsetup)
 def test_get_workspace_good():
     resp = wapp_get(TESTAPP, "workspace", None, GOODUSERSESSIONID)
@@ -654,15 +669,11 @@ def test_get_workspace_good():
     assert resp.status_int == 200, resp.status_int
 
 
-
 ###############
-
-
 @with_setup(funcsetup)
 def test_delete_module_baduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
-
 
 
 @with_setup(funcsetup)
@@ -677,7 +688,6 @@ def test_delete_module_good():
 def test_delete_collection_baduser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
-
 
 
 @with_setup(funcsetup)
@@ -705,9 +715,22 @@ def test_whoami():
     resp = wapp_get(TESTAPP, "-", None,
                     GOODUSERSESSIONID,
                     URL="http://localhost:8000/me/"
-    )
+                    )
     assert resp.status_int == 200
     assert resp.json["user_id"] == GOODUSERID
+
+
+@with_setup(funcsetup)
+def test_atc_logging():
+    testmsg = {"message-type": "log",
+               "log-message": "This is log msg",
+               "metric-label": None,
+               "metric-value": None,
+               "metric-type": None
+               }
+
+    resp = wapp_post(TESTAPP, "logging", testmsg, GOODUSERSESSIONID)
+    assert resp.status_int == 200
 
 
 if __name__ == '__main__':
