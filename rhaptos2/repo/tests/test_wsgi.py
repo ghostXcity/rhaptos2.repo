@@ -732,7 +732,32 @@ def test_atc_logging():
     resp = wapp_post(TESTAPP, "logging", testmsg, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
+@with_setup(funcsetup)
+def test_atc_triggerlogging():
+    """
+    the atc client is servicing a different format for now
+    It is not expected these will be useful messages for debuigging
+    and the story for atc to make them useful is 21 pts.
+    """
+    testmsg = {"trigger": "A message",
+               }
+    
+    resp = wapp_post(TESTAPP, "logging", testmsg, GOODUSERSESSIONID)
+    assert resp.status_int == 200
 
+@with_setup(funcsetup)
+def test_bad_atc_triggerlogging():
+    """
+    the atc client is servicing a different format for now
+    It is not expected these will be useful messages for debuigging
+    and the story for atc to make them useful is 21 pts.
+    """
+    testmsg = {"wibble": "A malformed message",
+               }
+    
+    resp = wapp_post(TESTAPP, "logging", testmsg, GOODUSERSESSIONID)
+    assert resp.status_int == 400
+    
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
