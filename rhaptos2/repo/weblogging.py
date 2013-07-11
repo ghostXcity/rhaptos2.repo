@@ -150,14 +150,21 @@ def validate_msg_return_dict(json_formatted_payload):
     """
     try:
         payload = json.loads(json_formatted_payload)
-    except:
-        lgr.error("Failed parse json")
+    except Exception, e:
+        lgr.error("Failed parse json - %s %s" % (e, json_formatted_payload))
         return('', False)
-    ### pbrian: better validation needed - try json-schema
-    if 'message-type' not in payload.keys():
-        return (payload, False)
-    else:
+    if 'trigger' in payload.keys():
+        ### this is currently all atc sends, so just handle it
+        payload['message-type'] = 'log'
+        payload['log-message'] = payload['trigger']
         return (payload, True)
+        
+    ### pbrian: better validation needed - try json-schema
+    elif 'message-type' in payload.keys():
+        return (payload, True)
+    else:
+        lgr.error("This message has no valid data %s" % payload)
+        return (payload, False)
 
 
 def logging_router(json_formatted_payload):
@@ -166,7 +173,7 @@ def logging_router(json_formatted_payload):
     # validate and convert to dict
     payload, isValid = validate_msg_return_dict(json_formatted_payload)
     if not isValid:
-        return
+        return False
     if payload['message-type'] == 'log':
         log_endpoint(payload)
     elif payload['message-type'] == 'metric':
@@ -174,7 +181,8 @@ def logging_router(json_formatted_payload):
     else:
         lgr.error("message-type supplied was %s - not supported." %
                   payload['message-type'])
-
+        return False
+    return True
 
 def log_endpoint(payload):
     """
@@ -183,10 +191,11 @@ def log_endpoint(payload):
     """
     msg_dict = payload
     try:
-        lgr.warn(msg_dict['log-message'])
+        lgr.info(msg_dict['log-message'])
+        
     except Exception, e:
         lgr.error("/logging recvd incorrect log payload %s" % repr(payload))
-
+    
 
 def metric_endpoint(payload):
     """
@@ -195,6 +204,7 @@ def metric_endpoint(payload):
     """
     try:
         if msg_dict['metric-type'] == 'incr':
+            lgr.info("Firing statsd")
             stats_client_connected.incr(msg_dict['metric-label'])
         else:
             lgr.error("/metric not support metric-type of %s" %

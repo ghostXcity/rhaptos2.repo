@@ -113,8 +113,14 @@ def logging_endpoint():
     to the weblogging module, which will take care of details.
     """
     payld_as_json = obtain_payload(request)
-    weblogging.logging_router(payld_as_json)
-    return ""
+    lgr.info(" %s %s" % (type(payld_as_json), payld_as_json))
+    ##FIXME - use python natie formats throughout 
+    result = weblogging.logging_router(json.dumps(payld_as_json))
+    lgr.info("result was %s" % result)
+    if result == True:
+        return "logged"
+    else:
+        abort(400)
 
 
 def index():
