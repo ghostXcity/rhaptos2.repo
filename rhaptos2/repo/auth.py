@@ -101,7 +101,9 @@ from rhaptos2.repo import get_app, sessioncache
 
 
 # Paths which do not require authorization.
-DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home', '/tempsession')
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home',
+             '/tempsession', '/login',
+             )
 # The key used in session cookies.
 CNX_SESSION_ID = "cnxsessionid"
 
@@ -424,6 +426,18 @@ def apply_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
+
+
+def login():
+    """Redirect to cnx-user login."""
+    user_service_url = get_app().config['cnx-user-url']
+    came_from = request.environ.get('HTTP_REFERER', None)
+    if came_from is None:
+        came_from = "http://{}/js/".format(get_app().config['www_server_name'])
+    login_url = "{}/server/login?came_from={}".format(
+            user_service_url,
+            came_from)
+    return redirect(login_url)
 
 
 def logout():
