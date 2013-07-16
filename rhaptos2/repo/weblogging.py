@@ -154,7 +154,7 @@ def validate_msg_return_dict(json_formatted_payload):
         lgr.error("Failed parse json - %s %s" % (e, json_formatted_payload))
         return('', False)
     if not payload:
-        lgr.error("Empty logging message - %s %s" % (e, json_formatted_payload))
+        lgr.error("Empty logging message - %s" % (json_formatted_payload))
         return('', False)
     elif 'trigger' in payload.keys():
         ### this is currently all atc sends, so just handle it
