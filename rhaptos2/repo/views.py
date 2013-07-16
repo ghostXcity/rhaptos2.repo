@@ -135,23 +135,18 @@ def home():
     There is a logic choice that might improve things - if they have
     previously visited us, redirect to /login.  
     """
-
+    
     try:
         userdata, sessionid = auth.session_to_user(
             request.cookies, request.environ)
+        resp = flask.redirect('/js/')
+        return resp
     except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>
         You are not logged in.
         <p>Try the site <a href="/tempsession">anonymously</a></p>
         <p>Or <a href="/login">sign in</a></p>
-        <p>Please note all work will be lost at the end of anonymous sessions.</p>
-        """
-    else:
-
-        lgr.info("RequestID: %s userdata: %s sessionid: %s" %
-                 g.requestid, userdata, sessionid)
-        resp = flask.redirect('/js/')
-        return resp
+        <p>Please note all work will be lost at the end of anonymous sessions.</p>"""
 
 def whoamiGET():
     '''
