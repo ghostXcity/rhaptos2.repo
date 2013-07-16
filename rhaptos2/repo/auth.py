@@ -101,7 +101,7 @@ from rhaptos2.repo import get_app, sessioncache
 
 
 # Paths which do not require authorization.
-DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home',
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',
              '/tempsession', '/login',
              )
 # The key used in session cookies.
@@ -230,7 +230,7 @@ def handle_user_authentication(flask_request):
 
 def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
-    Given a request environment and cookie
+    Given a request environment and cookie, return the user data.
 
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
@@ -437,6 +437,7 @@ def login():
     login_url = "{}/server/login?came_from={}".format(
             user_service_url,
             came_from)
+    lgr.info("at login: loginurl is %s" % login_url)
     return redirect(login_url)
 
 

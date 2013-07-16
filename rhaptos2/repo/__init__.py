@@ -60,7 +60,7 @@ def assign_routing_rules(app):
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
 
-    app.add_url_rule("/", view_func=views.index)
+    app.add_url_rule("/", view_func=views.home)
     app.add_url_rule("/me/", view_func=views.whoamiGET, methods=['GET'])
     app.add_url_rule(
         "/workspace/", view_func=views.workspaceGET, methods=['GET'])
@@ -75,7 +75,6 @@ def assign_routing_rules(app):
     app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
     app.add_url_rule("/login", view_func=auth.login, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
-    app.add_url_rule("/home", view_func=views.home, methods=['GET', ])
 
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})

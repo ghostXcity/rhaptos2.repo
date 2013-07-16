@@ -123,29 +123,17 @@ def logging_endpoint():
         abort(400)
 
 
-def index():
-    """
-    .. dicussion::
-
-    The index page for an api.cnx.org might point to say docs
-    The index page here is the index of www.cnx, so it should serve
-     the workspace.
-    Which is not something "known" by the repo, hence the redirect.
-    It may be neater to bring the index.html page into here later on.
-
-    TODO: either use a config value, or bring a index template in here
-    """
-    lgr.info("THis is request %s" % g.requestid)
-    resp = flask.redirect('/js/')
-    return resp
-
-
 def home():
     """
-    A trial page to help with the logic of redicrttion and logins
+    This is the "home" page for a visitor,
 
-    This logic is convoluted agian and this
-    probably should be uin handle_auith
+    At this point there is either a valid session (so redirect to atc)
+    or there is a need to let the visitor choose either to get an
+    anonymous session, or that they are registered, and they should
+    choose to log in again.
+
+    There is a logic choice that might improve things - if they have
+    previously visited us, redirect to /login.  
     """
 
     try:
@@ -159,10 +147,11 @@ def home():
         <p>Please note all work will be lost at the end of anonymous sessions.</p>
         """
     else:
-        lgr.info("at home: %s %s" % (userdata, sessionid))
-        return """You are in a valid session - why not <a href="/">go to the site</a> and edit.
-                  In production this would jsut redirect"""
 
+        lgr.info("RequestID: %s userdata: %s sessionid: %s" %
+                 g.requestid, userdata, sessionid)
+        resp = flask.redirect('/js/')
+        return resp
 
 def whoamiGET():
     '''
