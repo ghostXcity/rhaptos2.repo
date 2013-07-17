@@ -328,7 +328,7 @@ def create_session(userdata):
         #     the client-side code. We should supply the client-side code with
         #     the id and url to the user profile. The user already has
         #     authorization to acquire their data.
-        resp.set_cookie('cnxprofile', 'FOO',
+        resp.set_cookie('cnxprofile', 'hasVisitedPreviously',
                         httponly=True,
                         expires=datetime.datetime.today()+datetime.timedelta(days=365))
         return resp
