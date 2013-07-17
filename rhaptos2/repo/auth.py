@@ -269,7 +269,7 @@ def lookup_session(sessid):
         lgr.info("we got this from session lookup %s" % str(userd))
         if userd:
             lgr.info("We attempted to look up sessid %s in cache SUCCESS" %
-                      sessid)
+                     sessid)
             return userd
         else:
             lgr.error("We attempted to look up sessid %s in cache FAILED" %
@@ -435,15 +435,16 @@ def login():
     if came_from is None:
         came_from = "http://{}/js/".format(get_app().config['www_server_name'])
     login_url = "{}/server/login?came_from={}".format(
-            user_service_url,
-            came_from)
+        user_service_url,
+        came_from)
     lgr.info("at login: loginurl is %s" % login_url)
     return redirect(login_url)
 
 
 def logout():
     """kill the session in cache, remove the cookie from client"""
-    raise NotImplementedError()
+    delete_session(g.sessionid)
+    return json.dumps('LOGGED OUT')
 
 ############################
 # cnx-user communication API
