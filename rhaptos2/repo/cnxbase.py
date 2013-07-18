@@ -207,13 +207,13 @@ class CNXBase():
     def prep_delete_userrole(self, user_id, role_type=None):
         """policy: we are ignoring role type for now.  Any delete will delete
         the user, there should only be one roletype per user, and one user per
-        resource.  This is policy not enforced
+        resource.
 
        *editing* a user's role is not transaction supported (del then add in one
         trans).  If we ever change policy we need to fix that
 
         """
-
+        lgr.info('asked to delete %s' % user_id)
         for usr in self.userroles:
             if usr.user_id == user_id:
                 self.userroles.remove(usr)
@@ -272,13 +272,18 @@ class CNXBase():
                 "Action forbidden for user %s cannot update userroles" % requesting_user_id)
 
         ### am i not matching sessons to useruris?
-        set_curr_uris = set(self.userroles)
+        myself = set([requesting_user_id, ])
+        set_curr_uris = set([u.user_id for u in self.userroles])
         set_proposed_uris = set(proposed_acl_list)
         del_uris = set_curr_uris - set_proposed_uris
+        del_uris = del_uris - myself
         add_uris = set_proposed_uris - set_curr_uris
 
-        lgr.info(str(set_proposed_uris))
-        lgr.info(str(set_curr_uris))
+        lgr.info("curr ACLs::" + str(set_curr_uris))
+        lgr.info("myself::" + str(myself))
+        lgr.info("proposed ACLs::" + str(set_proposed_uris))
+        lgr.info("del ACLs::" + str(del_uris))
+        lgr.info("add ACLs::" + str(add_uris))
 
         for user_id in add_uris:
             lgr.info("will add following: %s" % str(add_uris))
@@ -310,6 +315,7 @@ class CNXBase():
 
         if user_id not in [u.user_id for u in self.userroles]:
             # UserID is not in any assoc. role - add a new one
+            lgr.info("Add user %s in role %s" % (user_id, role_type))
             i = userrole_klass()
             i.from_dict(usrdict, requesting_user_id=requesting_user_id)
             i.dateCreatedUTC = t
@@ -319,12 +325,15 @@ class CNXBase():
         elif (user_id, role_type) not in [(u.user_id, u.role_type) for u
                                           in self.userroles]:
             # UserID has got a role, so *update*
+            lgr.info("update user %s in role %s" % (user_id, role_type))
             i = userrole_klass()
             i.from_dict(usrdict, requesting_user_id=requesting_user_id)
             i.dateLastModifiedUTC = t
             self.userroles.append(i)
         else:
             # user is there, user and role type is there, this is duplicate
+            lgr.info("Ignore : already there user %s in role %s" %
+                     (user_id, role_type))
             pass
 
     def parse_json(self, jsonstr):
@@ -381,10 +390,10 @@ class CNXBase():
         False
 
         """
-        s = "***AUTHATTEMPT:"
-        s += "-" + str(self)
-        s += "-" + str(action)
-        s += "-" + str(requesting_user_id)
+        s = "***AUTHATTEMPT::"
+        s += "on:: " + str(self)
+        s += "Action::" + str(action)
+        s += "By:: " + str(requesting_user_id)
 
         if action in ("GET", "HEAD", "OPTIONS"):
             valid_user_list = [u.user_id for u in self.userroles
