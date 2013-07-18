@@ -91,6 +91,13 @@ def assign_routing_rules(app):
     app.add_url_rule('/module/<path:moduleuri>', view_func=views.module_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
+
+    app.add_url_rule("/content/", view_func=views.content_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'uid': ''})
+    app.add_url_rule("/content/<path:uid>", view_func=views.content_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'])
+
+    
     ###
     app.add_url_rule('/logging', view_func=views.logging_endpoint,
                      methods=['POST'])
