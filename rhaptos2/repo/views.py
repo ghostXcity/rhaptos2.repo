@@ -42,6 +42,7 @@ todo: remove crash and burn
 ## root logger set in application startup
 import logging
 lgr = logging.getLogger(__name__)
+lgr.error("Initialised self logger for views.py")
 
 import os
 import json
@@ -62,6 +63,7 @@ from rhaptos2.repo import (get_app,
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
+import werkzeug.exceptions
 
 
 def requestid():
@@ -114,7 +116,7 @@ def logging_endpoint():
     """
     payld_as_json = obtain_payload(request)
     lgr.info(" %s %s" % (type(payld_as_json), payld_as_json))
-    ##FIXME - use python natie formats throughout 
+    # FIXME - use python natie formats throughout
     result = weblogging.logging_router(json.dumps(payld_as_json))
     lgr.info("result was %s" % result)
     if result == True:
@@ -133,9 +135,9 @@ def home():
     choose to log in again.
 
     There is a logic choice that might improve things - if they have
-    previously visited us, redirect to /login.  
+    previously visited us, redirect to /login.
     """
-    
+
     try:
         userdata, sessionid = auth.session_to_user(
             request.cookies, request.environ)
@@ -147,6 +149,7 @@ def home():
         <p>Try the site <a href="/tempsession">anonymously</a></p>
         <p>Or <a href="/login">sign in</a></p>
         <p>Please note all work will be lost at the end of anonymous sessions.</p>"""
+
 
 def whoamiGET():
     '''
@@ -274,10 +277,101 @@ def obtain_payload(werkzeug_request_obj):
     return jsond
 
 
+def verify_schema(model_dict, mediatype):
+    """
+    Given a json object, verify it matches the claimed mediaType schema
+
+    model_dict: dict of the model as out of json - MUST be pure mediaType, not SOFT form
+    mediatype: WHat we think the dict confirms to
+
+
+    FixMe: we do not have versioning of schemas
+    FixMe: we don't have a jsonschema verifier...
+
+    """
+    if mediatype not in MEDIA_MODELS_BY_TYPE:
+        raise werkzeug.exceptions.BadRequest(
+            "mediatype supplied is not valid - %s" % mediatype)
+    ### a valid schema is fairly limited ...
+    if 'title' in model_dict.keys():
+        return True
+    else:
+        return False
+
+
+def mediaType_from_payload(payload):
+    """
+    Given a (json) formatted payload,
+    find out if it is a `module`. `collection`, `folder`
+    and return appropriate mediatype
+
+    possible enhancements include using a acceptHeader to determine mediatype
+    returns mediatype - seems odd..
+    """
+    # payload should be a dict
+    #
+    if "mediaType" in payload.keys():
+        mediaType = payload['mediaType']
+    else:
+        # bad
+        raise werkzeug.exceptions.BadRequest(
+            "missing mediaType key in model json")
+    ### Now verify
+    if not verify_schema(payload, mediaType):
+        raise werkzeug.exceptions.BadRequest("schema failed verififcation")
+    else:
+        return mediaType
+
 ############################################################
 ## "Routers". genericly handle very similar actions
 ## but without 'reimplmenting' Flask disaptching
 ############################################################
+
+
+def content_router(uid):
+    """
+    We now serve everything form api/content
+
+    uid = content/1234-1234-12334
+                  ^^^ uuid
+    """
+
+    lgr.info("In content router, %s" % request.method)
+    requesting_user_id = g.user_details['user_id']
+    payload = obtain_payload(request)
+
+    mediaType = mediaType_from_payload(payload)
+    lgr.info(
+        "this was sent in a mediatype of %s and it looked like %s for method %s" % (mediaType,
+                                                                                    str(payload),
+                                                                                    request.method))
+    ###
+    if request.method == "GET":
+        return generic_get(uid, requesting_user_id)
+
+    elif request.method == "POST":
+        if payload is None:
+            raise Rhaptos2HTTPStatusError(
+                "Received a Null payload, expecting JSON")
+        else:
+            return generic_post(model.Module,
+                                payload, requesting_user_id)
+
+    elif request.method == "PUT":
+        if payload is None:
+            raise Rhaptos2HTTPStatusError(
+                "Received a Null payload, expecting JSON",
+                code=400)
+        else:
+            return generic_put(model.Module, uid,
+                               payload, requesting_user_id)
+
+    elif request.method == "DELETE":
+        return generic_delete(uid, requesting_user_id)
+
+    else:
+        return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
+
 
 def folder_router(folderuri):
     """
@@ -382,11 +476,10 @@ def module_router(moduleuri):
     else:
         return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
+
 ##########################################################
 ## specific views called by "routers" above.
 ##########################################################
-
-
 def folder_get(folderuri, requesting_user_id):
     """
     return folder as an appropriate json based response string
