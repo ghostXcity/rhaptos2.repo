@@ -16,7 +16,8 @@ THis file suppplies fixed test data for use with finctional testing the
 unpub repo.
 """
 
-sect1 = {"id_":  "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
+sect1 = {
+         "mediaType":"application/vnd.org.cnx.module",
          "title": "Introduction",
          "body": """<h1>In CONGRESS, July 4, 1776.</h1>
 <p>The unanimous Declaration of the thirteen united States of America,</p>
@@ -43,7 +44,8 @@ should declare the causes which impel them to the separation.</p>
          }
 
 
-sect2 = {"id_":  "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b",
+sect2 = {
+         "mediaType":"application/vnd.org.cnx.module",
          "title": "Preamble",
          "body": """
 <p>We hold these truths to be self-evident, that all men are created
@@ -82,7 +84,8 @@ security.</p>
          }
 
 
-sect3 = {"id_":  "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6",
+sect3 = {
+         "mediaType":"application/vnd.org.cnx.module",
          "title": "Indictment",
          "body": """
 <p>Such has been the patient sufferance of these Colonies; and such is
@@ -208,7 +211,8 @@ people.
          }
 
 
-sect4 = {"id_":  "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae",
+sect4 = {
+         "mediaType":"application/vnd.org.cnx.module",
          "title": "Denunciation",
          "body": """
 <p>Nor have We been wanting in attentions to our British brethren. We
@@ -237,7 +241,8 @@ mankind, Enemies in War, in Peace Friends.</p>
          }
 
 
-sect5 = {"id_":  "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389",
+sect5 = {
+         "mediaType":"application/vnd.org.cnx.module",         
          "title": "Conclusion",
          "body": """
 <p>We, therefore, the Representatives of the united States of America,
@@ -270,7 +275,8 @@ Lives, our Fortunes and our sacred Honor.</p>
          }
 
 
-sect6 = {"id_":  "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
+sect6 = {
+         "mediaType":"application/vnd.org.cnx.module",
          "title": "Signatures",
          "body": """
     New Hampshire: Josiah Bartlett, William Whipple, Matthew Thornton
@@ -302,7 +308,8 @@ sect6 = {"id_":  "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
 
 # folder
 
-fldr = {"id_":      "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707",
+fldr = {
+         "mediaType":"application/vnd.org.cnx.folder",
         "title":    "Declaration Folder",
         "body": ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b",
@@ -313,7 +320,8 @@ fldr = {"id_":      "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707",
                  ],
         }
 
-collection = {"id_": "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7",
+collection = {
+              "mediaType":"application/vnd.org.cnx.collection",
               "title": "United States Declaration Of Independance",
               "language": "en",
               "subType":  "Other Report",
@@ -353,37 +361,3 @@ declarationdict = {"sect1": sect1, "sect2": sect2,
                    "sect5": sect5, "sect6": sect6,
                    "folder": fldr, "collection": collection,
                    "module": sect1, "collection_small": collection_small}
-# for s in l:
-#    print json.dumps(s,sort_keys=True, indent=4)
-
-
-class tempuser(object):
-    """We want to match the same details as in the user dbase.
-       THis is for testing only - there is no ref int between repo and users
-       openid / Name / user_id
-    """
-    def __init__(self, openid, name, useruri):
-        self.openid = openid
-        self.name = name
-        self.useruri = useruri
-
-users = {
-    'paul': tempuser("https://paulbrian.myopenid.com", "Paul Brian", "cnxuser:75e06194-baee-4395-8e1a-566b656f6920"),
-    'ross': tempuser("https://rossreedstrom.myopenid.com", "Ross Reedstrom", "cnxuser:75e06194-baee-4395-8e1a-566b656f6921"),
-    'ed': tempuser("https://edwoodward.myopenid.com", "Ed Woodward", "cnxuser:75e06194-baee-4395-8e1a-566b656f6922"),
-    'phil': tempuser("https://philschatz.myopenid.com", "Phil Schatz", "cnxuser:75e06194-baee-4395-8e1a-566b656f6923"),
-    'michael': tempuser("https://michaelmulich.myopenid.com", "Michael Mulich", "cnxuser:75e06194-baee-4395-8e1a-566b656f6924"),
-}
-
-# added as extra people to every module etc.
-acllist = [
-    {'beginDateUTC': None,
-     'endDateUTC': None,
-     'user_id': users['ross'].useruri,
-     'role_type': 'aclro'},
-
-    {'beginDateUTC': None,
-     'endDateUTC': None,
-     'user_id': users['michael'].useruri,
-     'role_type': 'aclro'}
-]
