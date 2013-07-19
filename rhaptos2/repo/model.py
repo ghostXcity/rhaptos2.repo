@@ -417,68 +417,31 @@ class Folder(Base, CNXBase):
         return fldr
 
 
-def klass_from_uri(URI):
-    """Return the callable klass that corresponds to a URI
+def obj_from_urn(uid, requesting_user_id):
+    """
+    we are given a UUID number, and it could be
+    a `folder`, `collection`, `module`
 
-    >>> c = klass_from_uri("cnxfolder:1234")
-    >>> c
-    <class '__main__.Folder'>
-    >>> c = klass_from_uri("cnxfolder:")
-    >>> c
-    <class '__main__.Folder'>
-    >>> c = klass_from_uri("cnxfolder:1234/acl/cnxuser:123456")
-    >>> c
-    <class '__main__.Folder'>
 
+    I hace given up trying to get sqlalchemy to do this search
+    Writing the search manually is OK but its an extra round trip
 
     """
-    mapper = {"cnxfolder": Folder,
-              "cnxcollection": Collection,
-              "cnxmodule": Module,
-              #              "cnxuser": User,
-              }
-    ## get first part of uri even if :folder: or folfer:
-    val = [v for v in URI.split(":") if v != ""][0]
-    return mapper[val]
-
-
-def obj_from_urn(URN, requesting_user_id, klass=None):
-    """
-    THis is the refactored version of get_by_id
-
-    URN
-      cnxmodule:1234-5678
-
-    requesting_user_urn
-      cnxuser:1234-5678
-
-    I have reservations about encoding the type in the ID string.
-    But not many.
-
-    """
-    if not klass:
-        try:
-            klass = klass_from_uri(URN)
-        except:
-            lgr.error("Failed getting klass %s" % URN)
-            abort(400)
-
-    q = db_session.query(klass)
-    q = q.filter(klass.id_ == URN)
-    rs = q.all()
-    if len(rs) == 0:
-        raise Rhaptos2Error("ID Not found in this repo")
-    ### There is  a uniq constraint on the table, but anyway...
-    if len(rs) > 1:
-        raise Rhaptos2Error("Too many matches")
-
-    newu = rs[0]
-    if not change_approval(newu, {}, requesting_user_id, "GET"):
-        raise Rhaptos2AccessNotAllowedError("user %s not allowed access to %s"
-                                            % (requesting_user_id,
-                                                URN))
-    return newu
-
+    for klass in [Folder, Collection, Module]:
+        q = db_session.query(klass)
+        q = q.filter(klass.id_ == uid)
+        rs = q.all()
+        if len(rs) == 0:
+            lgr.info("ID %s Not found in %s" % (uid, str(klass)))
+        elif len(rs) == 1:
+            newu = rs[0]
+            if not change_approval(newu, {}, requesting_user_id, "GET"):
+                raise Rhaptos2AccessNotAllowedError("user %s not allowed access to %s"
+                                                    % (requesting_user_id,
+                                                        uid))
+            return newu
+        else:
+            raise Rhaptos2Error("%s uuid is found mult times in %s - Unique constraint error" % (uid, str(klass)))
 
 # def get_by_id(klass, ID, useruri):
 #     """
