@@ -322,7 +322,6 @@ def mediaType_from_payload(payload):
     returns mediatype - seems odd..
     """
     # payload should be a dict
-    
     if "mediaType" in payload.keys():
         mediaType = payload['mediaType']
     else:
@@ -399,6 +398,40 @@ def content_router(uid):
     else:
         return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST DELETE.")
 
+
+def folder_router(folderuri):
+    """
+    """
+    lgr.info("In folder router, %s" % request.method)
+    requesting_user_id = g.user_details['user_id']
+    payload = obtain_payload(request)
+
+    if request.method == "GET":
+        return folder_get(folderuri, requesting_user_id)
+
+    elif request.method == "POST":
+        if payload is None:
+            raise Rhaptos2HTTPStatusError(
+                "Received a Null payload, expecting JSON ",
+                code=400)
+        else:
+            return generic_post(model.Folder,
+                                payload, requesting_user_id)
+
+    elif request.method == "PUT":
+        if payload is None:
+            raise Rhaptos2HTTPStatusError(
+                "Received a Null payload, expecting JSON ",
+                code=400)
+        else:
+            return generic_put(model.Folder, folderuri,
+                               payload, requesting_user_id)
+
+    elif request.method == "DELETE":
+        return generic_delete(folderuri, requesting_user_id)
+
+    else:
+        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST DELETE.")
 
 
 ##########################################################
