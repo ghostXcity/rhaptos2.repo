@@ -66,6 +66,26 @@ from rhaptos2.repo.err import (Rhaptos2Error,
 import werkzeug.exceptions
 
 
+#### common mapping
+MODELS_BY_MEDIATYPE = {
+    "application/vnd.org.cnx.collection": model.Collection,
+    "application/vnd.org.cnx.module": model.Module,
+    "application/vnd.org.cnx.folder": model.Folder
+}
+
+def model_from_mediaType(mediaType):
+    """
+    a simple dict lookup, but future proofing
+    the possiblity of adding application/vnd.org.cnx.module+json
+    """
+    try:
+        mdl =  MODELS_BY_MEDIATYPE[mediaType]
+    except KeyError:
+        raise werkzeug.exceptions.UnsupportedMediaType("Unrecognised mediaType: %s" % mediaType)
+    return mdl
+    
+
+
 def requestid():
     """
     before_request is supplied with this to run before each __call_
