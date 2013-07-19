@@ -309,7 +309,7 @@ def mediaType_from_payload(payload):
     returns mediatype - seems odd..
     """
     # payload should be a dict
-    #
+    
     if "mediaType" in payload.keys():
         mediaType = payload['mediaType']
     else:
@@ -370,111 +370,8 @@ def content_router(uid):
         return generic_delete(uid, requesting_user_id)
 
     else:
-        return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
+        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST DELETE.")
 
-
-def folder_router(folderuri):
-    """
-    """
-    lgr.info("In folder router, %s" % request.method)
-    requesting_user_id = g.user_details['user_id']
-    payload = obtain_payload(request)
-
-    if request.method == "GET":
-        return folder_get(folderuri, requesting_user_id)
-
-    elif request.method == "POST":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON ",
-                code=400)
-        else:
-            return generic_post(model.Folder,
-                                payload, requesting_user_id)
-
-    elif request.method == "PUT":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON ",
-                code=400)
-        else:
-            return generic_put(model.Folder, folderuri,
-                               payload, requesting_user_id)
-
-    elif request.method == "DELETE":
-        return generic_delete(folderuri, requesting_user_id)
-
-    else:
-        return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
-
-
-def collection_router(collectionuri):
-    """
-    """
-    lgr.info("In collection router, %s" % request.method)
-    requesting_user_id = g.user_details['user_id']
-    payload = obtain_payload(request)
-
-    if request.method == "GET":
-        return generic_get(collectionuri, requesting_user_id)
-
-    elif request.method == "POST":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON",
-                code=400)
-        else:
-            return generic_post(model.Collection,
-                                payload, requesting_user_id)
-
-    elif request.method == "PUT":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON",
-                code=400)
-        else:
-            return generic_put(model.Collection, collectionuri,
-                               payload, requesting_user_id)
-
-    elif request.method == "DELETE":
-        return generic_delete(collectionuri, requesting_user_id)
-
-    else:
-        return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
-
-
-def module_router(moduleuri):
-    """
-    """
-    lgr.info("In module router, %s" % request.method)
-    requesting_user_id = g.user_details['user_id']
-    payload = obtain_payload(request)
-
-    if request.method == "GET":
-        return generic_get(moduleuri, requesting_user_id)
-
-    elif request.method == "POST":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON")
-        else:
-            return generic_post(model.Module,
-                                payload, requesting_user_id)
-
-    elif request.method == "PUT":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON",
-                code=400)
-        else:
-            return generic_put(model.Module, moduleuri,
-                               payload, requesting_user_id)
-
-    elif request.method == "DELETE":
-        return generic_delete(moduleuri, requesting_user_id)
-
-    else:
-        return Rhaptos2HTTPStatusError("Methods:GET PUT POST DELETE.")
 
 
 ##########################################################
