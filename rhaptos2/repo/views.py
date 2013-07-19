@@ -302,8 +302,8 @@ def verify_schema(model_dict, mediatype):
     FixMe: we don't have a jsonschema verifier...
 
     """
-    if mediatype not in MEDIA_MODELS_BY_TYPE:
-        raise werkzeug.exceptions.BadRequest(
+    if mediatype not in MODELS_BY_MEDIATYPE:
+        raise werkzeug.exceptions.UnsupportedMediaType(
             "mediatype supplied is not valid - %s" % mediatype)
     ### a valid schema is fairly limited ...
     if 'title' in model_dict.keys():
@@ -347,17 +347,27 @@ def content_router(uid):
 
     uid = content/1234-1234-12334
                   ^^^ uuid
+
+    router logic is subtly different
+
+    1. if we are GET, DELETE, HEAD then no payload and an uid
+       do not collect payload, do collect uid
+       route
+    2. POST
+       payload no uid
+    3. PUT
+       payload and uid
+    (Ignore OPTIONS etc)
+
+    
+    
     """
 
-    lgr.info("In content router, %s" % request.method)
+    
     requesting_user_id = g.user_details['user_id']
-    payload = obtain_payload(request)
+    payload = obtain_payload(request) # will be empty sometimes
+    lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
 
-    mediaType = mediaType_from_payload(payload)
-    lgr.info(
-        "this was sent in a mediatype of %s and it looked like %s for method %s" % (mediaType,
-                                                                                    str(payload),
-                                                                                    request.method))
     ###
     if request.method == "GET":
         return generic_get(uid, requesting_user_id)
@@ -367,7 +377,9 @@ def content_router(uid):
             raise Rhaptos2HTTPStatusError(
                 "Received a Null payload, expecting JSON")
         else:
-            return generic_post(model.Module,
+            mediaType = mediaType_from_payload(payload)
+            mdlklass = model_from_mediaType(mediaType)  
+            return generic_post(mdlklass,
                                 payload, requesting_user_id)
 
     elif request.method == "PUT":
@@ -376,7 +388,9 @@ def content_router(uid):
                 "Received a Null payload, expecting JSON",
                 code=400)
         else:
-            return generic_put(model.Module, uid,
+            mediaType = mediaType_from_payload(payload)
+            mdlklass = model_from_mediaType(mediaType)  
+            return generic_put(mdlklass, uid,
                                payload, requesting_user_id)
 
     elif request.method == "DELETE":
@@ -420,7 +434,7 @@ def folder_get(folderuri, requesting_user_id):
 
 
 def generic_get(uri, requesting_user_id):
-    # mod = model.get_by_id(klass, uri, requesting_user_id)
+
     mod = model.obj_from_urn(uri, requesting_user_id)
     resp = flask.make_response(json.dumps(
                                mod.__complex__(requesting_user_id)))
