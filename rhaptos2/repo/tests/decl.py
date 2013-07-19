@@ -311,13 +311,7 @@ sect6 = {
 fldr = {
          "mediaType":"application/vnd.org.cnx.folder",
         "title":    "Declaration Folder",
-        "body": ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
-                    "cnxmodule:350f7859-e6e7-11e1-928f-2c768ae4951b",
-                    "cnxmodule:4ba18842-1bf8-485b-a6c3-f6e15dd762f6",
-                    "cnxmodule:77a45e48-6e91-4814-9cca-0f28348a4aae",
-                    "cnxmodule:e0c3cfeb-f2f2-41a0-8c3b-665d79b09389",
-                    "cnxmodule:c0b149ec-8dd3-4978-9913-ac87c2770de8",
-                 ],
+        "body": [],
         }
 
 collection = {
