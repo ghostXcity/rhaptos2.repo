@@ -147,14 +147,14 @@ class CNXBase():
         A resource only contains links (pointers) to other resources - so
         a container-type resource (folder, collection) will hold links only
         such as
-         body = ["/folder/1234", "/module/5678"]
+         contents = ["/folder/1234", "/module/5678"]
 
         However if we returned that resource to the client, it would then need
         to perform *n* more requests to get the title of each.
 
         To avoid this we return a softform
 
-         body = [{'id': '/folder/1234', 'title': 'foo', 'mediatype':'application/vnd.org.cnx.folder'},
+         contents = [{'id': '/folder/1234', 'title': 'foo', 'mediatype':'application/vnd.org.cnx.folder'},
                  {'id': '/module/5678', 'title': 'bar', 'mediatype':'application/vnd.org.cnx.module'},
 
         This however needs us to descend into the container, and requiores a security check at each

@@ -319,7 +319,7 @@ class Folder(Base, CNXBase):
     __tablename__ = 'cnxfolder'
     id_ = Column(String, primary_key=True)
     title = Column(String)
-    body = Column(ARRAY(String))
+    contents = Column(ARRAY(String))
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
@@ -366,7 +366,7 @@ class Folder(Base, CNXBase):
     def __complex__(self, requesting_user_id, softform=True):
         """overwrite the std __complex__, and become recursive
 
-        The "body" of a folder is a array of uris to other items (list of
+        The "contents" of a folder is a array of uris to other items (list of
         pointers) we only care at this point
 
         softform = returning not only the list of pointers, but also data
@@ -377,7 +377,7 @@ class Folder(Base, CNXBase):
 
 
         CURRENTLY NOT RECURSIVE - folders are limited to one level by policy.
-        If this was a collection, and collections did not store body as 'li'
+        If this was a collection, and collections did not store contents as 'li'
         then would a recursive descnet beyond one level be appropriate?  FIXME -
         implement a recursive base class that folder and collection use.
 
@@ -393,8 +393,8 @@ class Folder(Base, CNXBase):
             return super(Folder, self).__complex__(requesting_user_id, softform)
 
         short_format_list = []
-        if self.body:
-            for urn in self.body:
+        if self.contents:
+            for urn in self.contents:
                 try:
                     subfolder = obj_from_urn(urn, requesting_user_id)
                     short_format_list.append({"id": subfolder.id_,
@@ -411,9 +411,9 @@ class Folder(Base, CNXBase):
                     raise e
 
         ## so get the object as a json-suitable python object
-        ## now alter the body to be the result of recursive ouutpu
+        ## now alter the contents to be the result of recursive ouutpu
         fldr = super(Folder, self).__complex__(requesting_user_id)
-        fldr['body'] = short_format_list
+        fldr['contents'] = short_format_list
         return fldr
 
 
