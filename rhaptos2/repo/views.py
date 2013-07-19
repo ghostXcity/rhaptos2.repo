@@ -276,13 +276,6 @@ def temp_session():
     return resp
 
 
-MEDIA_MODELS_BY_TYPE = {
-    "application/vnd.org.cnx.collection": model.Collection,
-    "application/vnd.org.cnx.module": model.Module,
-    "application/vnd.org.cnx.folder": model.Folder
-}
-
-
 def obtain_payload(werkzeug_request_obj):
     """
     .. todo::
