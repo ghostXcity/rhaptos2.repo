@@ -121,8 +121,8 @@ class CNXBase():
             if k in idnames and d[k] is None:
                 continue  # do not assign a id of None to the internal id
             elif k not in self.__table__.columns:
-                raise Rhaptos2Error(
-                    "Tried to set attr %s when no matching table column" % k)
+                #raise Rhaptos2Error(
+        	lgr.info("Tried to set attr %s when no matching table column" % k)
             elif k == "acl":
                 ## convert acls into userrole assignments
                 self.update_userroles(d[
@@ -274,7 +274,7 @@ class CNXBase():
         ### am i not matching sessons to useruris?
         myself = set([requesting_user_id, ])
         set_curr_uris = set([u.user_id for u in self.userroles])
-        set_proposed_uris = set(proposed_acl_list)
+        set_proposed_uris = set(proposed_acl_list or [])
         del_uris = set_curr_uris - set_proposed_uris
         del_uris = del_uris - myself
         add_uris = set_proposed_uris - set_curr_uris
@@ -435,6 +435,8 @@ def simple_xss_validation(html_fragment):
     over XSS escaping. FIXME
     """
 
+    if not html_fragment:
+        return True
     whitelist = string.ascii_letters + string.digits + "-" + string.whitespace
     lgr.info("Start XSS whitelist - %s" % html_fragment)
     for char in html_fragment:
