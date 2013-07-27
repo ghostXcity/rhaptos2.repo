@@ -23,5 +23,6 @@ def _read_sql_file(name):
 SQL = {
     'get-content': _read_sql_file('get-content'),
     'get-folder': _read_sql_file('get-folder'),
+    'get-folder-contents': _read_sql_file('get-folder-contents'),
     'get-workspace': _read_sql_file('get-workspace'),
     }

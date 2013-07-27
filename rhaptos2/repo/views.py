@@ -627,6 +627,16 @@ def folder_router(folderuri):
             cursor.execute(SQL['get-folder'], args)
             result = cursor.fetchone()[0]
 
+    # FIXME: Use some fancy INNER JOIN magic here @Ross?
+    # Sprinkle in the mediaType and id for every piece of content
+    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with db_connection.cursor() as cursor:
+            if len(result['contents']):
+                args = {'contents': result['contents']}
+                cursor.execute(SQL['get-folder-contents'], args)
+                resultContents = cursor.fetchall()[0]
+                result['contents'] = resultContents
+
     # status = "200 OK"
     # headers = [('Content-type', 'application/json',)]
 
