@@ -56,7 +56,7 @@ import psycopg2
 import requests
 import werkzeug.exceptions
 
-from . import get_app, get_settings, auth, VERSION, model, backend
+from . import get_app, get_settings, auth, VERSION
 from .database import CONNECTION_SETTINGS_KEY, SQL
 from .err import (Rhaptos2Error,
                   Rhaptos2SecurityError,
@@ -64,15 +64,15 @@ from .err import (Rhaptos2Error,
 
 
 #### common mapping
-MODELS_BY_MEDIATYPE = {
-    "application/vnd.org.cnx.collection": model.Collection,
-    "application/vnd.org.cnx.module": model.Module,
-    "application/vnd.org.cnx.folder": model.Folder
-}
+MODELS_BY_MEDIATYPE = [
+    "application/vnd.org.cnx.collection",
+    "application/vnd.org.cnx.module",
+    "application/vnd.org.cnx.folder"
+]
 
 lgr = logging.getLogger(__name__)
 
-
+# PHIL: Dead code
 def model_from_mediaType(mediaType):
     """
     a simple dict lookup, but future proofing
@@ -419,6 +419,7 @@ def content_router(uid):
         'summary',
         'googleTrackingID',
     ]
+
 
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes

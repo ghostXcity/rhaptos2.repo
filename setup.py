@@ -65,7 +65,6 @@ setup(
         "Flask-OpenID==1.0.1",
         "psycopg2 >= 2.5.1",
         "requests",
-        "sqlalchemy",
         "statsd",
         "webob",
         ],

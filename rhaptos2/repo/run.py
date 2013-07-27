@@ -46,7 +46,7 @@ def initialize_database(argv=None):
     config = Configuration.from_file(args.config)
 
     make_app(config)
-    from rhaptos2.repo.backend import initdb
+    from rhaptos2.repo.database import initdb
     initdb(config)
 
     from rhaptos2.repo.sessioncache import set_config, initdb as sessinitdb

@@ -5,7 +5,6 @@
 
 ### Top level packages
 Flask
-SQLAlchemy
 Sphinx
 psycopg2>=2.5.1
 ### We use with keyword and not supported till 2.5.1

@@ -115,7 +115,8 @@ def convert_config(config):
 
 
 def setup():
-    from .. import make_app, sessioncache, set_app
+    from .. import make_app, sessioncache, set_app, set_settings
+    from ..database import initdb
 
     global TESTCONFIG
     global TESTAPP
@@ -148,11 +149,6 @@ def setup():
         sessioncache.set_config(config)
         TESTAPP = TestApp(app.wsgi_app, cookiejar=cj)
         set_constants("", TESTAPP)
-    print app
-
-    initdb(TESTCONFIG)
-
-    initdb(TESTCONFIG)
 
 
 def funcsetup():
@@ -160,16 +156,6 @@ def funcsetup():
     once per test
     """
     reload(decl)
-
-
-def cleardown(config):
-    from rhaptos2.repo import backend
-    backend.clean_dbase(config)
-
-
-def initdb(config):
-    from rhaptos2.repo import backend
-    backend.initdb(config)
 
 
 ####################

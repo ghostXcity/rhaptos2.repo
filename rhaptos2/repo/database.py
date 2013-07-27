@@ -14,7 +14,7 @@ CONNECTION_SETTINGS_KEY = 'db-connection-string'
 
 here = os.path.abspath(os.path.dirname(__file__))
 SQL_DIRECTORY = os.path.join(here, 'sql')
-# DB_SCHEMA = os.path.join(SQL_DIRECTORY, 'schema.sql')
+DB_SCHEMA = os.path.join(SQL_DIRECTORY, 'schema.sql')
 
 def _read_sql_file(name):
     path = os.path.join(SQL_DIRECTORY, '{}.sql'.format(name))
@@ -26,3 +26,9 @@ SQL = {
     'get-folder-contents': _read_sql_file('get-folder-contents'),
     'get-workspace': _read_sql_file('get-workspace'),
     }
+
+def initdb(settings):
+    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with db_connection.cursor() as cursor:
+            with open(DB_SCHEMA, 'r') as f:
+                cursor.execute(f.read())
