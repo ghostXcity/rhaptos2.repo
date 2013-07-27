@@ -484,6 +484,9 @@ def test_put_module_acls():
                     developers['GOODUSER']['sessionid'],
                     RECORDTRAIL['module_uid'])
     err.write("\n"+"test_put_module: %s" % data['id_'])
+    err.write("\n"+"test_put_module: %s" % resp.json)
+    err.write("\n"+"test_put_module: %s" % developers['OTHERUSER']['uri'] )
+    
     assert developers['OTHERUSER']['uri'] in resp.json['acl']
     assert "should" in resp.json['body']
 
@@ -723,7 +726,9 @@ def test_delete_module_baduser():
                        , "content"
                        , RECORDTRAIL['module_uid']
                        , developers['BADUSER']['sessionid'])
-    assert resp.status_int == 403, resp.status_int
+    # DELETE is not supported
+    #assert resp.status_int == 403, resp.status_int
+    assert resp.status_int == 405, resp.status_int
 
 
 @with_setup(funcsetup)
@@ -732,7 +737,9 @@ def test_delete_module_good():
                        , "content"
                        , RECORDTRAIL['module_uid']
                        , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 200, resp.status_int
+    # DELETE is not supported
+    #assert resp.status_int == 200, resp.status_int
+    assert resp.status_int == 405, resp.status_int
 
 ###
 
@@ -743,7 +750,9 @@ def test_delete_collection_baduser():
                        , "content"
                        , RECORDTRAIL['collection_uid']
                        , developers['BADUSER']['sessionid'])
-    assert resp.status_int == 403, resp.status_int
+    # DELETE is not supported
+    #assert resp.status_int == 403, resp.status_int
+    assert resp.status_int == 405, resp.status_int
 
 
 @with_setup(funcsetup)
@@ -752,7 +761,9 @@ def test_delete_collection_good():
                        , "content"
                        , RECORDTRAIL['collection_uid']
                        , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 200, resp.status_int
+    # DELETE is not supported
+    #assert resp.status_int == 200, resp.status_int
+    assert resp.status_int == 405, resp.status_int
 
 ###
 
@@ -763,7 +774,9 @@ def test_delete_folder_baduser():
                        , "content"
                        , RECORDTRAIL['folder_uid']
                        , developers['BADUSER']['sessionid'])
-    assert resp.status_int == 403, resp.status_int
+    # DELETE is not supported
+    #assert resp.status_int == 403, resp.status_int
+    assert resp.status_int == 405, resp.status_int
 
 
 @with_setup(funcsetup)
@@ -772,7 +785,9 @@ def test_delete_folder_good():
                        , "content"
                        , RECORDTRAIL['folder_uid']
                        , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 200
+    # DELETE is not supported
+    #assert resp.status_int == 200
+    assert resp.status_int == 405
 
 
 @with_setup(funcsetup)
