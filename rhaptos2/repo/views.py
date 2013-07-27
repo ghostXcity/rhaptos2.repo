@@ -58,7 +58,7 @@ from flask import (
 )
 
 from rhaptos2.repo import (get_app,
-                           auth, VERSION, model,
+                           auth, VERSION,
                            backend, weblogging)
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
@@ -75,12 +75,13 @@ settings[CONNECTION_SETTINGS_KEY] = "dbname=rhaptos2repo user=rhaptos2repo passw
 
 
 #### common mapping
-MODELS_BY_MEDIATYPE = {
-    "application/vnd.org.cnx.collection": model.Collection,
-    "application/vnd.org.cnx.module": model.Module,
-    "application/vnd.org.cnx.folder": model.Folder
-}
+MODELS_BY_MEDIATYPE = [
+    "application/vnd.org.cnx.collection",
+    "application/vnd.org.cnx.module",
+    "application/vnd.org.cnx.folder"
+]
 
+# PHIL: Dead code
 def model_from_mediaType(mediaType):
     """
     a simple dict lookup, but future proofing
@@ -380,6 +381,7 @@ def content_router(uid):
     """
 
     VALID_UPDATE_FIELDS = [
+        'mediaType', # TODO: This is not needed for UPDATE but the validator needs it
         'title',
         'authors',
         'copyrightHolders',
@@ -389,10 +391,6 @@ def content_router(uid):
         'keywords',
         'summary'
     ]
-
-    # Add `mediaType` to the list of valid INSERT fields
-    VALID_INSERT_FIELDS = list(VALID_UPDATE_FIELDS)
-    VALID_INSERT_FIELDS.append('mediaType')
 
 
     requesting_user_id = g.user_details['user_id']
@@ -416,7 +414,7 @@ def content_router(uid):
             fields = {'id': uid}
             sqlFieldNames = []
             sqlFieldValues = []
-            for fieldName in VALID_INSERT_FIELDS:
+            for fieldName in VALID_UPDATE_FIELDS:
                 if fieldName in payload:
                     fields[fieldName] = payload[fieldName]
                     # FIXME: Please tell me how to dynamically UPDATE fields
@@ -493,9 +491,6 @@ def folder_router(folderuri):
         'contents'
     ]
 
-    # Add `mediaType` to the list of valid INSERT fields
-    VALID_INSERT_FIELDS = list(VALID_UPDATE_FIELDS)
-
 
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
@@ -518,7 +513,7 @@ def folder_router(folderuri):
             fields = {'id': uid}
             sqlFieldNames = []
             sqlFieldValues = []
-            for fieldName in VALID_INSERT_FIELDS:
+            for fieldName in VALID_UPDATE_FIELDS:
                 if fieldName in payload:
                     fields[fieldName] = payload[fieldName]
                     # FIXME: Please tell me how to dynamically UPDATE fields
@@ -541,7 +536,6 @@ def folder_router(folderuri):
                     cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_uri, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
-        import pdb; pdb.set_trace()
 
         # Generate the SQL needed to UPDATE
         fields = {'id': uid}
