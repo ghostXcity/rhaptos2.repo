@@ -5,7 +5,6 @@
 
 ### Top level packages
 Flask
-SQLAlchemy
 Sphinx
 psycopg2
 

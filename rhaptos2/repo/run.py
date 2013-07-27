@@ -168,8 +168,9 @@ def initialize_database():
     opts, args = parse_args()
     config = Configuration.from_file(opts.conf)
 
-    from rhaptos2.repo.backend import initdb
-    initdb(config)
+    # FIXME: Initialize the database somehow
+    #from rhaptos2.repo.backend import initdb
+    #initdb(config)
 
     from rhaptos2.repo.sessioncache import set_config, initdb
     set_config(config)

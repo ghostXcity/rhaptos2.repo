@@ -59,7 +59,7 @@ from flask import (
 
 from rhaptos2.repo import (get_app,
                            auth, VERSION,
-                           backend, weblogging)
+                           weblogging)
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
