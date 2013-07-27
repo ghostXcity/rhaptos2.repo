@@ -65,6 +65,14 @@ from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2HTTPStatusError)
 import werkzeug.exceptions
 
+import psycopg2
+from .database import CONNECTION_SETTINGS_KEY, SQL
+
+# FIXME: These should NOT be hardcoded but I do not know how to look them up from the config
+#settings = get_settings()
+settings = dict()
+settings[CONNECTION_SETTINGS_KEY] = "dbname=rhaptos2repo user=rhaptos2repo password=rhaptos2repo host=localhost port=5432"
+
 
 #### common mapping
 MODELS_BY_MEDIATYPE = {
@@ -83,7 +91,7 @@ def model_from_mediaType(mediaType):
     except KeyError:
         raise werkzeug.exceptions.UnsupportedMediaType("Unrecognised mediaType: %s" % mediaType)
     return mdl
-    
+
 
 
 def requestid():
@@ -203,18 +211,26 @@ def workspaceGET():
     if not userd:
         abort(403)
     else:
-        wout = {}
         lgr.info("Calling workspace with %s" % userd['user_id'])
-        w = model.workspace_by_user(userd['user_id'])
-        lgr.info(repr(w))
-        ## w is a list of models (folders, cols etc).
-        # it would require some flattening or a JSONEncoder but we just want
-        # short form for now
-        short_format_list = [{
-            "id": i.id_, "title": i.title, "mediaType": i.mediaType} for i in w]
-        flatten = json.dumps(short_format_list)
-    resp = apply_cors(flatten)
-    return resp
+
+        # Do the workspace lookup
+        user_id = userd['user_id']
+        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+            with db_connection.cursor() as cursor:
+                args = dict(user_id=user_id)
+                cursor.execute(SQL['get-workspace'], args)
+                result = cursor.fetchall()
+                # FIXME: There is probably a cleaner way to unwrap the results when the are empty
+                result = [item[0] for item in result]
+
+        # status = "200 OK"
+        # headers = [('Content-type', 'application/json',)]
+
+        resp = flask.make_response(json.dumps(result))
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers['Content-type'] = 'application/json; charset=utf-8'
+        return resp
+
 
 
 def keywords():
@@ -312,7 +328,7 @@ def verify_schema(model_dict, mediatype):
         return False
 
 
-def mediaType_from_payload(payload):
+def validate_mediaType(payload):
     """
     Given a (json) formatted payload,
     find out if it is a `module`. `collection`, `folder`
@@ -333,6 +349,7 @@ def mediaType_from_payload(payload):
         raise werkzeug.exceptions.BadRequest("schema failed verififcation")
     else:
         return mediaType
+
 
 ############################################################
 ## "Routers". genericly handle very similar actions
@@ -358,45 +375,108 @@ def content_router(uid):
        payload and uid
     (Ignore OPTIONS etc)
 
-    
-    
+
+
     """
 
-    
+    VALID_UPDATE_FIELDS = [
+        'title',
+        'authors',
+        'copyrightHolders',
+        'body',
+        'language',
+        'subjects',
+        'keywords',
+        'summary'
+    ]
+
+    # Add `mediaType` to the list of valid INSERT fields
+    VALID_INSERT_FIELDS = list(VALID_UPDATE_FIELDS)
+    VALID_INSERT_FIELDS.append('mediaType')
+
+
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
     lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
 
     ###
     if request.method == "GET":
-        return generic_get(uid, requesting_user_id)
+        # The GET is handled at the end of this if block
+        pass
 
     elif request.method == "POST":
         if payload is None:
             raise Rhaptos2HTTPStatusError(
                 "Received a Null payload, expecting JSON")
         else:
-            mediaType = mediaType_from_payload(payload)
-            mdlklass = model_from_mediaType(mediaType)  
-            return generic_post(mdlklass,
-                                payload, requesting_user_id)
+
+            uid = str(uuid.uuid4())
+
+            # Generate the SQL needed to INSERT
+            fields = {'id': uid}
+            sqlFieldNames = []
+            sqlFieldValues = []
+            for fieldName in VALID_INSERT_FIELDS:
+                if fieldName in payload:
+                    fields[fieldName] = payload[fieldName]
+                    # FIXME: Please tell me how to dynamically UPDATE fields
+                    sqlFieldNames.append('"%s"' % fieldName)
+                    sqlFieldValues.append('%%(%s)s' % fieldName)
+
+            dynamicInsert = 'INSERT INTO cnxmodule (id_, %s) VALUES (%%(id)s, %s)' % (', '.join(sqlFieldNames), ', '.join(sqlFieldValues))
+
+            # Perform validation before inserting
+            validate_mediaType(fields)
+
+            with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+                with db_connection.cursor() as cursor:
+                    cursor.execute(dynamicInsert, fields)
+
+                    roles = {
+                        'content_id': uid,
+                        'user_id': requesting_user_id
+                    }
+                    cursor.execute("INSERT INTO userrole_module (module_uri, user_id, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON",
-                code=400)
-        else:
-            mediaType = mediaType_from_payload(payload)
-            mdlklass = model_from_mediaType(mediaType)  
-            return generic_put(mdlklass, uid,
-                               payload, requesting_user_id)
+        # Generate the SQL needed to UPDATE
+        fields = {'id': uid}
+        sqlFields = []
+        for fieldName in VALID_UPDATE_FIELDS:
+            if payload[fieldName]:
+                fields[fieldName] = payload[fieldName]
+                # FIXME: Please tell me how to dynamically UPDATE fields
+                sqlFields.append('"%s" = %%(%s)s' % (fieldName, fieldName))
 
-    elif request.method == "DELETE":
-        return generic_delete(uid, requesting_user_id)
+        dynamicUpdate = 'UPDATE cnxmodule SET %s WHERE id_ = %%(id)s' % (' , '.join(sqlFields))
+
+        # Perform validation before updating
+        validate_mediaType(fields)
+
+        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+            with db_connection.cursor() as cursor:
+                cursor.execute(dynamicUpdate, fields)
 
     else:
-        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST DELETE.")
+        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")
+
+
+    # Always Return the full Content JSON after POST or PUT
+    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with db_connection.cursor() as cursor:
+            args = dict(id=uid)
+            cursor.execute(SQL['get-content'], args)
+            result = cursor.fetchone()[0]
+
+    # status = "200 OK"
+    # headers = [('Content-type', 'application/json',)]
+
+
+    resp = flask.make_response(json.dumps(result))
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers['Content-type'] = 'application/json; charset=utf-8'
+    return resp
+
 
 
 def folder_router(folderuri):
@@ -405,111 +485,98 @@ def folder_router(folderuri):
     lgr.info("In folder router, %s" % request.method)
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request)
+    uid = folderuri
 
+    VALID_UPDATE_FIELDS = [
+        'mediaType',
+        'title',
+        'contents'
+    ]
+
+    # Add `mediaType` to the list of valid INSERT fields
+    VALID_INSERT_FIELDS = list(VALID_UPDATE_FIELDS)
+
+
+    requesting_user_id = g.user_details['user_id']
+    payload = obtain_payload(request) # will be empty sometimes
+    lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
+
+    ###
     if request.method == "GET":
-        return folder_get(folderuri, requesting_user_id)
+        # The GET is handled at the end of this if block
+        pass
 
     elif request.method == "POST":
         if payload is None:
             raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON ",
-                code=400)
+                "Received a Null payload, expecting JSON")
         else:
-            return generic_post(model.Folder,
-                                payload, requesting_user_id)
+
+            uid = str(uuid.uuid4())
+
+            # Generate the SQL needed to INSERT
+            fields = {'id': uid}
+            sqlFieldNames = []
+            sqlFieldValues = []
+            for fieldName in VALID_INSERT_FIELDS:
+                if fieldName in payload:
+                    fields[fieldName] = payload[fieldName]
+                    # FIXME: Please tell me how to dynamically UPDATE fields
+                    sqlFieldNames.append('"%s"' % fieldName)
+                    sqlFieldValues.append('%%(%s)s' % fieldName)
+
+            dynamicInsert = 'INSERT INTO cnxfolder (id_, %s) VALUES (%%(id)s, %s)' % (', '.join(sqlFieldNames), ', '.join(sqlFieldValues))
+
+            # Perform validation before inserting
+            validate_mediaType(fields)
+
+            with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+                with db_connection.cursor() as cursor:
+                    cursor.execute(dynamicInsert, fields)
+
+                    roles = {
+                        'content_id': uid,
+                        'user_id': requesting_user_id
+                    }
+                    cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_uri, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
-        if payload is None:
-            raise Rhaptos2HTTPStatusError(
-                "Received a Null payload, expecting JSON ",
-                code=400)
-        else:
-            return generic_put(model.Folder, folderuri,
-                               payload, requesting_user_id)
+        import pdb; pdb.set_trace()
 
-    elif request.method == "DELETE":
-        return generic_delete(folderuri, requesting_user_id)
+        # Generate the SQL needed to UPDATE
+        fields = {'id': uid}
+        sqlFields = []
+        for fieldName in VALID_UPDATE_FIELDS:
+            if payload[fieldName]:
+                fields[fieldName] = payload[fieldName]
+                # FIXME: Please tell me how to dynamically UPDATE fields
+                sqlFields.append('"%s" = %%(%s)s' % (fieldName, fieldName))
+
+        dynamicUpdate = 'UPDATE cnxfolder SET %s WHERE id_ = %%(id)s' % (' , '.join(sqlFields))
+
+        # Perform validation before updating
+        validate_mediaType(fields)
+
+        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+            with db_connection.cursor() as cursor:
+                cursor.execute(dynamicUpdate, fields)
 
     else:
-        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST DELETE.")
+        return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")
 
 
-##########################################################
-## specific views called by "routers" above.
-##########################################################
-def folder_get(folderuri, requesting_user_id):
-    """
-    return folder as an appropriate json based response string
+    # Always Return the full Content JSON after POST or PUT
+    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with db_connection.cursor() as cursor:
+            args = dict(id=uid)
+            cursor.execute(SQL['get-folder'], args)
+            result = cursor.fetchone()[0]
 
-    This is returned not as the generic representation of a folder, but as
-    a "soft" form, with names of folder children as well as "hard" uuids.
-    This is why the folder_get is special cased here.
+    # status = "200 OK"
+    # headers = [('Content-type', 'application/json',)]
 
-    .__complex__ -> creates a version of an object that can be run through a std json.dump
 
-    Why am I passing in the same userid in two successive objects
-
-    1. I am not maintaining any state in the object, not assuming any state in thread(*)
-    2. The first call returns the "hard" object (pointers only)
-       Thus it (rightly) has no knowledge of the user permissions of its children.
-       We will need to descend the hierarchy to
-
-    (*) This may get complicated with thread-locals in Flask and scoped sessions. please see notes
-        on backend.py
-    """
-    fldr = model.obj_from_urn(folderuri, g.user_details['user_id'])
-    fldr_complex = fldr.__complex__(g.user_details['user_id'])
-
-    resp = flask.make_response(json.dumps(fldr_complex))
-    resp.content_type = 'application/json; charset=utf-8'
+    resp = flask.make_response(json.dumps(result))
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    return resp
-
-
-def generic_get(uri, requesting_user_id):
-
-    mod = model.obj_from_urn(uri, requesting_user_id)
-    resp = flask.make_response(json.dumps(
-                               mod.__complex__(requesting_user_id)))
-    resp.status_code = 200
-    resp.content_type = 'application/json; charset=utf-8'
-    return resp
-
-
-def generic_post(klass, payload_as_dict, requesting_user_id):
-    """Post an appropriately formatted dict to klass
-
-    .. todo::
-       its very inefficient posting the folder, then asking for
-       it to be recreated.
-
-    """
-    owner = requesting_user_id
-    fldr = model.post_o(klass, payload_as_dict,
-                        requesting_user_id=owner)
-    resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
-    resp.status_code = 200
-    resp.content_type = 'application/json; charset=utf-8'
-    return resp
-
-
-def generic_put(klass, resource_uri, payload_as_dict,
-                requesting_user_id):
-
-    owner = requesting_user_id
-    fldr = model.put_o(payload_as_dict, klass, resource_uri,
-                       requesting_user_id=owner)
-    resp = flask.make_response(json.dumps(fldr.__complex__(owner)))
-    resp.status_code = 200
-    resp.content_type = 'application/json; charset=utf-8'
-    return resp
-
-
-def generic_delete(uri, requesting_user_id):
-    """ """
-    owner = requesting_user_id
-    model.delete_o(uri, requesting_user_id=owner)
-    resp = flask.make_response("%s is no more" % uri)
-    resp.status_code = 200
-    resp.content_type = 'application/json; charset=utf-8'
+    resp.headers['Content-type'] = 'application/json; charset=utf-8'
     return resp

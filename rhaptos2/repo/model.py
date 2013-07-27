@@ -130,14 +130,14 @@ class Collection(Base, CNXBase):
     authors = Column(ARRAY(String))
     maintainers = Column(ARRAY(String))
     copyrightHolders = Column(ARRAY(String))
-    editors = Column(ARRAY(String))
-    translators = Column(ARRAY(String))
-    acl = Column(ARRAY(String))
+    #editors = Column(ARRAY(String))
+    #translators = Column(ARRAY(String))
+    #acl = Column(ARRAY(String))
     body = Column(String)
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
-    googleTrackingID = Column(String)
+    #googleTrackingID = Column(String)
 
     userroles = relationship("UserRoleCollection",
                              backref="cnxcollection",
@@ -222,9 +222,9 @@ class Module(Base, CNXBase):
     authors = Column(ARRAY(String))
     maintainers = Column(ARRAY(String))
     copyrightHolders = Column(ARRAY(String))
-    editors = Column(ARRAY(String))
-    translators = Column(ARRAY(String))
-    acl = Column(ARRAY(String))
+    #editors = Column(ARRAY(String))
+    #translators = Column(ARRAY(String))
+    #acl = Column(ARRAY(String))
     body = Column(String)
     language = Column(String)
     subType = Column(String)
@@ -234,7 +234,7 @@ class Module(Base, CNXBase):
     dateCreatedUTC = Column(DateTime)
     dateLastModifiedUTC = Column(DateTime)
     mediaType = Column(String)
-    googleTrackingID = Column(String)
+    #googleTrackingID = Column(String)
 
     userroles = relationship("UserRoleModule",
                              backref="cnxmodule",
