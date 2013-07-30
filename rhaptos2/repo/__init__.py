@@ -172,10 +172,12 @@ def set_up_logging(app):
     ## write to syslog - defaults to INFO
     if config['globals']['log_to_syslog'] == 'Y':
         syslog_handler = logging.handlers.SysLogHandler(
-            address=config['globals']['syslogfile'])
-        syslog_handler.setLevel(logging.INFO)
+                          address=config['globals']['syslogfile'],
+                          facility=int(config['globals']['syslogfacility']),
+                          )
         syslog_handler.setFormatter(default_formatter)
         root.addHandler(syslog_handler)
+
 
     ### local file loggers for development
     ### eventlog records everything, errorlog just for errors
@@ -197,5 +199,5 @@ def set_up_logging(app):
 
         root.addHandler(error_handler)
         root.addHandler(event_handler)
-
+        
     root.info("logger set up on %s as %s" % (__name__, str(root)))
