@@ -74,7 +74,6 @@ def get_app(opts, args, config, as_devserver=False, jslocation=None):
     app.debug = True
     weblogging.configure_weblogging(config)
     sessioncache.set_config(config)
-    initialize_database()
 
     if as_devserver:
 
