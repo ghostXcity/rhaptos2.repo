@@ -81,16 +81,12 @@ def assign_routing_rules(app):
     app.add_url_rule('/folder/<path:folderuri>', view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'])
 
-    app.add_url_rule("/collection/", view_func=views.collection_router, methods=[
-                     'GET', 'POST', 'PUT', 'DELETE'], defaults={'collectionuri': ''})
-    app.add_url_rule('/collection/<path:collectionuri>', view_func=views.collection_router, methods=[
-                     'GET', 'POST', 'PUT', 'DELETE'])
-
-    app.add_url_rule("/module/", view_func=views.module_router,
-                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'moduleuri': ''})
-    app.add_url_rule('/module/<path:moduleuri>', view_func=views.module_router,
+    app.add_url_rule("/content/", view_func=views.content_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'uid': ''})
+    app.add_url_rule("/content/<path:uid>", view_func=views.content_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
+    
     ###
     app.add_url_rule('/logging', view_func=views.logging_endpoint,
                      methods=['POST'])
