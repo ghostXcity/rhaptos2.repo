@@ -7,8 +7,8 @@
 Flask
 SQLAlchemy
 Sphinx
-psycopg2
-
+psycopg2>=2.5.1
+### We use with keyword and not supported till 2.5.1
 
 ### Flask deps:
 Jinja2
