@@ -101,7 +101,9 @@ from rhaptos2.repo import get_app, sessioncache
 
 
 # Paths which do not require authorization.
-DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico', '/home', '/tempsession')
+DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',
+             '/tempsession', '/login', '/'
+             )
 # The key used in session cookies.
 CNX_SESSION_ID = "cnxsessionid"
 
@@ -228,7 +230,7 @@ def handle_user_authentication(flask_request):
 
 def session_to_user(flask_request_cookiedict, flask_request_environ):
     """
-    Given a request environment and cookie
+    Given a request environment and cookie, return the user data.
 
     >>> cookies = {"cnxsessionid": "00000000-0000-0000-0000-000000000000",}
     >>> env = {}
@@ -267,7 +269,7 @@ def lookup_session(sessid):
         lgr.info("we got this from session lookup %s" % str(userd))
         if userd:
             lgr.info("We attempted to look up sessid %s in cache SUCCESS" %
-                      sessid)
+                     sessid)
             return userd
         else:
             lgr.error("We attempted to look up sessid %s in cache FAILED" %
@@ -326,7 +328,7 @@ def create_session(userdata):
         #     the client-side code. We should supply the client-side code with
         #     the id and url to the user profile. The user already has
         #     authorization to acquire their data.
-        resp.set_cookie('cnxprofile', 'FOO',
+        resp.set_cookie('cnxprofile', 'hasVisitedPreviously',
                         httponly=True,
                         expires=datetime.datetime.today()+datetime.timedelta(days=365))
         return resp
@@ -426,9 +428,23 @@ def apply_cors(resp):
     return resp
 
 
+def login():
+    """Redirect to cnx-user login."""
+    user_service_url = get_app().config['cnx-user-url']
+    came_from = request.environ.get('HTTP_REFERER', None)
+    if came_from is None:
+        came_from = "http://{}/js/".format(get_app().config['www_server_name'])
+    login_url = "{}/server/login?came_from={}".format(
+        user_service_url,
+        came_from)
+    lgr.info("at login: loginurl is %s" % login_url)
+    return redirect(login_url)
+
+
 def logout():
     """kill the session in cache, remove the cookie from client"""
-    raise NotImplementedError()
+    delete_session(g.sessionid)
+    return json.dumps('LOGGED OUT')
 
 ############################
 # cnx-user communication API
