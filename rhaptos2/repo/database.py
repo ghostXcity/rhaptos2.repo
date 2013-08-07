@@ -10,8 +10,6 @@ import os
 import psycopg2
 
 
-CONNECTION_SETTINGS_KEY = 'db-connection-string'
-
 here = os.path.abspath(os.path.dirname(__file__))
 SQL_DIRECTORY = os.path.join(here, 'sql')
 # DB_SCHEMA = os.path.join(SQL_DIRECTORY, 'schema.sql')

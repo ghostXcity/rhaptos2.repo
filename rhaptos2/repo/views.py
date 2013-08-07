@@ -40,7 +40,7 @@ todo: remove crash and burn
 
 """
 ## root logger set in application startup
-import logging
+import logging, pprint
 lgr = logging.getLogger(__name__)
 lgr.error("Initialised self logger for views.py")
 
@@ -66,12 +66,26 @@ from rhaptos2.repo.err import (Rhaptos2Error,
 import werkzeug.exceptions
 
 import psycopg2
-from .database import CONNECTION_SETTINGS_KEY, SQL
+from .database import SQL
 
 # FIXME: These should NOT be hardcoded but I do not know how to look them up from the config
 #settings = get_settings()
-settings = dict()
-settings[CONNECTION_SETTINGS_KEY] = "dbname=rhaptos2repo user=rhaptos2repo password=rhaptos2repo host=localhost port=5432"
+############
+### CONFIG - module level global able to be set during start up.
+############
+
+CONFD = {}  # module level global to be setup
+
+def set_config(confd):
+    """
+    """
+    global CONFD
+    CONFD.update(confd)
+    #lgr.debug(pprint.pformat(CONFD))
+
+    
+
+
 
 
 #### common mapping
@@ -216,7 +230,7 @@ def workspaceGET():
 
         # Do the workspace lookup
         user_id = userd['user_id']
-        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
             with db_connection.cursor() as cursor:
                 args = dict(user_id=user_id)
                 cursor.execute(SQL['get-workspace'], args)
@@ -395,8 +409,8 @@ def content_router(uid):
 
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
-    lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
-
+    lgr.debug("In content router, %s payload is %s " % (request.method, str(payload)))
+    #lgr.debug("CONFD: %s" % pprint.pformat(CONFD))
     ###
     if request.method == "GET":
         # The GET is handled at the end of this if block
@@ -426,7 +440,7 @@ def content_router(uid):
             # Perform validation before inserting
             validate_mediaType(fields)
 
-            with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+            with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
                 with db_connection.cursor() as cursor:
                     cursor.execute(dynamicInsert, fields)
 
@@ -441,17 +455,18 @@ def content_router(uid):
         fields = {'id': uid}
         sqlFields = []
         for fieldName in VALID_UPDATE_FIELDS:
-            if payload[fieldName]:
-                fields[fieldName] = payload[fieldName]
-                # FIXME: Please tell me how to dynamically UPDATE fields
-                sqlFields.append('"%s" = %%(%s)s' % (fieldName, fieldName))
+            if fieldName in payload.keys():
+                if payload[fieldName]:
+                    fields[fieldName] = payload[fieldName]
+                    # FIXME: Please tell me how to dynamically UPDATE fields pbrian: as in a object ?
+                    sqlFields.append('"%s" = %%(%s)s' % (fieldName, fieldName))
 
         dynamicUpdate = 'UPDATE cnxmodule SET %s WHERE id_ = %%(id)s' % (' , '.join(sqlFields))
 
         # Perform validation before updating
         validate_mediaType(fields)
 
-        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
             with db_connection.cursor() as cursor:
                 cursor.execute(dynamicUpdate, fields)
 
@@ -460,7 +475,7 @@ def content_router(uid):
 
 
     # Always Return the full Content JSON after POST or PUT
-    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+    with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
         with db_connection.cursor() as cursor:
             args = dict(id=uid)
             cursor.execute(SQL['get-content'], args)
@@ -514,18 +529,22 @@ def folder_router(folderuri):
             sqlFieldNames = []
             sqlFieldValues = []
             for fieldName in VALID_UPDATE_FIELDS:
-                if fieldName in payload:
-                    fields[fieldName] = payload[fieldName]
-                    # FIXME: Please tell me how to dynamically UPDATE fields
-                    sqlFieldNames.append('"%s"' % fieldName)
-                    sqlFieldValues.append('%%(%s)s' % fieldName)
-
+                if fieldName in payload.keys():
+                    try:
+                        fields[fieldName] = payload[fieldName]
+                        # FIXME: Please tell me how to dynamically UPDATE fields
+                        sqlFieldNames.append('"%s"' % fieldName)
+                        sqlFieldValues.append('%%(%s)s' % fieldName)
+                    except KeyError, e:
+                        lgr.error("Payload failed on this keyword %s - payload: %s" % (fieldName, repr(payload)))
+                        raise e
+                        
             dynamicInsert = 'INSERT INTO cnxfolder (id_, %s) VALUES (%%(id)s, %s)' % (', '.join(sqlFieldNames), ', '.join(sqlFieldValues))
 
             # Perform validation before inserting
             validate_mediaType(fields)
 
-            with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+            with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
                 with db_connection.cursor() as cursor:
                     cursor.execute(dynamicInsert, fields)
 
@@ -551,7 +570,7 @@ def folder_router(folderuri):
         # Perform validation before updating
         validate_mediaType(fields)
 
-        with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+        with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
             with db_connection.cursor() as cursor:
                 cursor.execute(dynamicUpdate, fields)
 
@@ -560,7 +579,7 @@ def folder_router(folderuri):
 
 
     # Always Return the full Content JSON after POST or PUT
-    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+    with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
         with db_connection.cursor() as cursor:
             args = dict(id=uid)
             cursor.execute(SQL['get-folder'], args)
@@ -568,7 +587,7 @@ def folder_router(folderuri):
 
     # FIXME: Use some fancy INNER JOIN magic here @Ross?
     # Sprinkle in the mediaType and id for every piece of content
-    with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+    with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
         with db_connection.cursor() as cursor:
             if len(result['contents']):
                 args = {'contents': result['contents']}

@@ -40,7 +40,7 @@ changes:
 import logging
 lgr = logging.getLogger(__name__)
 
-from rhaptos2.repo import make_app, sessioncache, weblogging
+from rhaptos2.repo import make_app, sessioncache, weblogging, views
 from rhaptos2.repo.configuration import Configuration
 from optparse import OptionParser
 import os
@@ -74,6 +74,7 @@ def get_app(opts, args, config, as_devserver=False, jslocation=None):
     app.debug = True
     weblogging.configure_weblogging(config)
     sessioncache.set_config(config)
+    views.set_config(config)
     initialize_database()
 
     if as_devserver:

@@ -39,8 +39,8 @@ err = sys.stderr
 
 import decl
 import restrest
-from rhaptos2.repo import (make_app, backend,
-                           sessioncache,
+from rhaptos2.repo import (make_app,
+                           sessioncache, views,
                            weblogging)
 from webtest import TestApp, TestRequest
 import cookielib
@@ -127,11 +127,15 @@ def setup():
     # using nose-testconfig we obtain the config dict passed in through the
     # nosetests command line
     from testconfig import config
+    ###
     ## now "convert" to app-style dict
     TESTCONFIG = convert_config(config)
+    ## config passing around
+    sessioncache.set_config(TESTCONFIG); views.set_config(TESTCONFIG)
+
     initdb(TESTCONFIG)
     cj = cookielib.CookieJar()
-
+    
 
     ### Are we running by generating HTTP to fire at webserver
     ### or are we testing wsgi calls?
@@ -162,9 +166,9 @@ def cleardown(config):
 
 
 def initdb(config):
-    backend.initdb(config)
-
-
+    #backend.initdb(config)
+    pass
+    
 ####################
 
 
