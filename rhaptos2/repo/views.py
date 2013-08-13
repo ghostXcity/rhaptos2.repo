@@ -160,8 +160,6 @@ def index():
     lgr.info("THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
-=======
->>>>>>> ef868be2edf94d66d156e16af4a98adec9013a58
 
 
 def home():
