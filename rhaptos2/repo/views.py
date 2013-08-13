@@ -480,7 +480,20 @@ def content_router(uid):
             args = dict(id=uid)
             cursor.execute(SQL['get-content'], args)
             result = cursor.fetchone()[0]
-
+            lgr.debug("result is %s" % type(result))
+            lgr.debug("result is %s" % repr(result))
+            
+            sql2 = """SELECT user_id
+            FROM userrole_module 
+            WHERE userrole_module.module_uri = %(id)s;
+            """
+            cursor.execute(sql2, args)
+            rs2 = cursor.fetchall()
+            lgr.debug("rs2 is %s" % type(rs2))
+            lgr.debug("rs2 is %s" % repr(rs2))
+            rs2dict = {'acl':rs2[0]}
+            result.update(rs2dict)
+            
     # status = "200 OK"
     # headers = [('Content-type', 'application/json',)]
 

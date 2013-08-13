@@ -481,6 +481,9 @@ def test_put_module_acls():
                     developers['GOODUSER']['sessionid'],
                     RECORDTRAIL['module_uid'])
     err.write("\n"+"test_put_module: %s" % data['id_'])
+    err.write("\n"+"test_put_module: %s" % resp.json)
+    err.write("\n"+"test_put_module: %s" % developers['OTHERUSER']['uri'] )
+    
     assert developers['OTHERUSER']['uri'] in resp.json['acl']
     assert "should" in resp.json['body']
 
