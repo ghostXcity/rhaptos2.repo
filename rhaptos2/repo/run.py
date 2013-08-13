@@ -167,12 +167,16 @@ def initialize_database():
     opts, args = parse_args()
     config = Configuration.from_file(opts.conf)
 
+    ## keep logging seperate from app
+    from rhaptos2.repo import set_up_logging
+    set_up_logging(config)
+
     from rhaptos2.repo.backend import initdb
     initdb(config)
 
-    from rhaptos2.repo.sessioncache import set_config, initdb
+    from rhaptos2.repo.sessioncache import set_config, initdb as sessinitdb
     set_config(config)
-    initdb()
+    sessinitdb()
 
 
 if __name__ == '__main__':

@@ -148,7 +148,7 @@ def set_up_logging(app):
 
 
     """
-    config = app.config
+    
 
     default_formatter = logging.Formatter(
         "%(asctime)s:%(levelname)s:%(name)s:%(message)s")
