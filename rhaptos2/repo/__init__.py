@@ -60,7 +60,7 @@ def assign_routing_rules(app):
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
 
-    app.add_url_rule("/", view_func=views.index)
+    app.add_url_rule("/", view_func=views.home)
     app.add_url_rule("/me/", view_func=views.whoamiGET, methods=['GET'])
     app.add_url_rule(
         "/workspace/", view_func=views.workspaceGET, methods=['GET'])
@@ -73,24 +73,20 @@ def assign_routing_rules(app):
         "/tempsession", view_func=views.temp_session, methods=['GET', ])
 
     app.add_url_rule("/valid", view_func=auth.valid, methods=['GET'])
+    app.add_url_rule("/login", view_func=auth.login, methods=['GET'])
     app.add_url_rule("/logout", view_func=auth.logout, methods=['GET', ])
-    app.add_url_rule("/home", view_func=views.home, methods=['GET', ])
 
     app.add_url_rule("/folder/", view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'], defaults={'folderuri': ''})
     app.add_url_rule('/folder/<path:folderuri>', view_func=views.folder_router, methods=[
                      'GET', 'POST', 'PUT', 'DELETE'])
 
-    app.add_url_rule("/collection/", view_func=views.collection_router, methods=[
-                     'GET', 'POST', 'PUT', 'DELETE'], defaults={'collectionuri': ''})
-    app.add_url_rule('/collection/<path:collectionuri>', view_func=views.collection_router, methods=[
-                     'GET', 'POST', 'PUT', 'DELETE'])
-
-    app.add_url_rule("/module/", view_func=views.module_router,
-                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'moduleuri': ''})
-    app.add_url_rule('/module/<path:moduleuri>', view_func=views.module_router,
+    app.add_url_rule("/content/", view_func=views.content_router,
+                     methods=['GET', 'POST', 'PUT', 'DELETE'], defaults={'uid': ''})
+    app.add_url_rule("/content/<path:uid>", view_func=views.content_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
+    
     ###
     app.add_url_rule('/logging', view_func=views.logging_endpoint,
                      methods=['POST'])
@@ -172,10 +168,12 @@ def set_up_logging(app):
     ## write to syslog - defaults to INFO
     if config['globals']['log_to_syslog'] == 'Y':
         syslog_handler = logging.handlers.SysLogHandler(
-            address=config['globals']['syslogfile'])
-        syslog_handler.setLevel(logging.INFO)
+                          address=config['globals']['syslogfile'],
+                          facility=int(config['globals']['syslogfacility']),
+                          )
         syslog_handler.setFormatter(default_formatter)
         root.addHandler(syslog_handler)
+
 
     ### local file loggers for development
     ### eventlog records everything, errorlog just for errors
@@ -197,5 +195,5 @@ def set_up_logging(app):
 
         root.addHandler(error_handler)
         root.addHandler(event_handler)
-
+        
     root.info("logger set up on %s as %s" % (__name__, str(root)))

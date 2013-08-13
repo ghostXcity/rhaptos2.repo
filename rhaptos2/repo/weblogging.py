@@ -174,11 +174,14 @@ def validate_msg_return_dict(json_formatted_payload):
 
 def logging_router(json_formatted_payload):
     """pass in a json message, this will check it, then action the message.
+
+    We have several types of incoming message, corresponding to an
+    atc log message, an atc metric message (ie graphite).
+    We want to correctly handle each so this acts as a router/dispatcher
     """
+    isValid = True
     # validate and convert to dict
     payload, isValid = validate_msg_return_dict(json_formatted_payload)
-    if not isValid:
-        return False
     if payload['message-type'] == 'log':
         log_endpoint(payload)
     elif payload['message-type'] == 'metric':
@@ -186,8 +189,8 @@ def logging_router(json_formatted_payload):
     else:
         lgr.error("message-type supplied was %s - not supported." %
                   payload['message-type'])
-        return False
-    return True
+        isValid = False
+    return isValid
 
 def log_endpoint(payload):
     """
