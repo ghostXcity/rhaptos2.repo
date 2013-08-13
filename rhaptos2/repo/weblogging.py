@@ -182,13 +182,19 @@ def logging_router(json_formatted_payload):
     isValid = True
     # validate and convert to dict
     payload, isValid = validate_msg_return_dict(json_formatted_payload)
-    if payload['message-type'] == 'log':
-        log_endpoint(payload)
-    elif payload['message-type'] == 'metric':
-        metric_endpoint(payload)
-    else:
-        lgr.error("message-type supplied was %s - not supported." %
-                  payload['message-type'])
+    try:
+        if payload['message-type'] == 'log':
+            log_endpoint(payload)
+        elif payload['message-type'] == 'metric':
+            metric_endpoint(payload)
+        else:
+            lgr.error("message-type supplied was %s - not supported." %
+                      payload['message-type'])
+
+
+
+        isValid = False
+    except KeyError, e:
         isValid = False
     return isValid
 
