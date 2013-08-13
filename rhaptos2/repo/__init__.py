@@ -114,7 +114,7 @@ def make_app(config, as_standalone=False):
     # "socket.gaierror: [Errno 8] nodename nor servname provided, or not known"
     # Silences too much, tried to be specific.
     try:
-        set_up_logging(app)
+        set_up_logging(app.config)
     except socket.gaierror, se:
         pass
     except Exception, e:
@@ -126,7 +126,7 @@ def make_app(config, as_standalone=False):
     return app
 
 
-def set_up_logging(app):
+def set_up_logging(config):
     """Set up the logging within the application.
 
     We have three logging outputs - console, filesystem and syslog
