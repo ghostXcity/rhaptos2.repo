@@ -459,7 +459,7 @@ def test_show_env():
 
 
 @with_setup(funcsetup)
-def test_post_module():
+def test_repo_posts_module_w_validuser():
     resp = wapp_post(TESTAPP,
                      "module",
                      decl.declarationdict['module'],
@@ -469,7 +469,7 @@ def test_post_module():
 
 
 @with_setup(funcsetup)
-def test_put_module():
+def test_repo_puts_module_w_validuser_and_new_acl():
     data = decl.declarationdict['module']
     data['acl'] = [developers['OTHERUSER']['uri'], ]
     data['body'] = "<p> Shortened body in test_put_module"
@@ -480,7 +480,7 @@ def test_put_module():
 
 
 @with_setup(funcsetup)
-def test_put_module_by_otheruser():
+def test_repo_puts_module_w_otheruser():
     data = decl.declarationdict['module']
     data['body'] = "<p> OTHERUSERSESSIONID has set this"
     resp = wapp_put(TESTAPP, "module", data, OTHERUSERSESSIONID, MODULEURI)
@@ -490,7 +490,7 @@ def test_put_module_by_otheruser():
 
 
 @with_setup(funcsetup)
-def test_get_module():
+def test_repo_gets_valid_module():
     resp = wapp_get(TESTAPP, "module",
                     "cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
                     GOODUSERSESSIONID)
@@ -498,7 +498,7 @@ def test_get_module():
 
 
 @with_setup(funcsetup)
-def test_valid_fields_in_GET():
+def test_repo_returns_valid_fields_in_GET():
     """Are we getting back the editor and translator fields
 
     XXX: this should simply expand to be a jsonschema compliance test"""
@@ -510,7 +510,7 @@ def test_valid_fields_in_GET():
 
 
 @with_setup(funcsetup)
-def test_post_folder():
+def test_repo_posts_folder_w_validuser():
     resp = wapp_post(TESTAPP, "folder", decl.declarationdict[
                      'folder'], GOODUSERSESSIONID)
     returned_folder_uri = resp.json['id']
@@ -518,7 +518,7 @@ def test_post_folder():
 
 
 @with_setup(funcsetup)
-def test_put_folder():
+def test_repo_puts_folder_w_validuser():
     data = decl.declarationdict['folder']
     data['acl'] = [OTHERUSERSESSIONID, ]
     data['body'] = ["cnxmodule:d3911c28-2a9e-4153-9546-f71d83e41126",
@@ -532,14 +532,14 @@ def test_put_folder():
 
 
 @with_setup(funcsetup)
-def test_get_folder():
+def test_repo_returns_valid_folder():
     resp = wapp_get(
         TESTAPP, "folder", "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707", GOODUSERSESSIONID, None)
     assert resp.json['id'] == "cnxfolder:c192bcaf-669a-44c5-b799-96ae00ef4707"
 
 
 @with_setup(funcsetup)
-def test_post_collection():
+def test_repo_posts_collection_w_validuser():
     data = decl.declarationdict['collection']
     resp = wapp_post(TESTAPP, "collection", data, GOODUSERSESSIONID)
     returned_collection_uri = resp.json['id']
@@ -547,7 +547,7 @@ def test_post_collection():
 
 
 @with_setup(funcsetup)
-def test_put_collection():
+def test_repo_puts_collection_w_validuser():
     data = decl.declarationdict['collection_small']
     data['acl'] = [OTHERUSERSESSIONID, ]
     resp = wapp_put(TESTAPP, "collection",
@@ -556,7 +556,7 @@ def test_put_collection():
 
 
 @with_setup(funcsetup)
-def test_get_collection():
+def test_repo_gets_valid_collection():
     resp = wapp_get(TESTAPP, "collection",
                     "cnxcollection:be7790d1-9ee4-4b25-be84-30b7208f5db7", GOODUSERSESSIONID, None)
     assert resp.json[
@@ -564,7 +564,7 @@ def test_get_collection():
 
 
 @with_setup(funcsetup)
-def test_put_collection_otheruser():
+def test_puts_valid_collection_w_otheruser():
     data = decl.declarationdict['collection']
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
     resp = wapp_put(TESTAPP, "collection",
@@ -574,8 +574,9 @@ def test_put_collection_otheruser():
 
 ### Testing GAC
 @with_setup(funcsetup)
-def test_put_googleanalytics_module():
+def test_put_googleanalytics_with_valid():
     """
+    We store the googleID of a user, test it accepts valid formats
     """
     data = decl.declarationdict['module']
     gacval = """UA-12345678-1"""
@@ -586,8 +587,10 @@ def test_put_googleanalytics_module():
 
 
 @with_setup(funcsetup)
-def test_put_badgoogleanalytics_module():
+def test_repo_puts_googleanalytics_w_XSS_attack():
     """
+    Can we prevent simple XSS attacks - yes!
+    (Otherwise it would be trivial to server mailicious code from our servers)
     """
     data = decl.declarationdict['module']
     gacval = """<script>evil</script>"""
@@ -622,14 +625,7 @@ def test_dateModifiedStamp():
 
 
 @with_setup(funcsetup)
-def test_put_module_rouser():
-    data = decl.declarationdict['module']
-    data['body'] = "NEVER HIT DB"
-    resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
-    assert resp.status_int == 403, resp.status_int
-
-
-def ntest_put_module_baduser():
+def test_repo_stops_invalid_User_put_module():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP, "module", data, BADUSERSESSIONID, MODULEURI)
@@ -637,7 +633,7 @@ def ntest_put_module_baduser():
 
 
 @with_setup(funcsetup)
-def test_put_folder_ro():
+def test_repo_stops_invalid_User_put_folder():
     data = decl.declarationdict['folder']
     data['body'] = ["THIS IS TEST", ]
     resp = wapp_put(TESTAPP, "folder", data, BADUSERSESSIONID, FOLDERURI)
@@ -645,25 +641,25 @@ def test_put_folder_ro():
 
 
 @with_setup(funcsetup)
-def test_read_module_rouser():
+def test_repo_allows_read_module_w_otheruser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, OTHERUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_read_folder_gooduser():
+def test_repo_allows_read_folder_validuser():
     resp = wapp_get(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_read_module_baduser():
+def test_repo_stops_read_module_w_invalidUser():
     resp = wapp_get(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_get_workspace_good():
+def test_repo_allows_get_workspace_w_validUser():
     resp = wapp_get(TESTAPP, "workspace", None, GOODUSERSESSIONID)
     assert len(resp.json) == 3
     assert resp.status_int == 200, resp.status_int
@@ -671,13 +667,13 @@ def test_get_workspace_good():
 
 ###############
 @with_setup(funcsetup)
-def test_delete_module_baduser():
+def test_repo_prevents_delete_module_w_baduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_delete_module_good():
+def test_repo_allows_delete_module_w_gooduser():
     resp = wapp_delete(TESTAPP, "module", MODULEURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
@@ -685,13 +681,13 @@ def test_delete_module_good():
 
 
 @with_setup(funcsetup)
-def test_delete_collection_baduser():
+def test_repo_prevents_delete_collection_w_baduser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_delete_collection_good():
+def test_repo_allows_delete_collection_w_validUser():
     resp = wapp_delete(TESTAPP, "collection", COLLECTIONURI, GOODUSERSESSIONID)
     assert resp.status_int == 200, resp.status_int
 
@@ -699,19 +695,19 @@ def test_delete_collection_good():
 
 
 @with_setup(funcsetup)
-def test_delete_folder_baduser():
+def test_repo_prevents_delete_folder_w_baduser():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, BADUSERSESSIONID)
     assert resp.status_int == 403, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_delete_folder_good():
+def test_repo_allows_delete_folder_w_gooduser():
     resp = wapp_delete(TESTAPP, "folder", FOLDERURI, GOODUSERSESSIONID)
     assert resp.status_int == 200
 
 
 @with_setup(funcsetup)
-def test_whoami():
+def test_repo_returns_valid_whoami_in_session():
     resp = wapp_get(TESTAPP, "-", None,
                     GOODUSERSESSIONID,
                     URL="http://localhost:8000/me/"
@@ -721,7 +717,7 @@ def test_whoami():
 
 
 @with_setup(funcsetup)
-def test_atc_logging():
+def test_repo_accepts_valid_atc_logging():
     testmsg = {"message-type": "log",
                "log-message": "This is log msg",
                "metric-label": None,
@@ -733,7 +729,7 @@ def test_atc_logging():
     assert resp.status_int == 200
 
 @with_setup(funcsetup)
-def test_atc_triggerlogging():
+def test_repo_accepts_current_atc_logging():
     """
     the atc client is servicing a different format for now
     It is not expected these will be useful messages for debuigging
@@ -746,7 +742,7 @@ def test_atc_triggerlogging():
     assert resp.status_int == 200
 
 @with_setup(funcsetup)
-def test_bad_atc_triggerlogging():
+def test_atc_triggerlogging_w_invalid_data():
     """
     the atc client is servicing a different format for now
     It is not expected these will be useful messages for debuigging
