@@ -144,7 +144,6 @@ def logging_endpoint():
     else:
         abort(400)
 
-
 def index():
     """
     .. dicussion::
@@ -160,7 +159,6 @@ def index():
     lgr.info("THis is request %s" % g.requestid)
     resp = flask.redirect('/js/')
     return resp
-
 
 def home():
     """

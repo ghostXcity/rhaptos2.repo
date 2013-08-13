@@ -162,6 +162,7 @@ def validate_msg_return_dict(json_formatted_payload):
         payload['message-type'] = 'log'
         payload['log-message'] = payload['trigger']
         valid_logmsg_flag = True
+
     ### pbrian: better validation needed - try json-schema
     elif 'message-type' in payload.keys():
         valid_logmsg_flag = True
