@@ -95,19 +95,6 @@ MODELS_BY_MEDIATYPE = [
     "application/vnd.org.cnx.folder"
 ]
 
-# PHIL: Dead code
-def model_from_mediaType(mediaType):
-    """
-    a simple dict lookup, but future proofing
-    the possiblity of adding application/vnd.org.cnx.module+json
-    """
-    try:
-        mdl =  MODELS_BY_MEDIATYPE[mediaType]
-    except KeyError:
-        raise werkzeug.exceptions.UnsupportedMediaType("Unrecognised mediaType: %s" % mediaType)
-    return mdl
-
-
 
 def requestid():
     """
@@ -410,7 +397,6 @@ def content_router(uid):
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
     lgr.debug("In content router, %s payload is %s " % (request.method, str(payload)))
-    #lgr.debug("CONFD: %s" % pprint.pformat(CONFD))
     ###
     if request.method == "GET":
         # The GET is handled at the end of this if block
@@ -448,27 +434,56 @@ def content_router(uid):
                         'content_id': uid,
                         'user_id': requesting_user_id
                     }
-                    cursor.execute("INSERT INTO userrole_module (module_uri, user_id, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
+                    cursor.execute("INSERT INTO cnxacl (moduleid, userid, roletype) "
+                                   "VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
         # Generate the SQL needed to UPDATE
         fields = {'id': uid}
+        aclsIn = []
         sqlFields = []
         for fieldName in VALID_UPDATE_FIELDS:
             if fieldName in payload.keys():
                 if payload[fieldName]:
                     fields[fieldName] = payload[fieldName]
-                    # FIXME: Please tell me how to dynamically UPDATE fields pbrian: as in a object ?
                     sqlFields.append('"%s" = %%(%s)s' % (fieldName, fieldName))
 
+        ##            
         dynamicUpdate = 'UPDATE cnxmodule SET %s WHERE id_ = %%(id)s' % (' , '.join(sqlFields))
-
+        
         # Perform validation before updating
         validate_mediaType(fields)
 
         with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
             with db_connection.cursor() as cursor:
                 cursor.execute(dynamicUpdate, fields)
+
+                    
+        ## Hmm, I could use a GOSUB here              
+        if 'acl' in payload.keys():
+            aclsIn = payload['acl']
+
+        ### Check if allowed to PUT
+        with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
+            with db_connection.cursor() as cursor:
+                cursor.execute("SELECT * from cnxacl where roletype = 'aclrw' and moduleid = %s and userid = %s", (uid, requesting_user_id))
+                rs = cursor.fetchall()
+                if len(rs) != 1: return werkzeug.exceptions.Forbidden("User %s not permitted to adjust resource %s" % (uid, requesting_user_id))
+
+            
+        stmts = []    
+        for acl in aclsIn:
+            lgr.debug("*******, %s" % acl)
+            stmt = ("INSERT INTO cnxacl (moduleid, userid, roletype)"
+                    "VALUES ('%s', '%s', 'aclrw')" % (uid, acl))  ### SQLInJection - Fixme
+            lgr.debug("stmts:" + stmt)
+            stmts.append(stmt)
+                         
+
+        with psycopg2.connect(CONFD['db-connection-string']) as db_connection:
+            with db_connection.cursor() as cursor:
+                for stmt in stmts:
+                    cursor.execute(stmt)###aarrgh injection
 
     else:
         return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")
@@ -483,15 +498,18 @@ def content_router(uid):
             lgr.debug("result is %s" % type(result))
             lgr.debug("result is %s" % repr(result))
             
-            sql2 = """SELECT user_id
-            FROM userrole_module 
-            WHERE userrole_module.module_uri = %(id)s;
+            sql2 = """SELECT userid
+            FROM cnxacl 
+            WHERE moduleid = %(id)s;
             """
             cursor.execute(sql2, args)
             rs2 = cursor.fetchall()
             lgr.debug("rs2 is %s" % type(rs2))
             lgr.debug("rs2 is %s" % repr(rs2))
-            rs2dict = {'acl':rs2[0]}
+            acls = []
+            for row in rs2:
+                acls.append(row[0])
+            rs2dict = {'acl':acls}
             result.update(rs2dict)
             
     # status = "200 OK"
@@ -565,7 +583,8 @@ def folder_router(folderuri):
                         'content_id': uid,
                         'user_id': requesting_user_id
                     }
-                    cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_uri, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
+                    cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_uri, role_type)"
+                                   " VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
 
