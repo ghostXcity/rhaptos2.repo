@@ -505,7 +505,7 @@ def test_put_collection_otheruser():
     data['body'] = ["cnxmodule:SHOULDNEVERHITDB0", ]
     resp = wapp_put(TESTAPP, "content",
                     data, developers['BADUSER']['sessionid'], RECORDTRAIL['collection_uid'])
-    assert resp.status_int == 403, resp.status_int
+    assert resp.status_int == 403
 
 
 @with_setup(funcsetup)

@@ -175,6 +175,23 @@ ALTER TABLE public.userrole_module OWNER TO rhaptos2repo;
 
 
 --
+-- Name: cnxacl; Type: TABLE; Schema: public; Owner: rhaptos2repo; Tablespace: 
+--
+
+CREATE TABLE cnxacl (
+    id_ serial PRIMARY KEY,
+    module_id character varying,
+    collection_id character varying,
+    folder_id character varying,
+    user_id character varying NOT NULL,
+    role_type cnxrole_type NOT NULL
+);
+
+
+ALTER TABLE public.cnxacl OWNER TO rhaptos2repo;
+
+
+--
 -- Name: cnxcollection_pkey; Type: CONSTRAINT; Schema: public; Owner: rhaptos2repo; Tablespace: 
 --
 

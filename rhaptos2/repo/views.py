@@ -72,19 +72,6 @@ MODELS_BY_MEDIATYPE = [
 
 lgr = logging.getLogger(__name__)
 
-# PHIL: Dead code
-def model_from_mediaType(mediaType):
-    """
-    a simple dict lookup, but future proofing
-    the possiblity of adding application/vnd.org.cnx.module+json
-    """
-    try:
-        mdl =  MODELS_BY_MEDIATYPE[mediaType]
-    except KeyError:
-        raise werkzeug.exceptions.UnsupportedMediaType("Unrecognised mediaType: %s" % mediaType)
-    return mdl
-
-
 
 def requestid():
     """
@@ -214,9 +201,6 @@ def workspaceGET():
                 result = cursor.fetchall()
                 # FIXME: There is probably a cleaner way to unwrap the results when the are empty
                 result = [item[0] for item in result]
-
-        # status = "200 OK"
-        # headers = [('Content-type', 'application/json',)]
 
         resp = flask.make_response(json.dumps(result))
         resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -423,11 +407,12 @@ def content_router(uid):
 
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
-    lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
+    lgr.debug("In content router, %s payload is %s " % (request.method, str(payload)))
 
     settings = get_settings()
 
     ###
+
     if request.method == "GET":
         # The GET is handled at the end of this if block
         pass
@@ -455,6 +440,7 @@ def content_router(uid):
 
             # Perform validation before inserting
             validate_mediaType(fields)
+            validate_googleTrackingID(fields)
 
             with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
                 with db_connection.cursor() as cursor:
@@ -464,7 +450,8 @@ def content_router(uid):
                         'content_id': uid,
                         'user_id': requesting_user_id
                     }
-                    cursor.execute("INSERT INTO userrole_module (module_uri, user_id, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
+                    cursor.execute("INSERT INTO cnxacl (module_id, user_id, role_type) "
+                                   "VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
         # Generate the SQL needed to UPDATE
@@ -486,9 +473,9 @@ def content_router(uid):
         with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
             with db_connection.cursor() as cursor:
                 # Check if allowed to PUT
-                sql = '''SELECT COUNT(*) FROM userrole_module
+                sql = '''SELECT COUNT(*) FROM cnxacl
                          WHERE role_type = 'aclrw'
-                         AND module_uri = %(id)s AND user_id = %(user_id)s'''
+                         AND module_id = %(id)s AND user_id = %(user_id)s'''
                 cursor.execute(sql, {'id': fields['id'], 'user_id': requesting_user_id})
                 if cursor.fetchone()[0] != 1:
                     return werkzeug.exceptions.Forbidden(
@@ -498,10 +485,9 @@ def content_router(uid):
                 cursor.execute(dynamic_update, fields)
 
                 for acl in payload.get('acl', []):
-                    sql = '''INSERT INTO userrole_module (module_uri, user_id, role_type)
+                    sql = '''INSERT INTO cnxacl (module_id, user_id, role_type)
                              VALUES (%(id)s, %(acl)s, 'aclrw')'''
                     cursor.execute(sql, {'id': fields['id'], 'acl': acl})
-
 
     else:
         return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")
@@ -515,8 +501,8 @@ def content_router(uid):
             result = cursor.fetchone()[0]
 
             sql2 = """SELECT user_id
-            FROM userrole_module
-            WHERE userrole_module.module_uri = %(id)s;
+            FROM cnxacl 
+            WHERE module_id = %(id)s;
             """
             cursor.execute(sql2, args)
             result['acl'] = [row[0] for row in cursor.fetchall()]
@@ -528,7 +514,6 @@ def content_router(uid):
 
     # status = "200 OK"
     # headers = [('Content-type', 'application/json',)]
-
 
     resp = flask.make_response(json.dumps(result))
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -553,7 +538,7 @@ def folder_router(folderuri):
 
     requesting_user_id = g.user_details['user_id']
     payload = obtain_payload(request) # will be empty sometimes
-    lgr.info("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
+    lgr.debug("In content router, %s payload is %s " % (request.method, str(payload)[:10]))
 
     settings = get_settings()
 
@@ -594,7 +579,8 @@ def folder_router(folderuri):
                         'content_id': uid,
                         'user_id': requesting_user_id
                     }
-                    cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_id, role_type) VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
+                    cursor.execute("INSERT INTO userrole_folder (folder_uuid, user_id, role_type)"
+                                   " VALUES (%(content_id)s, %(user_id)s, 'aclrw')", roles)
 
     elif request.method == "PUT":
 
@@ -637,10 +623,6 @@ def folder_router(folderuri):
                 cursor.execute(SQL['get-folder-contents'], args)
                 resultContents = cursor.fetchall()[0]
                 result['contents'] = resultContents
-
-    # status = "200 OK"
-    # headers = [('Content-type', 'application/json',)]
-
 
     resp = flask.make_response(json.dumps(result))
     resp.headers["Access-Control-Allow-Origin"] = "*"

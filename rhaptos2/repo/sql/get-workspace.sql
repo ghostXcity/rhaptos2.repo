@@ -3,7 +3,7 @@ SELECT row_to_json(combined_rows) FROM (
   SELECT id_ as id, "mediaType", title, "dateCreatedUTC", "dateLastModifiedUTC"
   FROM cnxmodule
   WHERE id_ IN (
-    SELECT module_uri FROM userrole_module WHERE user_id = %(user_id)s
+    SELECT module_id FROM cnxacl WHERE user_id = %(user_id)s
   )
 
   UNION ALL
