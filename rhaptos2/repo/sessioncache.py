@@ -444,25 +444,6 @@ def _fakesessionusers(sessiontype='fixed'):
         raise Rhaptos2Error("sessiontype Must be 'floating' or 'fixed'")
 
 
-def initdb():
-    """
-    A helper function for creating the session table
-
-    """
-    SQL0 = """DROP TABLE IF EXISTS session_cache;"""
-
-    SQL1 = """CREATE TABLE session_cache(
-   sessionid  character varying NOT NULL,
-   userdict   character varying NOT NULL,
-   session_startUTC timestamptz,
-   session_endUTC timestamptz);"""
-
-    SQL2 = """ALTER TABLE ONLY session_cache
-    ADD CONSTRAINT session_cache_pkey PRIMARY KEY (sessionid);"""
-
-    exec_stmt(SQL0, {})
-    exec_stmt(SQL1, {})
-    exec_stmt(SQL2, {})
 
 
 def maintenance_batch():
