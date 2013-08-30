@@ -40,7 +40,8 @@ changes:
 import logging
 lgr = logging.getLogger(__name__)
 
-from rhaptos2.repo import make_app, sessioncache, weblogging
+from rhaptos2.repo import (make_app, sessioncache,
+                           weblogging, backend)
 from rhaptos2.repo.configuration import Configuration
 from optparse import OptionParser
 import os
@@ -74,7 +75,11 @@ def get_app(opts, args, config, as_devserver=False, jslocation=None):
     app.debug = True
     weblogging.configure_weblogging(config)
     sessioncache.set_config(config)
+    ## We initialise the connection pool
+    backend.setpool(config)
 
+
+    
     if as_devserver:
 
         if not os.path.isdir(jslocation):
@@ -161,7 +166,13 @@ def parse_args():
     (options, args) = parser.parse_args()
     return (options, args)
 
-
+def show_conf():
+    """
+    """
+    opts, args = parse_args()
+    config = Configuration.from_file(opts.conf)
+    return config
+   
 def initialize_database():
     """Initialize the database tables."""
     opts, args = parse_args()
@@ -169,7 +180,7 @@ def initialize_database():
 
     from rhaptos2.repo.backend import initdb
     initdb(config)
-
+    
 
     
 if __name__ == '__main__':

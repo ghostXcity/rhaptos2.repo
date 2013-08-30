@@ -139,6 +139,7 @@ The installation will have supplied two scripts:
   * ``rhaptos2repo-initdb`` - a script used to initialize the
     database tables.
 
+
 To install the database schema, setup the database and note the
 host, database name, user name and password in the applications
 configuration file. (An example configuration file can be found in in

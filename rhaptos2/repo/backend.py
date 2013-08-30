@@ -31,6 +31,10 @@ There are two major sets of changes:
 - removing the double layer of calls
 
 
+Connection Pooling
+------------------
+
+You must setup the pool after initial import.
 
 """
 
@@ -39,10 +43,22 @@ import logging
 lgr = logging.getLogger(__name__)
 
 import psycopg2
+from psycopg2.pool import ThreadedConnectionPool as tPool
+
 
 ############
-    
-def getconn(confd):
+DBPOOL = None
+
+def setpool(confd):
+    global DBPOOL
+    DBPOOL = tPool(5,10,host=confd['pghost'],
+                                database=confd['pgdbname'],
+                                user=confd['pgusername'],
+                                password=confd['pgpassword'])
+    return DBPOOL.getconn()
+
+
+def getconn():
     """returns a connection object based on global confd.
 
     This is, at the moment, not a pooled connection getter.
@@ -61,24 +77,43 @@ def getconn(confd):
     :return psycopg2.Error:              or Err
 
     """
-    try:
-        conn = psycopg2.connect(host=confd['pghost'],
-                                database=confd['pgdbname'],
-                                user=confd['pgusername'],
-                                password=confd['pgpassword'])
-    except psycopg2.Error, e:
-        lgr.error("Error making pg conn - %s - config was %s" %
-                  str(e), confd)
-        raise e
-
+    conn = DBPOOL.getconn()
     return conn
 
 def close_conn(conn):
     """
     """
     conn.close()
-    
 
+def query_to_dict(SQL, params):
+    """
+    Given (valid!) SQL execute and return
+    the results as a dict
+
+    no attempt at iterating over the recordset,
+    this is for middle length resultsets only.
+    
+    :params: dict
+    :SQL: uses %(xx)s format
+
+    SQL = '''SELECT * FROM cnxmodule where id_ = %(id)s '''
+    params = {'id': '5678'}
+    rs = backend.query_to_dict(SQL, params)
+
+    """
+    conn = getconn()
+    cr = conn.cursor()
+    cr.execute(SQL, params)
+    rs = cr.fetchall()
+    des = cr.description
+    rsd = []
+    for row in rs:
+         rsd.append(dict(zip([col.name for col in des], row)))
+    conn.commit()
+    DBPOOL.putconn(conn)
+    return rsd
+    
+    
 def initdb(confd):
     """This could become a conn factory.  """
     conn = getconn(confd)
@@ -231,4 +266,4 @@ ALTER TABLE ONLY userrole_module
     ADD CONSTRAINT userrole_module_module_uri_fkey FOREIGN KEY (module_uri) REFERENCES cnxmodule(id_);
 
 """
-    
+

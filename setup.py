@@ -63,5 +63,6 @@ setup(
     [console_scripts]
     rhaptos2repo-run = rhaptos2.repo.run:main
     rhaptos2repo-initdb = rhaptos2.repo.run:initialize_database
+    rhaptos2repo-showconf = rhaptos2.repo.run:show_conf
     """,
     )
