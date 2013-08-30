@@ -148,43 +148,56 @@ def validate_msg_return_dict(json_formatted_payload):
     ({u'metric-type': None, u'metric-value': None, u'metric-label': None, u'message-type': u'log', u'log-message': u'This is log msg'}, True)
 
     """
+    valid_logmsg_flag = False
+    
     try:
         payload = json.loads(json_formatted_payload)
     except Exception, e:
         lgr.error("Failed parse json - %s %s" % (e, json_formatted_payload))
-        return('', False)
-    if not payload:
-        lgr.error("Empty logging message - %s" % (json_formatted_payload))
-        return('', False)
-    elif 'trigger' in payload.keys():
+        return({}, valid_logmsg_flag)
+
+    ### various tests for valid payload   
+    if 'trigger' in payload.keys():
         ### this is currently all atc sends, so just handle it
         payload['message-type'] = 'log'
         payload['log-message'] = payload['trigger']
-        return (payload, True)
+        valid_logmsg_flag = True
+
     ### pbrian: better validation needed - try json-schema
     elif 'message-type' in payload.keys():
-        return (payload, True)
+        valid_logmsg_flag = True
     else:
         lgr.error("This message has no valid data %s" % payload)
-        return (payload, False)
+        valid_logmsg_flag = False
 
+    return (payload, valid_logmsg_flag)
+    
 
 def logging_router(json_formatted_payload):
     """pass in a json message, this will check it, then action the message.
+
+    We have several types of incoming message, corresponding to an
+    atc log message, an atc metric message (ie graphite).
+    We want to correctly handle each so this acts as a router/dispatcher
     """
+    isValid = True
     # validate and convert to dict
     payload, isValid = validate_msg_return_dict(json_formatted_payload)
-    if not isValid:
-        return False
-    if payload['message-type'] == 'log':
-        log_endpoint(payload)
-    elif payload['message-type'] == 'metric':
-        metric_endpoint(payload)
-    else:
-        lgr.error("message-type supplied was %s - not supported." %
-                  payload['message-type'])
-        return False
-    return True
+    try:
+        if payload['message-type'] == 'log':
+            log_endpoint(payload)
+        elif payload['message-type'] == 'metric':
+            metric_endpoint(payload)
+        else:
+            lgr.error("message-type supplied was %s - not supported." %
+                      payload['message-type'])
+
+
+
+        isValid = False
+    except KeyError, e:
+        isValid = False
+    return isValid
 
 def log_endpoint(payload):
     """

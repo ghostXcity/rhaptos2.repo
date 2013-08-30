@@ -781,7 +781,7 @@ def test_whoami():
 
 
 @with_setup(funcsetup)
-def test_atc_logging():
+def test_repo_logs_valid_variablestyle_message():
     testmsg = {"message-type": "log",
                "log-message": "This is log msg",
                "metric-label": None,
@@ -796,7 +796,7 @@ def test_atc_logging():
     assert resp.status_int == 200
 
 @with_setup(funcsetup)
-def test_atc_triggerlogging():
+def test_repo_logs_current_atc_log_message():
     """
     the atc client is servicing a different format for now
     It is not expected these will be useful messages for debuigging
@@ -812,7 +812,7 @@ def test_atc_triggerlogging():
     assert resp.status_int == 200
 
 @with_setup(funcsetup)
-def test_bad_atc_triggerlogging():
+def test_repo_notlog_malformed_atc_msg():
     """
     the atc client is servicing a different format for now
     It is not expected these will be useful messages for debuigging

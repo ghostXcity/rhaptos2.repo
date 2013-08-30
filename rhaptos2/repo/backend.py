@@ -30,75 +30,42 @@ import psycopg2
 ### Module globals.  Following Pylons lead, having global
 ### scoped_session will ensure threads (and thread locals in Flask)
 ### all have theit own sessions
-
 db_engine = None
 db_session = scoped_session(sessionmaker(autoflush=True,
                                          autocommit=False))
 
 Base = declarative_base()
+from rhaptos2.repo import model ## Must import after Base decl. 
 
 
+##############################################################
 ### As long as we subclass everything from Base, we are following
 ### declarative pattern recommended by sa docs.
+
 
 def connect_now(confd):
     connstr = "postgresql+psycopg2://%(pgusername)s:%(pgpassword)s@%(pghost)s/%(pgdbname)s" % confd  # noqa
     engine = create_engine(connstr, echo=False)
+    lgr.debug("Connected to postgres - returning engine")
     return engine
 
 
 def initdb(confd):
     """This could become a conn factory.  """
     global db_session
+    global Base
+    
     db_engine = connect_now(confd)
     db_session.configure(bind=db_engine)
     Base.metadata.create_all(db_engine)
+    lgr.debug("created tables")
 
-
-def clean_dbase(config):
-    """clear down the database tables - used for testing purposes
-    """
-    conn = psycopg2.connect("""dbname='%(pgdbname)s'\
-                             user='%(pgusername)s' \
-                             host='%(pghost)s' \
-                             password='%(pgpassword)s'""" % config)
-    c = conn.cursor()
-
-    stmts = [
-        "DELETE FROM public.userrole_module",
-        "DELETE FROM public.cnxmodule",
-
-        "DELETE FROM public.userrole_folder",
-        "DELETE FROM public.cnxfolder",
-
-        "DELETE FROM public.userrole_collection",
-        "DELETE FROM public.cnxcollection",
-
-    ]
-    for stmt in stmts:
-        c.execute(stmt)
-        conn.commit()
-    conn.close()
-
-
-def status_dbase(config):
-    """clear down the database tables - used for testing purposes
-    """
-    conn = psycopg2.connect("""dbname='%(pgdbname)s'\
-                             user='%(pgusername)s' \
-                             host='%(pghost)s' \
-                             password='%(pgpassword)s'""" % config)
-    c = conn.cursor()
-    tables = [
-        "public.cnxmodule",
-        "public.userrole_module",
-        "public.cnxfolder",
-        "public.userrole_folder",
-        "public.cnxcollection",
-        "public.userrole_collection",
-    ]
-
-    for tbl in tables:
-        c.execute("SELECT COUNT(*) FROM %s" % tbl)
-        print c.fetchall()
-    conn.close()
+    ### Now select * from all main tables to check
+    try:
+        from rhaptos2.repo.model import Folder, Collection, Module
+        for klass in [Folder, Collection, Module]:
+            q = db_session.query(klass)
+            rs = q.all()
+    except:
+        lgr.error("The init db failed")
+        raise

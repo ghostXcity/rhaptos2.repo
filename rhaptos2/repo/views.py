@@ -136,7 +136,7 @@ def logging_endpoint():
     """
     payld_as_json = obtain_payload(request)
     lgr.info(" %s %s" % (type(payld_as_json), payld_as_json))
-    # FIXME - use python natie formats throughout
+    ##FIXME - use python natie formats throughout 
     result = weblogging.logging_router(json.dumps(payld_as_json))
     lgr.info("result was %s" % result)
     if result == True:
@@ -144,6 +144,21 @@ def logging_endpoint():
     else:
         abort(400)
 
+def index():
+    """
+    .. dicussion::
+
+    The index page for an api.cnx.org might point to say docs
+    The index page here is the index of www.cnx, so it should serve
+     the workspace.
+    Which is not something "known" by the repo, hence the redirect.
+    It may be neater to bring the index.html page into here later on.
+
+    TODO: either use a config value, or bring a index template in here
+    """
+    lgr.info("THis is request %s" % g.requestid)
+    resp = flask.redirect('/js/')
+    return resp
 
 def home():
     """
