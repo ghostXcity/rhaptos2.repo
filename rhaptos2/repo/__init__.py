@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-#! -*- coding: utf-8 -*-
-
-###
-# Copyright (c) Rice University 2012-13
-# This software is subject to
-# the provisions of the GNU Affero General
+# -*- coding: utf-8 -*-
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
-###
-
-
+# ###
 """Rhaptos Repo profile web application
 
 The application is initialized using the application factory (`make_app`).
@@ -60,7 +55,8 @@ def assign_routing_rules(app):
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
 
-    app.add_url_rule("/", view_func=views.home)
+    app.add_url_rule("/", view_func=views.index)
+    app.add_url_rule("/bootstrap/", view_func=views.bootstrap)
     app.add_url_rule("/me/", view_func=views.whoamiGET, methods=['GET'])
     app.add_url_rule(
         "/workspace/", view_func=views.workspaceGET, methods=['GET'])

@@ -102,7 +102,7 @@ from rhaptos2.repo import get_app, sessioncache
 
 # Paths which do not require authorization.
 DMZ_PATHS = ('/valid', '/autosession', '/favicon.ico',
-             '/tempsession', '/login', '/'
+             '/tempsession', '/login', '/bootstrap/'
              )
 # The key used in session cookies.
 CNX_SESSION_ID = "cnxsessionid"
