@@ -1,15 +1,10 @@
-#!/usr/bin/env python
 #! -*- coding: utf-8 -*-
-
-###
-# Copyright (c) Rice University 2012-13
-# This software is subject to
-# the provisions of the GNU Affero General
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
-###
-
-
+# ###
 """run.py - Launch the repo app.
 
 This is the suggested method for running a WSGI Server - we instantiate the repo
@@ -36,19 +31,21 @@ changes:
   refactor of the openid approaches.
 
 """
-## root logger set in application startup
-import logging
-lgr = logging.getLogger(__name__)
-
-from rhaptos2.repo import make_app, sessioncache, weblogging
-from rhaptos2.repo.configuration import Configuration
-from optparse import OptionParser
 import os
+import argparse
+import logging
+from optparse import OptionParser
+
 from paste.urlmap import URLMap
 from paste.urlparser import StaticURLParser, make_static
 from waitress import serve
 
-########################################################
+from rhaptos2.repo import make_app, sessioncache, weblogging
+from rhaptos2.repo.configuration import Configuration
+
+
+## root logger set in application startup
+lgr = logging.getLogger(__name__)
 
 
 def main():
@@ -162,10 +159,12 @@ def parse_args():
     return (options, args)
 
 
-def initialize_database():
+def initialize_database(argv=None):
     """Initialize the database tables."""
-    opts, args = parse_args()
-    config = Configuration.from_file(opts.conf)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config', help="configuration file")
+    args = parser.parse_args(argv)
+    config = Configuration.from_file(args.config)
 
     ## keep logging seperate from app
     from rhaptos2.repo import set_up_logging
