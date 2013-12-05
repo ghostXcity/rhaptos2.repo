@@ -2,67 +2,121 @@
 rhaptos2.repo
 =============
 
-A content repository for storing unpublished works or works in
-progress. The purpose of this application is to provide
-individuals with a web interface to their content before. This
-includes capabilities for creating, editing, mixing and publication of
-content into a Connexions Archive (where publish works are stored).
+This is an unpublished (or editable) repository implementation for working
+with educational content. This web application allows for the storage
+and retrieval of works in progress.
 
 See the `Connexions development documentation
 <http://connexions.github.com/>`_ for more information.
 
-Install 
--------
+Getting started
+---------------
 
-The following will setup a development install. For instructions about
-a production deployment, go to http://connexions.github.com/ .
+This installation procedure attempts to cover two platforms,
+the Mac and Debian based systems.
+If you are using a platform other these,
+attempt to muddle through the instructions,
+then feel free to either file an
+`issue <https://github.com/Connexions/rhaptos2.repo/issues/new>`_
+or contact Connexions for further assistance.
 
-Pre-requisites::
+Install the PostgreSQL database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-     Python 2.7 (with header files)
-     Postgres >=8.4
-     npm >= 1.2.0
+This will require a ``PostgreSQL`` install
+that is greater than or equal to version **9.3**.
 
-.. note:: There are various ways to install Postgres. Here are a few
-   recommendations:
+On a Mac, use the `PostgresApp <http://postgresapp.com/>`_.
 
-   - For Debian distributions use the following command
-     and see followup instructions for system specific configuration::
+On Debian (and Ubuntu), issue the following command::
 
-         $ apt-get install postgresql
+    apt-get install postgresql-9.3 postgresql-server-dev-9.3 postgresql-client-9.3 postgresql-contrib-9.3 postgresql-plpython-9.3
 
-   - Fedora/CentOS distributions use the command below::
+Verify the install and port by using ``pg_lscluster``. If the 9.3
+cluster is not the first one installed (which it likely is not), note
+the port and cluster name. For example, the second cluster installed
+will end up by default with port 5433, and a cluster named ``main``.
 
-         $ yum install postgresql
+Set the ``PGCLUSTER`` environment variable to make psql and other
+postgresql command line tools connect to the appropriate server. For
+the example above, use::
 
-   - On the Mac, it is recommended you use the `Postgres App at
-     postgresapp.com <http://postgresapp.com/>`_.
+    export PGCLUSTER=9.3/main
 
-To initialize your database to work with the default database
-settings (do not use these same instructions for a production install)::
+Set up the database and user
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    $ su - postgres
-    $ createuser -W -s rhaptos2repo
-    Password: rhaptos2repo
-    $ createdb -O rhaptos2repo rhaptos2repo
-    $ createdb -O rhaptos2repo rhaptos2users
+The default settings
+for the database are setup to use the following credentials:
 
-These commands setup a Postgres user named ``rhaptos2repo`` and made
-it the owner of the newly created ``rhaptos2repo`` database.
+:database-name: rhaptos2repo
+:database-user: rhaptos2repo
+:database-password: rhaptos2repo
+
+**Note**: Not that it needs to be said, but just in case...
+In a production setting, you should change these values.
+
+If you decided to change any of these default values,
+please ensure you also change them in the application's configuration file,
+which is discussed later in these instructions.
+
+To set up the database, issue the following commands (these will use
+the default cluster, as defined above)::
+
+    psql -U postgres -d postgres -c "CREATE USER rhaptos2repo WITH SUPERUSER PASSWORD 'rhaptos2repo';"
+    createdb -U postgres -O rhaptos2repo rhaptos2repo
+
+**OSX Note:** You may need to create the ``postgres`` user: ``psql -d postgres -c "CREATE USER postgres WITH SUPERUSER;"``
+
+Installing the application
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Note**: It's recommended that you use a virtual environment to
+install this application. The installation and usage of virtualenv
+is out of scope for this document, but you can follow the
+instructions at `virtualenv.org <http://www.virtualenv.org>`_.
+
+If you are working on a Debian distribution, it is a good idea that
+you use the native system packages for some of the dependencies.
+::
+
+    apt-get install libxml2-dev
+    apt-get install libxslt1-dev
+    apt-get install python-psycopg2
+
+Before installing rhaptos2.repo, you need to first install the
+dependencies that have not been released to the public package repositories::
+
+    git clone https://github.com/Connexions/rhaptos2.common.git
+    cd rhaptos2.common
+    python setup.py install
+    cd ..
+
+To install the application itself::
+
+    python setup.py install
+
+This will install the package and a few application specific
+scripts. One of these scripts is used to initialize the database with
+the applications schema.
+::
+
+    rhaptos2repo-initdb development.ini
+
+This example uses the ``development.ini``, which has been supplied with the
+package. If you changed any of the database setup values, you'll also need to
+change them in the configuration file.
+
+To run the application use the run script::
+
+    rhaptos2repo-run development.ini
+
+
 
 
 
 Quick
 ~~~~~
-
-This will install the repsository, with simple defaults, ready for developer use.
-Download the Bash script
-`quickdownload.sh
-<https://raw.github.com/Connexions/rhaptos2.repo/master/quickdownload.sh>`_. 
-Run that with an argument of an *empty* dir you want to use for the
-source and repos.
-Then this will download the application code, dependancies and set up
-a Python virtual environment (an isolated Python environment).
 
 ::
 
@@ -86,23 +140,21 @@ Then running these below to start the content repository instance::
     cd /tmp/testrepo1/venvs/vrepo;
     rhaptos2repo-run --debug --config=develop.ini
 
-At this point you should see a running instance
+
+
+
+
+
+
+
+
+
+
+
+
 
 Complete
 ~~~~~~~~
-
-.. note:: It's recommended that you use a virtual environment to
-   install this application. The installation and usage of virtualenv
-   is out of scope for this document, but you can follow the
-   instructions at `virtualenv.org <http://www.virtualenv.org>`_.
-
-.. note:: If you are working on a Debian distribution, it is probably
-   a good idea to use the native system packages for some of the
-   dependencies. Here are our recommendations::
-   
-       apt-get install libxml2-dev
-       apt-get install libxslt1-dev
-       apt-get install python-psycopg2
 
 To install the package mananually, checkout this package,
 `rhaptos2.common <https://github.com/connexions/rhaptos2.common>`_,
