@@ -33,7 +33,8 @@ setup(
                   },
     entry_points = """\
     [console_scripts]
-    rhaptos2repo-run = rhaptos2.repo.run:main
     rhaptos2repo-initdb = rhaptos2.repo.run:initialize_database
+    [paste.app_factory]
+    main = rhaptos2.repo.run:paste_app_factory
     """,
     )
