@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-#! -*- coding: utf-8 -*-
-
-### Copyright Rice University
-
-# This program is licensed under the terms of the
-# GNU General Affero License version 3 (or later).  Please see
-# LICENSE.txt for details
-
-###
-
+# -*- coding: utf-8 -*-
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
+# Public License version 3 (AGPLv3).
+# See LICENCE.txt for details.
+# ###
 """:mod:`sessioncache` is a standalone module providing the ability to
 control persistent-session client cookies and profile-cookies.
 
@@ -164,8 +160,6 @@ CONFD = {}  # module level global to be setup
 
 
 def set_config(confd):
-    """
-    """
     global CONFD
     CONFD.update(confd)
 
