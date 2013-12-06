@@ -93,17 +93,12 @@ def assign_routing_rules(app):
     return app
 
 
-def make_app(config, as_standalone=False):
-    """WSGI application factory
-
-    The ``as_standalone`` parameter (toggled by `--devserver` in commandline) is
-    used to tell the factory to serve the static Authoring Tools Client (ATC)
-    client JavaScript code from a directory. In a deployed situation this would
-    normally be configured and served by the webserver.
-
-    """
+def make_app(config):
+    """Application factory"""
     app = Flask(__name__)
     app.config.update(config)
+    # Set the application
+    app = set_app(app)
     app = assign_routing_rules(app)
 
     # Try to set up logging. If not connected to a network this throws
@@ -115,9 +110,6 @@ def make_app(config, as_standalone=False):
         pass
     except Exception, e:
         raise e
-
-    # Set the application
-    app = set_app(app)
 
     return app
 

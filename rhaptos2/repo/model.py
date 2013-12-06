@@ -91,6 +91,7 @@ from sqlalchemy import (ForeignKey,
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 
+from . import get_app
 from cnxbase import CNXBase
 from err import (Rhaptos2Error,
                  Rhaptos2SecurityError,
@@ -104,17 +105,15 @@ lgr = logging.getLogger(__name__)
 ### Module globals.  Following Pylons lead, having global
 ### scoped_session will ensure threads (and thread locals in Flask)
 ### all have theit own sessions
-db_engine = None
-db_session = scoped_session(sessionmaker(autoflush=True,
-                                         autocommit=False))
-Base = declarative_base()
-
-
-def connect_now(confd):
-    connstr = "postgresql+psycopg2://%(pgusername)s:%(pgpassword)s@%(pghost)s/%(pgdbname)s" % confd  # noqa
+def connect_now(config):
+    connstr = "postgresql+psycopg2://%(pgusername)s:%(pgpassword)s@%(pghost)s/%(pgdbname)s" % config  # noqa
     engine = create_engine(connstr, echo=False)
     lgr.debug("Connected to postgres - returning engine")
     return engine
+
+db_engine = connect_now(get_app().config)
+db_session = scoped_session(sessionmaker(bind=db_engine))
+Base = declarative_base()
 
 
 def initdb(confd):
