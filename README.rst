@@ -127,8 +127,8 @@ The above installs ``atc`` relative to the ``paste-development.ini``.
 You wouldn't want to run the application this way in production,
 but for a standalone application it does the trick.
 
-.. todo:: We will in the future be supplying a wsgi file to allow easy
-	  drop-in on web servers that support the Python WSGI standard.
+**TODO** We will in the future be supplying a wsgi file to allow easy
+drop-in on web servers that support the Python WSGI standard.
 
 About the configuration
 -----------------------
@@ -154,7 +154,7 @@ Tests
 .. image:: https://travis-ci.org/Connexions/rhaptos2.repo.png
    :target: https://travis-ci.org/Connexions/rhaptos2.repo
 
-.. todo:: This is a **work-in-progress**.
+This is a **work-in-progress**.
 
 Functional tests have been written in runtests.py and 
 are able to both run as tests of the output of an inprocess wsgi app 
@@ -172,4 +172,6 @@ $ nosetests --tc-file=../../testing.ini --tc=HTTPPROXY:http://localhost:8000
 License
 -------
 
-This software is subject to the provisions of the GNU Affero General Public License Version 3.0 (AGPL). See license.txt for details. Copyright (c) 2012 Rice University
+This software is subject to the provisions of
+the GNU Affero General Public License Version 3.0 (AGPL).
+See license.txt for details. Copyright (c) 2012 Rice University
