@@ -1,65 +1,26 @@
-#!/usr/bin/env python
-#! -*- coding: utf-8 -*-
-
-###
-# Copyright (c) Rice University 2012-13
-# This software is subject to
-# the provisions of the GNU Affero General
+# -*- coding: utf-8 -*-
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
-###
-
-
-"""Contains a common configuration parsing class and various utilities for
+# ###
+"""\
+Contains a common configuration parsing class and various utilities for
 dealing with configuration.
-
-Author: Michael Mulich
-Copyright (c) 2012 Rice University
-
-This software is subject to the provisions of the GNU Lesser General
-Public License Version 2.1 (LGPL).  See LICENSE.txt for details.
 """
-
 import logging
-logging.basicConfig(level=logging.INFO)
-
-from collections import Mapping
 import ConfigParser
+from collections import Mapping
 
 
+logging.basicConfig(level=logging.INFO)
 DEFAULT_APP_NAME = 'app'
 
 
 class Configuration(Mapping):
     """A configuration settings object
-
-    The Configuration class reads from a file, is *case-sensitive*
-    and it transforms the [app] section into top-level dotted values
-    (ie print conf.foo returns "bar")
-    and stores all other sections under a key of the same name
-
-    It looks and acts like a dict. And has
-
-    >>> initxt = '''[app]
-    ... appkey=appval
-    ...
-    ... [test]
-    ... foo=1
-    ...
-    ... [test2]
-    ... bar=1
-    ... '''
-    >>> f = "/tmp/foo.ini"
-    >>> open(f, "w").write(initxt)
-    >>> C = Configuration.from_file(f)
-    >>> expected = {'test': {'foo': '1'},
-    ...            'test2': {'bar': '1'},
-    ...            "appkey":"appval"}
-    >>> assert C == expected
-    >>> assert C.test == {'foo': '1'}
-    >>> assert C.appkey == "appval"
-    >>> assert C.test["foo"] == '1'
-
+    This primarily used to read configuration from file.
     """
 
     def __init__(self, settings={}, **sections):
@@ -69,7 +30,36 @@ class Configuration(Mapping):
 
     @classmethod
     def from_file(cls, file, app_name=DEFAULT_APP_NAME):
-        """Initialize the class from an INI file."""
+        """Initialize the class from an INI file.
+        The ``app_name`` (defaults to ``DEFAULT_APP_NAME``)
+        is used to signify the main application section in
+        the configuration INI.
+        The application section is put into top-level mapping.
+        All other sections are put in the mapping as a keyed section name
+        and a sub-dictionary containing the sections key value pairs.
+        ::
+
+            >>> ini = '''[app]
+            ... appkey=appval
+            ...
+            ... [test]
+            ... foo=1
+            ...
+            ... [test2]
+            ... bar=1
+            ... '''
+            >>> f = "/tmp/foo.ini"
+            >>> open(f, "w").write(initxt)
+            >>> C = Configuration.from_file(f)
+            >>> expected = {'test': {'foo': '1'},
+            ...            'test2': {'bar': '1'},
+            ...            "appkey":"appval"}
+            >>> assert C == expected
+            >>> assert C.test == {'foo': '1'}
+            >>> assert C.appkey == "appval"
+            >>> assert C.test["foo"] == '1'
+
+        """
         settings = {}
         global_settings = {}
         with open(file, 'r') as f:

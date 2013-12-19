@@ -75,26 +75,68 @@ So, this basically implies a protocol for objects / classes
 4. err ....
 
 """
-
-## root logger set in application startup
+import uuid
 import logging
-lgr = logging.getLogger(__name__)
+import json
 
+import psycopg2
+from flask import abort
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import (ForeignKey,
                         Column, String,
                         Enum, DateTime,
                         UniqueConstraint)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
-import uuid
+
+from . import get_app
 from cnxbase import CNXBase
-from rhaptos2.repo.backend import Base, db_session
 from err import (Rhaptos2Error,
                  Rhaptos2SecurityError,
                  Rhaptos2AccessNotAllowedError,
                  Rhaptos2HTTPStatusError)
-import json
-from flask import abort
+
+
+lgr = logging.getLogger(__name__)
+
+
+### Module globals.  Following Pylons lead, having global
+### scoped_session will ensure threads (and thread locals in Flask)
+### all have theit own sessions
+def connect_now(config):
+    connstr = "postgresql+psycopg2://%(pgusername)s:%(pgpassword)s@%(pghost)s/%(pgdbname)s" % config  # noqa
+    engine = create_engine(connstr, echo=False)
+    lgr.debug("Connected to postgres - returning engine")
+    return engine
+
+db_engine = connect_now(get_app().config)
+db_session = scoped_session(sessionmaker(bind=db_engine))
+Base = declarative_base()
+
+
+def initdb(confd):
+    """This could become a conn factory.  """
+    global db_session
+    global Base
+    
+    db_engine = connect_now(confd)
+    db_session.configure(bind=db_engine)
+    Base.metadata.create_all(db_engine)
+    lgr.debug("created tables")
+
+    ### Now select * from all main tables to check
+    try:
+        from rhaptos2.repo.model import Folder, Collection, Module
+        for klass in [Folder, Collection, Module]:
+            q = db_session.query(klass)
+            rs = q.all()
+    except:
+        lgr.error("The init db failed")
+        raise
+
+
 
 ################## COLLECTIONS #############################
 

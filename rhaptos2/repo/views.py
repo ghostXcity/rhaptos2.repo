@@ -144,26 +144,27 @@ def logging_endpoint():
     else:
         abort(400)
 
+
+_cached_index_html = None
 def index():
-    """
-    .. dicussion::
-
-    The index page for an api.cnx.org might point to say docs
-    The index page here is the index of www.cnx, so it should serve
-     the workspace.
-    Which is not something "known" by the repo, hence the redirect.
-    It may be neater to bring the index.html page into here later on.
-
-    TODO: either use a config value, or bring a index template in here
-    """
-    lgr.info("THis is request %s" % g.requestid)
-    resp = flask.redirect('/js/')
+    """Serves up the index.html file. This will be removed."""
+    # BBB (05-12-2013) We shouldn't be serving the index file from here,
+    #     but at the moment this is the only way around the issue of serving
+    #     it from somewhere.
+    global _cached_index_html
+    if _cached_index_html is None:
+        app = get_app()
+        index_html_filepath = app.config['index_html']
+        with open(index_html_filepath, 'r') as buffer:
+            _cached_index_html = buffer.read()
+    resp = flask.make_response(_cached_index_html)
+    resp.status_code = 200
+    resp.content_type = 'text/html; charset=utf-8'
     return resp
 
-def home():
-    """
-    This is the "home" page for a visitor,
 
+def bootstrap():
+    """
     At this point there is either a valid session (so redirect to atc)
     or there is a need to let the visitor choose either to get an
     anonymous session, or that they are registered, and they should
@@ -172,11 +173,10 @@ def home():
     There is a logic choice that might improve things - if they have
     previously visited us, redirect to /login.
     """
-
     try:
         userdata, sessionid = auth.session_to_user(
             request.cookies, request.environ)
-        resp = flask.redirect('/js/')
+        resp = flask.redirect('/')
         return resp
     except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>

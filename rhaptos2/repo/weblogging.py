@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-#! -*- coding: utf-8 -*-
-
-### Copyright Rice University 2013
-
-# This program is licensed, without  under the terms of the
-# GNU Affero Public License 3 (or later).  Please see
-# LICENSE.txt for details
-
-###
-
+# -*- coding: utf-8 -*-
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
+# Public License version 3 (AGPLv3).
+# See LICENCE.txt for details.
+# ###
 """:author:  paul@mikadosoftware.com <Paul Brian>
 
 
@@ -118,14 +114,10 @@ logging.basicConfig()
 
 ## called by application startup
 def configure_weblogging(confd):
-    """
-    """
     configure_statsd(confd)
 
 
 def configure_statsd(confd):
-    """
-    """
     import statsd
     global stats_client_connected
     stats_client_connected = statsd.StatsClient(

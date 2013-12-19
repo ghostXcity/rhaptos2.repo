@@ -2,148 +2,143 @@
 rhaptos2.repo
 =============
 
-A content repository for storing unpublished works or works in
-progress. The purpose of this application is to provide
-individuals with a web interface to their content before. This
-includes capabilities for creating, editing, mixing and publication of
-content into a Connexions Archive (where publish works are stored).
+This is an unpublished (or editable) repository implementation for working
+with educational content. This web application allows for the storage
+and retrieval of works in progress.
 
 See the `Connexions development documentation
 <http://connexions.github.com/>`_ for more information.
 
-Install 
--------
+Getting started
+---------------
 
-The following will setup a development install. For instructions about
-a production deployment, go to http://connexions.github.com/ .
+This installation procedure attempts to cover two platforms,
+the Mac and Debian based systems.
+If you are using a platform other these,
+attempt to muddle through the instructions,
+then feel free to either file an
+`issue <https://github.com/Connexions/rhaptos2.repo/issues/new>`_
+or contact Connexions for further assistance.
 
-Pre-requisites::
+Install the PostgreSQL database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-     Python 2.7 (with header files)
-     Postgres >=8.4
-     npm >= 1.2.0
+This will require a ``PostgreSQL`` install
+that is greater than or equal to version **9.3**.
 
-.. note:: There are various ways to install Postgres. Here are a few
-   recommendations:
+On a Mac, use the `PostgresApp <http://postgresapp.com/>`_.
 
-   - For Debian distributions use the following command
-     and see followup instructions for system specific configuration::
+On Debian (and Ubuntu), issue the following command::
 
-         $ apt-get install postgresql
+    apt-get install postgresql-9.3 postgresql-server-dev-9.3 postgresql-client-9.3 postgresql-contrib-9.3 postgresql-plpython-9.3
 
-   - Fedora/CentOS distributions use the command below::
+Verify the install and port by using ``pg_lscluster``. If the 9.3
+cluster is not the first one installed (which it likely is not), note
+the port and cluster name. For example, the second cluster installed
+will end up by default with port 5433, and a cluster named ``main``.
 
-         $ yum install postgresql
+Set the ``PGCLUSTER`` environment variable to make psql and other
+postgresql command line tools connect to the appropriate server. For
+the example above, use::
 
-   - On the Mac, it is recommended you use the `Postgres App at
-     postgresapp.com <http://postgresapp.com/>`_.
+    export PGCLUSTER=9.3/main
 
-To initialize your database to work with the default database
-settings (do not use these same instructions for a production install)::
+Set up the database and user
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    $ su - postgres
-    $ createuser -W -s rhaptos2repo
-    Password: rhaptos2repo
-    $ createdb -O rhaptos2repo rhaptos2repo
-    $ createdb -O rhaptos2repo rhaptos2users
+The default settings
+for the database are setup to use the following credentials:
 
-These commands setup a Postgres user named ``rhaptos2repo`` and made
-it the owner of the newly created ``rhaptos2repo`` database.
+:database-name: rhaptos2repo
+:database-user: rhaptos2repo
+:database-password: rhaptos2repo
 
+**Note**: Not that it needs to be said, but just in case...
+In a production setting, you should change these values.
 
+If you decided to change any of these default values,
+please ensure you also change them in the application's configuration file,
+which is discussed later in these instructions.
 
-Quick
+To set up the database, issue the following commands (these will use
+the default cluster, as defined above)::
+
+    psql -U postgres -d postgres -c "CREATE USER rhaptos2repo WITH SUPERUSER PASSWORD 'rhaptos2repo';"
+    createdb -U postgres -O rhaptos2repo rhaptos2repo
+
+**OSX Note:** You may need to create the ``postgres`` user: ``psql -d postgres -c "CREATE USER postgres WITH SUPERUSER;"``
+
+Installing the application
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Note**: It's recommended that you use a virtual environment to
+install this application. The installation and usage of virtualenv
+is out of scope for this document, but you can follow the
+instructions at `virtualenv.org <http://www.virtualenv.org>`_.
+
+If you are working on a Debian distribution, it is a good idea that
+you use the native system packages for some of the dependencies.
+::
+
+    apt-get install libxml2-dev
+    apt-get install libxslt1-dev
+    apt-get install python-psycopg2
+Before installing rhaptos2.repo, you need to first install the
+dependencies that have not been released to the public package repositories::
+
+    git clone https://github.com/Connexions/rhaptos2.common.git
+    cd rhaptos2.common
+    python setup.py install
+    cd ..
+
+.. (pumazi) I don't think rhaptos2.common is required anymore???
+
+To install the application itself::
+
+    python setup.py install
+
+This will install the package and a few application specific
+scripts. One of these scripts is used to initialize the database with
+the applications schema.
+::
+
+    rhaptos2repo-initdb develop.ini
+
+This example uses the ``develop.ini``, which has been supplied with the
+package. If you changed any of the database setup values, you'll also need to
+change them in the configuration file.
+
+Usage
 ~~~~~
 
-This will install the repsository, with simple defaults, ready for developer use.
-Download the Bash script
-`quickdownload.sh
-<https://raw.github.com/Connexions/rhaptos2.repo/master/quickdownload.sh>`_. 
-Run that with an argument of an *empty* dir you want to use for the
-source and repos.
-Then this will download the application code, dependancies and set up
-a Python virtual environment (an isolated Python environment).
+**Note**: This should only be used in a development/testing environment.
 
+To run the application in a standalone environment,
+use the paster utility with the ``paste-develoment.ini`` paster configuration,
+which uses the ``develop.ini`` application configuration.
 ::
 
-    $ curl -O https://raw.github.com/Connexions/rhaptos2.repo/master/quickdownload.sh
-    $ bash quickdownload.sh /tmp/testrepo1 # <- replace with any empty dir you like
+    git clone https://github.com/Connexions/atc.git
+    cd atc && npm install && cd ..
+    pip install PasteScript PasteDeploy waitress
+    paster serve paste-development.ini
 
-.. If you need to make changes to quickdownload.sh, you will need to
-   stop the script just before the buildvenv.sh script is run. This is
-   a chicken and egg issue.
-   After you have stopped the script--by commenting probably--you need
-   to swap your local copy of the package in place of the cloned one
-   before continuing the script--again, probably through commenting.
+The above installs ``atc`` relative to the ``paste-development.ini``.
+You wouldn't want to run the application this way in production,
+but for a standalone application it does the trick.
 
-You'll need to launch the user server::
+**TODO** We will in the future be supplying a wsgi file to allow easy
+drop-in on web servers that support the Python WSGI standard.
 
-    cd /tmp/testrepo1/venvs/vrepo; source bin/activate
-    cd /tmp/testrepo1/src/rhaptos2.user; python rhaptos2/user/run.py --config local.ini --port 8001
+About the configuration
+-----------------------
 
-Then running these below to start the content repository instance::
+An example configuration INI file can be found in in
+the root of the rhaptos2.repo project as ``develop.ini``.
 
-    cd /tmp/testrepo1/venvs/vrepo;
-    rhaptos2repo-run --debug --config=develop.ini
-
-At this point you should see a running instance
-
-Complete
-~~~~~~~~
-
-.. note:: It's recommended that you use a virtual environment to
-   install this application. The installation and usage of virtualenv
-   is out of scope for this document, but you can follow the
-   instructions at `virtualenv.org <http://www.virtualenv.org>`_.
-
-.. note:: If you are working on a Debian distribution, it is probably
-   a good idea to use the native system packages for some of the
-   dependencies. Here are our recommendations::
-   
-       apt-get install libxml2-dev
-       apt-get install libxslt1-dev
-       apt-get install python-psycopg2
-
-To install the package mananually, checkout this package,
-`rhaptos2.common <https://github.com/connexions/rhaptos2.common>`_,
-and
-`atc (authoring tools client) <https://github.com/connexions/atc>`_.
-
-::
-
-    git clone https://github.com/connexions/rhaptos2.repo.git
-    git clone https://github.com/connexions/rhaptos2.common.git
-    git clone https://github.com/connexions/atc.git
-
-The ``atc`` project is a ``node.js`` project that will need installed
-using ``npm`` as follows ::
-
-    cd atc
-    npm install .
-
-(For more information and detailed instructions see the
-`ATC project's readme file <https://github.com/connexions/atc>`_.)
-
-Install these development packages into your Python environment::
-
-    cd rhatpos2.common
-    python setup.py develop
-    cd rhaptos2.repo
-    python setup.py develop
-
-The installation will have supplied two scripts:
-
-  * ``rhaptos2repo-run`` - a stand-alone server instance that
-    can be used to bring up the application without a production
-    worthy webserver.
-  * ``rhaptos2repo-initdb`` - a script used to initialize the
-    database tables.
-
-To install the database schema, setup the database and note the
-host, database name, user name and password in the applications
-configuration file. (An example configuration file can be found in in
-the root of the rhaptos2.repo project as ``develop.ini``.)
-
+The application configuration can be found in this file under the ``app``
+section. The following illustrates the settings used to connect to
+the database.
 ::
 
     [app]
@@ -153,102 +148,19 @@ the root of the rhaptos2.repo project as ``develop.ini``.)
     pgpassword = rhaptos2repo
     ...
 
-After the database settings have been updated, you can call the
-``rhaptos2repo-initdb`` utility to initialize the database. The
-following command illustrates its usage. Make sure to swap in your
-configuration file in place of the develop.ini mentioned here.
-
-::
-
-    $ rhaptos2repo-initdb --config=develop.ini
-
-You will also need to tell the configuration where the copy of ``atc``
-has been installed::
-
-    [app]
-    atc_directory = <location you cloned to>
-
-Session Cache specific Issues
-
-You will need to build a table in the postgres backend.  This is 
-done as part of ``initdb`` but worth checking.
-
-I would also recommend running tests/cleardb.py as this will populate the
-session cache with three dummy accounts that can be claimed through /autosession
-
-Also ensure that user database is up and contains a mapping from your openid
-to a valid user uuid.
-
-
-Usage
+Tests
 -----
 
-For general usage, you can use the stand-alone server
-implementation. This requires that you have cloned and configured a
-copy of the ``atc`` project (see the install instructions for more
-information). You will need to supply the command with a configuration
-file. An example configuration file can be found in the root of this
-project as the file named ``develop.ini``.
+.. image:: https://travis-ci.org/Connexions/rhaptos2.repo.png
+   :target: https://travis-ci.org/Connexions/rhaptos2.repo
 
-::
-
-   rhaptos2repo-run --debug --config=develop.ini --port=8000
-   * Running on http://127.0.0.1:8000/
-
-A development version is also written, here there is at least one extra 
-wsgi piece of middleware that will statically serve javascript etc.
-This is expected to be the function of nginx in production, and is there
-merely as a convenice for developers.
-
-::
-
-    $ python run.py --config=../../testing.ini --devserver --jslocation=/usr/home/pbrian/deploy/demo1/src/atc
-
-
-
-Deployment
-----------
-
-This is designed to be deployed into environments as follows::
-
-   cd ~/src  
-   git clone https://github.com/Connexions/bamboo.recipies.git
-
-   cd ~/venvs/dev
-   . bin/activate
-   (dev) cd ~/src/bamboo.scaffold/bamboo/scaffold/scripts/
-   (dev) . ./repo_config.sh && python controller.py --recipie rhaptos2repo stage build test deploy
-
-The above will stage (move files, apply patches), build, create a
-venv, run unit tests, and deploy into the web servers set in config,
-using sshkeys set in config etc.
-
-Third Party code
-----------------
-
-We rely on third party code.  
-Eventually we shall pull all dependancies out into a stageing process.
-For now pretty much all dependnacies (ie bootstrap.css) is in the static folder of Flask.  However, we are developing in parallel with Aloha, 
-so we track the cnx-master branch of that - to do so clone Aloha into
-a directory and point Flask at it (Flask will serve that cloned dir from 
-localhost) ::
-
-  In local.ini set: rhaptos2repo_aloha_staging_dir=/my/path
-  cd /my/path
-  git clone https://github.com/wysiwhat/Aloha-Editor.git
-  git checkout cnx-master
-
-
-
-running Tests
--------------
+This is a **work-in-progress**.
 
 Functional tests have been written in runtests.py and 
 are able to both run as tests of the output of an inprocess wsgi app 
 (ie we call the app callable with our made up environ and start_repsonse)
 It is also able to "reverse the flow through the gate" and generate HTTP 
 requests which are pushed against a live server
-
 
 $ nosetests --tc-file=../../testing.ini runtests.py
 
@@ -257,9 +169,9 @@ $ nosetests --tc-file=../../testing.ini --tc=HTTPPROXY:http://localhost:8000
 
 `run_inprocess.sh` and `run_http.sh` run the nose tests against inprocess wsgi server (ie all HTTP calls are passed between paste.WebTest and the app, and run_http.sh which expects a running HTTP server on port specified in sh file.
 
-
 License
 -------
 
-This software is subject to the provisions of the GNU Affero General Public License Version 3.0 (AGPL). See license.txt for details. Copyright (c) 2012 Rice University
-
+This software is subject to the provisions of
+the GNU Affero General Public License Version 3.0 (AGPL).
+See license.txt for details. Copyright (c) 2012 Rice University

@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-#! -*- coding: utf-8 -*-
-
-###
-# Copyright (c) Rice University 2012-13
-# This software is subject to
-# the provisions of the GNU Affero General
+# -*- coding: utf-8 -*-
+# ###
+# Copyright (c) 2013, Rice University
+# This software is subject to the provisions of the GNU Affero General
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
-###
-
-
+# ###
 """Rhaptos Repo profile web application
 
 The application is initialized using the application factory (`make_app`).
@@ -60,7 +55,8 @@ def assign_routing_rules(app):
     from rhaptos2.repo import views
     from rhaptos2.repo import auth
 
-    app.add_url_rule("/", view_func=views.home)
+    app.add_url_rule("/", view_func=views.index)
+    app.add_url_rule("/bootstrap/", view_func=views.bootstrap)
     app.add_url_rule("/me/", view_func=views.whoamiGET, methods=['GET'])
     app.add_url_rule(
         "/workspace/", view_func=views.workspaceGET, methods=['GET'])
@@ -97,17 +93,12 @@ def assign_routing_rules(app):
     return app
 
 
-def make_app(config, as_standalone=False):
-    """WSGI application factory
-
-    The ``as_standalone`` parameter (toggled by `--devserver` in commandline) is
-    used to tell the factory to serve the static Authoring Tools Client (ATC)
-    client JavaScript code from a directory. In a deployed situation this would
-    normally be configured and served by the webserver.
-
-    """
+def make_app(config):
+    """Application factory"""
     app = Flask(__name__)
     app.config.update(config)
+    # Set the application
+    app = set_app(app)
     app = assign_routing_rules(app)
 
     # Try to set up logging. If not connected to a network this throws
@@ -119,9 +110,6 @@ def make_app(config, as_standalone=False):
         pass
     except Exception, e:
         raise e
-
-    # Set the application
-    app = set_app(app)
 
     return app
 
