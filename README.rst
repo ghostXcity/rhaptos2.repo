@@ -114,16 +114,16 @@ Usage
 **Note**: This should only be used in a development/testing environment.
 
 To run the application in a standalone environment,
-use the paster utility with the ``paste-develoment.ini`` paster configuration,
+use the paster utility with the ``paster-develoment.ini`` paster configuration,
 which uses the ``develop.ini`` application configuration.
 ::
 
     git clone https://github.com/Connexions/atc.git
     cd atc && npm install && cd ..
     pip install PasteScript PasteDeploy waitress
-    paster serve paste-development.ini
+    paster serve paster-development.ini
 
-The above installs ``atc`` relative to the ``paste-development.ini``.
+The above installs ``atc`` relative to the ``paster-development.ini``.
 You wouldn't want to run the application this way in production,
 but for a standalone application it does the trick.
 

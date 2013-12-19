@@ -25,6 +25,10 @@ setup(
     install_requires=[
         "flask >= 0.9",
         "Flask-OpenID==1.0.1",
+        "psycopg2",
+        "requests",
+        "sqlalchemy",
+        "webob",
         ],
     include_package_data=True,
     package_data={'rhaptos2.repo': ['templates/*.*',
