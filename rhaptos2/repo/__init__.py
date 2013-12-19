@@ -5,25 +5,26 @@
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
 # ###
-"""Rhaptos Repo profile web application
+"""\
+This is an unpublished (or editable) repository implementation for working
+with educational content. This web application allows for the storage,
+retrieval and modification of works in progress.
 
-The application is initialized using the application factory (`make_app`).
+The WSGI application factory is importable as ``make_app``.
 
 To acquire the application from anywhere in this package or extra packages,
-use the `get_app` function.
-
+use the ``get_app`` function.
 """
-## root logger set in application startup
-import logging
-lgr = logging.getLogger(__name__)
 import os
-
-from flask import Flask, g
-import pkg_resources
 import socket
+import logging
+
+import pkg_resources
+from flask import Flask, g
 
 
 __version__ = pkg_resources.require("rhaptos2.repo")[0].version
+lgr = logging.getLogger(__name__)
 
 APPTYPE = 'rhaptos2repo'
 VERSION = __version__

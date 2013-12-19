@@ -3,8 +3,8 @@ rhaptos2.repo
 =============
 
 This is an unpublished (or editable) repository implementation for working
-with educational content. This web application allows for the storage
-and retrieval of works in progress.
+with educational content. This web application allows for  the storage,
+retrieval and modification of works in progress.
 
 See the `Connexions development documentation
 <http://connexions.github.com/>`_ for more information.
