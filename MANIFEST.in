@@ -1,4 +1,2 @@
-include version.txt
 recursive-include rhaptos2/repo/templates *
-recursive-include rhaptos2/repo/static *
 
