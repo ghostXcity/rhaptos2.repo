@@ -217,7 +217,7 @@ def getconn():
                                 password=CONFD['pgpassword'])
     except psycopg2.Error, e:
         lgr.error("Error making pg conn - %s - config was %s" %
-                  str(e), CONFD)
+                  (str(e), CONFD))
         raise e
 
     return conn

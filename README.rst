@@ -156,18 +156,27 @@ Tests
 
 This is a **work-in-progress**.
 
-Functional tests have been written in runtests.py and 
+Functional tests have been written in test_wsgi.py and 
 are able to both run as tests of the output of an inprocess wsgi app 
 (ie we call the app callable with our made up environ and start_repsonse)
 It is also able to "reverse the flow through the gate" and generate HTTP 
 requests which are pushed against a live server
 
-$ nosetests --tc-file=../../testing.ini runtests.py
+To run the tests using wsgi:
+::
 
-$ python run.py --config=../../testing.ini --host=0.0.0.0 --port=8000
-$ nosetests --tc-file=../../testing.ini --tc=HTTPPROXY:http://localhost:8000
+    python setup.py test --test-type=wsgi
 
-`run_inprocess.sh` and `run_http.sh` run the nose tests against inprocess wsgi server (ie all HTTP calls are passed between paste.WebTest and the app, and run_http.sh which expects a running HTTP server on port specified in sh file.
+To run the tests using a local server:
+::
+
+    paster serve paster-testing.ini
+    python setup.py test --test-type=localhost
+
+To run the tests using beta.cnx.org: (This does not work at the moment)
+::
+
+    python setup.py test --test-type=fillet
 
 License
 -------

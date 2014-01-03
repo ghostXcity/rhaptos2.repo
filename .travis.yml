@@ -1,0 +1,37 @@
+language: python
+# Note, /usr/bin/python is used because we must install to the system python
+#   in order to make the package available to the plpython Postgres extension.
+python:
+  - "2.7"
+addons:
+  postgresql: "9.3"
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install libxml2-dev libxslt1-dev python-psycopg2
+install:
+  - python setup.py install
+before_script:
+  # Set up postgres roles
+  - sudo -u postgres psql -d postgres -c "CREATE USER rhaptos2repo WITH SUPERUSER PASSWORD 'rhaptos2repo';"
+  # Set up the database
+  - sudo -u postgres createdb -O rhaptos2repo rhaptos2repo-testing
+  # Install rhaptos2.common
+  - git clone https://github.com/Connexions/rhaptos2.common.git
+  - cd rhaptos2.common && python setup.py install && cd ..
+  # Install atc
+  - git clone https://github.com/Connexions/atc.git
+  - cd atc && npm install && cd ..
+  # Install paster
+  - pip install PasteScript PasteDeploy waitress
+  # Run test server
+  - paster serve paster-testing.ini &
+env:
+  matrix:
+    - TEST_TYPE='wsgi'
+    - TEST_TYPE='localhost'
+    - TEST_TYPE='fillet'
+script:
+  - rhaptos2repo-initdb testing.ini
+  - python setup.py test --test-type="${TEST_TYPE}"
+notifications:
+  email: false
