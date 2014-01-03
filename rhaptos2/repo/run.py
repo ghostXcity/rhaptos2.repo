@@ -51,8 +51,9 @@ def initialize_database(argv=None):
     config = Configuration.from_file(args.config)
 
     ## keep logging seperate from app
-    from rhaptos2.repo import set_up_logging
+    from rhaptos2.repo import set_up_logging, make_app
     set_up_logging(config)
+    make_app(config)
 
     from rhaptos2.repo.backend import initdb
     initdb(config)

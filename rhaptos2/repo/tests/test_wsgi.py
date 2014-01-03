@@ -149,6 +149,8 @@ def setup():
         TESTAPP = TestApp(app.wsgi_app, cookiejar=cj)
         set_constants("", TESTAPP)
 
+    initdb(TESTCONFIG)
+
 
 def funcsetup():
     """
