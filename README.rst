@@ -162,6 +162,11 @@ are able to both run as tests of the output of an inprocess wsgi app
 It is also able to "reverse the flow through the gate" and generate HTTP 
 requests which are pushed against a live server
 
+Set up the test database:
+::
+    createdb -U postgres -O rhaptos2repo rhaptos2repo-testing
+    rhaptos2repo-initdb testing.ini
+
 To run the tests using wsgi:
 ::
 
