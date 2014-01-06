@@ -66,6 +66,7 @@ setup(
         "psycopg2",
         "requests",
         "sqlalchemy",
+        "statsd",
         "webob",
         ],
     tests_require=(

@@ -39,13 +39,9 @@ todo: remove crash and burn
 
 
 """
-## root logger set in application startup
-import logging
-lgr = logging.getLogger(__name__)
-lgr.error("Initialised self logger for views.py")
-
 import os
 import json
+import logging
 from functools import wraps
 import uuid
 import requests
@@ -72,6 +68,9 @@ MODELS_BY_MEDIATYPE = {
     "application/vnd.org.cnx.module": model.Module,
     "application/vnd.org.cnx.folder": model.Folder
 }
+
+lgr = logging.getLogger(__name__)
+
 
 def model_from_mediaType(mediaType):
     """

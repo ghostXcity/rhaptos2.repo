@@ -5,12 +5,9 @@
 # Public License version 3 (AGPLv3).
 # See LICENCE.txt for details.
 # ###
-""":author:  paul@mikadosoftware.com <Paul Brian>
-
-
-This is initially a simple URL to be listened to::
-
-  /logging
+"""\
+Contains an endpoint for ``atc`` to log its information server-side.
+This is used to build metrics about interface usage and problems.
 
 The `logging` endpoint will take either of the two forms of message below apply
 it either to the local syslog, which we expect will be configured to centralise
@@ -106,23 +103,69 @@ import logging
 import logging.handlers
 import json
 
-### Use module level global
-stats_client_connected = None
-lgr = logging.getLogger(__name__)
-logging.basicConfig()
+import statsd
+
+from . import get_app
 
 
-## called by application startup
-def configure_weblogging(confd):
-    configure_statsd(confd)
+logger = logging.getLogger(__name__)
+# BBB (20-12-2013) 
+lgr = logger
+##logging.basicConfig()
 
 
-def configure_statsd(confd):
-    import statsd
-    global stats_client_connected
-    stats_client_connected = statsd.StatsClient(
-        confd['globals']['statsd_host'],
-        confd['globals']['statsd_port'])
+STATS_LOGGER_NAME = 'stats'
+CONFIG_KEY__STATSD_HOST = 'statsd.host'
+CONFIG_KEY__STATSD_PORT = 'statsd.port'
+CONFIG_KEY__STATSD_PREFIX = 'statsd.prefix'
+
+
+class _StatsLoggingClient(statsd.StatsClient):
+    """This provides the same interface as statsd.StatsClient to make
+    a logging compatible version of the statistics capturing methods.
+    """
+
+    def __init__(self, host=None, port=None, prefix=None, maxudpsize=512):
+        """Keep the same parameters for easy instantiation."""
+        self._addr = (host, port,)
+        self._logger = logging.getLogger(STATS_LOGGER_NAME)
+        self._prefix = prefix
+        self._maxudpsize = maxudpsize
+
+    def _send(self, data):
+        """Send data to statsd."""
+        self._logger.info(data.encode('ascii'))
+
+
+# Decide statistician (or statist) method of operation.
+statist = None
+def make_statist():
+    """Factory to create a statist object that will use statsd when
+    configured or default to logging.
+    """
+    # Cached return value.
+    global statist
+    if statist is not None:
+        return statist
+
+    config = get_app().config
+    host = config.get(CONFIG_KEY__STATSD_HOST, None)
+    port = config.get(CONFIG_KEY__STATSD_PORT, 8125)
+    prefix = config.get(CONFIG_KEY__STATSD_PREFIX, None)
+    # Is statsd configured?
+    if host is not None:
+        # Use statsd client.
+        klass = statsd.StatsClient
+    else:
+        # Use statsd logging clone.
+        klass = _StatsLoggingClient
+    statist = klass(host, port, prefix)
+    return statist
+# XXX statist assign needs to be done on application intialized event
+#     or upon first use. Otherwise we *may* run into an import before
+#     configuration issue in the future.
+statist = make_statist()
+
 
 
 ## called by application startup
@@ -172,49 +215,31 @@ def logging_router(json_formatted_payload):
     atc log message, an atc metric message (ie graphite).
     We want to correctly handle each so this acts as a router/dispatcher
     """
-    isValid = True
-    # validate and convert to dict
-    payload, isValid = validate_msg_return_dict(json_formatted_payload)
+    payload, is_valid = validate_msg_return_dict(json_formatted_payload)
     try:
-        if payload['message-type'] == 'log':
-            log_endpoint(payload)
-        elif payload['message-type'] == 'metric':
-            metric_endpoint(payload)
+        type_ = payload['message-type']
+    except KeyError:
+        # ??? Shouldn't this exception be handed in
+        #     the validation function above? The message-type is required, no?
+        is_valid = False
+    else:
+        if type_ == 'log':
+            logger.info(payload['log-message'])
+        elif type_ == 'metric':
+            send_metric(payload)
         else:
-            lgr.error("message-type supplied was %s - not supported." %
-                      payload['message-type'])
-            isValid = False
-    except KeyError, e:
-        isValid = False
-    return isValid
+            lgr.error("message-type supplied was {} - not supported." \
+                      .format(type_))
+            is_valid = False
 
-def log_endpoint(payload):
-    """
-    given a dict, log it to syslog
+    return is_valid
 
-    """
-    msg_dict = payload
-    try:
-        lgr.info(msg_dict['log-message'])
-        
-    except Exception, e:
-        lgr.error("/logging recvd incorrect log payload %s" % repr(payload))
-    
-
-def metric_endpoint(payload):
-    """
-    given a dict, fire off to statsd
-
-    """
-    try:
-        if msg_dict['metric-type'] == 'incr':
-            lgr.info("Firing statsd")
-            stats_client_connected.incr(msg_dict['metric-label'])
-        else:
-            lgr.error("/metric not support metric-type of %s" %
-                      msg_dict['metric-type'])
-    except Exception, e:
-        lgr.error("Failed to log incoming metric %s" % repr(payload))
+def send_metric(payload):
+    metric_type = payload['metric-type']
+    if metric_type == 'incr':
+        statist.incr(msg_dict['metric-label'])
+    else:
+        lgr.error("not support metric-type: {}".format(metric_type))
 
 
 if __name__ == '__main__':
