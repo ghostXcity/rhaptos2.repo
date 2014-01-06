@@ -183,10 +183,7 @@ def logging_router(json_formatted_payload):
         else:
             lgr.error("message-type supplied was %s - not supported." %
                       payload['message-type'])
-
-
-
-        isValid = False
+            isValid = False
     except KeyError, e:
         isValid = False
     return isValid
