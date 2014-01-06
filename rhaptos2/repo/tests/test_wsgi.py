@@ -39,9 +39,6 @@ err = sys.stderr
 
 import decl
 import restrest
-from rhaptos2.repo import (make_app, backend,
-                           sessioncache,
-                           weblogging)
 from webtest import TestApp, TestRequest
 import cookielib
 
@@ -118,6 +115,8 @@ def convert_config(config):
 
 
 def setup():
+    from .. import make_app, sessioncache, set_app
+
     global TESTCONFIG
     global TESTAPP
 
@@ -129,7 +128,6 @@ def setup():
     from testconfig import config
     ## now "convert" to app-style dict
     TESTCONFIG = convert_config(config)
-    initdb(TESTCONFIG)
     cj = cookielib.CookieJar()
 
 
@@ -139,6 +137,8 @@ def setup():
     if 'HTTPPROXY' in config.keys():
         app = WSGIProxyApp(config['HTTPPROXY'])
         app.debug=True
+        app.config = TESTCONFIG
+        set_app(app)
         TESTAPP = TestApp(app, extra_environ={
                           'REMOTE_ADDR': '1.2.3.4'}, cookiejar=cj)
         set_constants(config['HTTPPROXY'], TESTAPP)
@@ -148,6 +148,11 @@ def setup():
         sessioncache.set_config(config)
         TESTAPP = TestApp(app.wsgi_app, cookiejar=cj)
         set_constants("", TESTAPP)
+    print app
+
+    initdb(TESTCONFIG)
+
+    initdb(TESTCONFIG)
 
 
 def funcsetup():
@@ -158,10 +163,12 @@ def funcsetup():
 
 
 def cleardown(config):
+    from rhaptos2.repo import backend
     backend.clean_dbase(config)
 
 
 def initdb(config):
+    from rhaptos2.repo import backend
     backend.initdb(config)
 
 
