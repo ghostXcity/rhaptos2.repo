@@ -41,7 +41,7 @@ import decl
 import restrest
 from rhaptos2.repo import (make_app, backend,
                            sessioncache,
-                           weblogging)
+                           )
 from webtest import TestApp, TestRequest
 import cookielib
 

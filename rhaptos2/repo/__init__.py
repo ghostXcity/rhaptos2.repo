@@ -92,12 +92,6 @@ def assign_routing_rules(app):
     app.add_url_rule("/content/<path:uid>", view_func=views.content_router,
                      methods=['GET', 'POST', 'PUT', 'DELETE'])
 
-    
-    ###
-    app.add_url_rule('/logging', view_func=views.logging_endpoint,
-                     methods=['POST'])
-    ###
-
     app.before_request(views.requestid)
     app.after_request(views.call_after_request_callbacks)
     return app
