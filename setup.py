@@ -81,7 +81,9 @@ setup(
         },
     include_package_data=True,
     package_data={'rhaptos2.repo': ['templates/*.*',
-                                    'tests/*.*'],
+                                    'tests/*.*',
+                                    'default-logging.ini',
+                                    ],
                   },
     entry_points = """\
     [console_scripts]
