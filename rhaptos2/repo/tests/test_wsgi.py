@@ -787,53 +787,6 @@ def test_whoami():
     assert resp.json["user_id"] == developers['GOODUSER']['uri']
 
 
-@with_setup(funcsetup)
-def test_repo_logs_valid_variablestyle_message():
-    testmsg = {"message-type": "log",
-               "log-message": "This is log msg",
-               "metric-label": None,
-               "metric-value": None,
-               "metric-type": None
-               }
-
-    resp = wapp_post(TESTAPP
-                     , "logging"
-                     , testmsg
-                     , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 200
-
-@with_setup(funcsetup)
-def test_repo_logs_current_atc_log_message():
-    """
-    the atc client is servicing a different format for now
-    It is not expected these will be useful messages for debuigging
-    and the story for atc to make them useful is 21 pts.
-    """
-    testmsg = {"trigger": "A message",
-               }
-    
-    resp = wapp_post(TESTAPP
-                     , "logging"
-                     , testmsg
-                     , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 200
-
-@with_setup(funcsetup)
-def test_repo_notlog_malformed_atc_msg():
-    """
-    the atc client is servicing a different format for now
-    It is not expected these will be useful messages for debuigging
-    and the story for atc to make them useful is 21 pts.
-    """
-    testmsg = {"wibble": "A malformed message",
-               }
-    
-    resp = wapp_post(TESTAPP
-                     , "logging"
-                     , testmsg
-                     , developers['GOODUSER']['sessionid'])
-    assert resp.status_int == 400
-    
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
