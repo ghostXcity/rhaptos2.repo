@@ -270,7 +270,7 @@ def temp_session():
 
     """
     sessionid = auth.set_temp_session()
-    resp = flask.redirect("../")
+    resp = flask.redirect("./")
     return resp
 
 
