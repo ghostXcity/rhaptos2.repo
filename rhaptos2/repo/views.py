@@ -159,7 +159,7 @@ def bootstrap():
     try:
         userdata, sessionid = auth.session_to_user(
             request.cookies, request.environ)
-        resp = flask.redirect('/')
+        resp = flask.redirect('../')
         return resp
     except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>
@@ -270,7 +270,7 @@ def temp_session():
 
     """
     sessionid = auth.set_temp_session()
-    resp = flask.redirect("/")
+    resp = flask.redirect("../")
     return resp
 
 
