@@ -164,8 +164,8 @@ def bootstrap():
     except Exception, e:
         return """<p>~~~ Bootstrap hotness here ~~~~</p>
         You are not logged in.
-        <p>Try the site <a href="/tempsession">anonymously</a></p>
-        <p>Or <a href="/login">sign in</a></p>
+        <p>Try the site <a href="../tempsession">anonymously</a></p>
+        <p>Or <a href="../login">sign in</a></p>
         <p>Please note all work will be lost at the end of anonymous sessions.</p>"""
 
 
