@@ -40,6 +40,7 @@ VERSION = __version__
 
 
 _app = None
+_settings = None
 
 def get_app():
     """Get the application object"""
@@ -51,6 +52,18 @@ def set_app(app):
     global _app
     _app = app
     return _app
+
+
+def get_settings():
+    """Get the settings object"""
+    global _settings
+    return _settings
+
+def set_settings(settings):
+    """Set the global settings object"""
+    global _settings
+    _settings = settings
+    return _settings
 
 
 def assign_routing_rules(app):
@@ -119,6 +132,7 @@ def make_app(config):
     # Set the application
     app = set_app(app)
     app = assign_routing_rules(app)
+    set_settings(config)
 
     # XXX Shouldn't the sessioncache module reference the application
     #     configuration rather than trying to work with it's own?
