@@ -13,7 +13,7 @@ Contains commandline utilities for initializing the database
 import os
 import argparse
 
-from rhaptos2.repo import make_app, sessioncache, weblogging
+from rhaptos2.repo import make_app
 from rhaptos2.repo.configuration import Configuration
 
 
@@ -35,11 +35,6 @@ def paste_app_factory(global_config, **local_config):
     app = make_app(config)
     # TODO This should be assigned in the app factory.
     app.debug = True
-
-    # ??? Why aren't these in ``make_app``?
-    weblogging.configure_weblogging(config)
-    sessioncache.set_config(config)
-
     return app
 
 
@@ -50,11 +45,7 @@ def initialize_database(argv=None):
     args = parser.parse_args(argv)
     config = Configuration.from_file(args.config)
 
-    ## keep logging seperate from app
-    from rhaptos2.repo import set_up_logging, make_app
-    set_up_logging(config)
     make_app(config)
-
     from rhaptos2.repo.backend import initdb
     initdb(config)
 

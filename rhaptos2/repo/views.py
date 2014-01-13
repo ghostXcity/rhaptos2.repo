@@ -39,13 +39,9 @@ todo: remove crash and burn
 
 
 """
-## root logger set in application startup
-import logging
-lgr = logging.getLogger(__name__)
-lgr.error("Initialised self logger for views.py")
-
 import os
 import json
+import logging
 from functools import wraps
 import uuid
 import requests
@@ -59,7 +55,7 @@ from flask import (
 
 from rhaptos2.repo import (get_app,
                            auth, VERSION, model,
-                           backend, weblogging)
+                           backend)
 from rhaptos2.repo.err import (Rhaptos2Error,
                                Rhaptos2SecurityError,
                                Rhaptos2HTTPStatusError)
@@ -72,6 +68,9 @@ MODELS_BY_MEDIATYPE = {
     "application/vnd.org.cnx.module": model.Module,
     "application/vnd.org.cnx.folder": model.Folder
 }
+
+lgr = logging.getLogger(__name__)
+
 
 def model_from_mediaType(mediaType):
     """
@@ -127,22 +126,6 @@ def apply_cors(resp_as_pytype):
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
-
-
-def logging_endpoint():
-    """
-    this is /logging - it will take a POST of json doc and pass it
-    to the weblogging module, which will take care of details.
-    """
-    payld_as_json = obtain_payload(request)
-    lgr.info(" %s %s" % (type(payld_as_json), payld_as_json))
-    ##FIXME - use python natie formats throughout 
-    result = weblogging.logging_router(json.dumps(payld_as_json))
-    lgr.info("result was %s" % result)
-    if result == True:
-        return "logged"
-    else:
-        abort(400)
 
 
 _cached_index_html = None
