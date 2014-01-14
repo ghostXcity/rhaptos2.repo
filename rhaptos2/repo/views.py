@@ -363,6 +363,57 @@ def validate_googleTrackingID(payload):
                     'googleTrackingID cannot have script-like characters in it')
 
 
+def roles_accepted(payload):
+    errors = []
+    if str(payload.get('roles_accepted')).lower() != 'true':
+        errors.append('Please confirm that the roles are correct.')
+    return errors
+
+
+def metadata_completed(content):
+    errors = []
+    metadata_fields = [
+            'title', 'authors', 'maintainers',
+            'copyrightHolders', 'editors', 'translators',
+            ]
+    for metadata_field in metadata_fields:
+        if not content.get(metadata_field):
+            errors.append('Metadata field "{}" must not be empty.'.format(
+                metadata_field))
+    return errors
+
+
+def license_accepted(payload):
+    errors = []
+    if str(payload.get('license_accepted')).lower() != 'true':
+        errors.append('Please confirm that you agree to the license.')
+    return errors
+
+
+def validate_module_links(content):
+    errors = []
+    # Do something to validate the links in content['body']
+    # How do the links look like?
+    # Validate against the database in archive?
+    return errors
+
+
+def validate_module_files(content):
+    errors = []
+    # Need to create table to store files?
+    return errors
+
+
+def validate_module_publish(payload, content):
+    errors = []
+    errors += roles_accepted(payload)
+    errors += metadata_completed(content)
+    errors += license_accepted(payload)
+    errors += validate_module_links(content)
+    errors += validate_module_files(content)
+    return errors
+
+
 ############################################################
 ## "Routers". genericly handle very similar actions
 ## but without 'reimplmenting' Flask disaptching
@@ -395,7 +446,10 @@ def content_router(uid):
         'mediaType', # TODO: This is not needed for UPDATE but the validator needs it
         'title',
         'authors',
+        'editors',
         'copyrightHolders',
+        'translators',
+        'maintainers',
         'body',
         'language',
         'subjects',
@@ -478,6 +532,7 @@ def content_router(uid):
                          AND module_id = %(id)s AND user_id = %(user_id)s'''
                 cursor.execute(sql, {'id': fields['id'], 'user_id': requesting_user_id})
                 if cursor.fetchone()[0] != 1:
+                    cursor.execute(sql.replace('COUNT(*)', '*'), {'id': fields['id'], 'user_id': requesting_user_id})
                     return werkzeug.exceptions.Forbidden(
                             "User {} not permitted to adjust resource {}".format(
                                 uid, requesting_user_id))
@@ -488,6 +543,16 @@ def content_router(uid):
                     sql = '''INSERT INTO cnxacl (module_id, user_id, role_type)
                              VALUES (%(id)s, %(acl)s, 'aclrw')'''
                     cursor.execute(sql, {'id': fields['id'], 'acl': acl})
+                db_connection.commit()
+
+                if payload.get('publish_comment', '').strip():
+                    cursor.execute(SQL['get-content'], {'id': uid})
+                    content = cursor.fetchone()[0]
+                    errors = validate_module_publish(payload, content)
+                    if errors:
+                        raise werkzeug.exceptions.BadRequest(
+                                'Module publish validations failed:\n{}\n'
+                                .format('\n'.join(errors)))
 
     else:
         return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")

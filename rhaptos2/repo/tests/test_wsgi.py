@@ -645,7 +645,7 @@ def test_put_module_rouser():
     assert resp.status_int == 403, resp.status_int
 
 
-def ntest_put_module_baduser():
+def test_put_module_baduser():
     data = decl.declarationdict['module']
     data['body'] = "NEVER HIT DB"
     resp = wapp_put(TESTAPP,
@@ -702,6 +702,73 @@ def test_get_workspace_good():
                     , None
                     , developers['GOODUSER']['sessionid'])
     assert len(resp.json) == 3
+    assert resp.status_int == 200, resp.status_int
+
+
+@with_setup(funcsetup)
+def test_put_publish_module_baduser():
+    data = decl.declarationdict['module']
+    data['publish_comment'] = 'Version 1'
+    data['body'] = 'NEVER HIT DB'
+    resp = wapp_put(TESTAPP,
+                    'content',
+                    data,
+                    developers['BADUSER']['sessionid'],
+                    RECORDTRAIL['module_uid'])
+    assert resp.status_int == 403, resp.status_int
+
+
+@with_setup(funcsetup)
+def test_put_publish_module_rouser():
+    # TODO we don't seem to have read only users
+    return
+    data = decl.declarationdict['module']
+    data['body'] = 'NEVER HIT DB'
+    data['publish_comment'] = 'Version 1'
+    resp = wapp_put(TESTAPP,
+                    'content',
+                    data,
+                    developers['OTHERUSER']['sessionid'],
+                    RECORDTRAIL['module_uid'])
+    assert resp.status_int == 403, resp.status_int
+
+
+@with_setup(funcsetup)
+def test_put_publish_module_validations():
+    data = decl.declarationdict['module']
+    data['publish_comment'] = 'Version 1'
+    data['maintainers'] = None
+    data['editors'] = None
+    data['authors'] = None
+    data['translators'] = None
+    resp = wapp_put(TESTAPP,
+                    'content',
+                    data,
+                    developers['GOODUSER']['sessionid'],
+                    RECORDTRAIL['module_uid'])
+    assert resp.status_int == 400, resp.status_int
+    validation_errors = '''Module publish validations failed:
+Please confirm that the roles are correct.
+Metadata field &quot;authors&quot; must not be empty.
+Metadata field &quot;maintainers&quot; must not be empty.
+Metadata field &quot;editors&quot; must not be empty.
+Metadata field &quot;translators&quot; must not be empty.
+Please confirm that you agree to the license.
+'''
+    assert validation_errors in resp.body, resp.body
+
+
+@with_setup(funcsetup)
+def test_put_publish_module_gooduser():
+    data = decl.declarationdict['module']
+    data['publish_comment'] = 'Version 1'
+    data['roles_accepted'] = 'true'
+    data['license_accepted'] = 'true'
+    resp = wapp_put(TESTAPP,
+                    'content',
+                    data,
+                    developers['GOODUSER']['sessionid'],
+                    RECORDTRAIL['module_uid'])
     assert resp.status_int == 200, resp.status_int
 
 
