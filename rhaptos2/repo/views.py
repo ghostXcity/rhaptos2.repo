@@ -374,7 +374,7 @@ def metadata_completed(content):
     errors = []
     metadata_fields = [
             'title', 'authors', 'maintainers',
-            'copyrightHolders', 'editors', 'translators',
+            'copyrightHolders', 'keywords',
             ]
     for metadata_field in metadata_fields:
         if not content.get(metadata_field):
@@ -434,6 +434,7 @@ def content_router(uid):
        route
     2. POST
        payload no uid
+       payload with uid and publish_comment to publish a module
     3. PUT
        payload and uid
     (Ignore OPTIONS etc)
@@ -475,8 +476,19 @@ def content_router(uid):
         if payload is None:
             raise Rhaptos2HTTPStatusError(
                 "Received a Null payload, expecting JSON")
-        else:
 
+        if uid and payload.get('publish_comment'):
+            with psycopg2.connect(settings[CONNECTION_SETTINGS_KEY]) as db_connection:
+                with db_connection.cursor() as cursor:
+                    if payload.get('publish_comment', '').strip():
+                        cursor.execute(SQL['get-content'], {'id': uid})
+                        content = cursor.fetchone()[0]
+                        errors = validate_module_publish(payload, content)
+                        if errors:
+                            raise werkzeug.exceptions.BadRequest(
+                                    'Module publish validations failed:\n{}\n'
+                                    .format('\n'.join(errors)))
+        else:
             uid = str(uuid.uuid4())
 
             # Generate the SQL needed to INSERT
@@ -544,15 +556,6 @@ def content_router(uid):
                              VALUES (%(id)s, %(acl)s, 'aclrw')'''
                     cursor.execute(sql, {'id': fields['id'], 'acl': acl})
                 db_connection.commit()
-
-                if payload.get('publish_comment', '').strip():
-                    cursor.execute(SQL['get-content'], {'id': uid})
-                    content = cursor.fetchone()[0]
-                    errors = validate_module_publish(payload, content)
-                    if errors:
-                        raise werkzeug.exceptions.BadRequest(
-                                'Module publish validations failed:\n{}\n'
-                                .format('\n'.join(errors)))
 
     else:
         return werkzeug.exceptions.MethodNotAllowed("Methods:GET PUT POST.")

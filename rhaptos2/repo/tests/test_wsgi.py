@@ -257,7 +257,7 @@ def get_cookie_hdr(fakesessionid):
 
 
 APIMAP = {'content':
-         {"POST": urlparse.urljoin(USERHOST, "/content/"),
+         {"POST": urlparse.urljoin(USERHOST, "/content/%(id_)s"),
           "GET": urlparse.urljoin(USERHOST, "/content/%(id_)s"),
           "PUT": urlparse.urljoin(USERHOST, "/content/%(id_)s"),
           "DELETE": urlparse.urljoin(USERHOST, "/content/%(id_)s"),
@@ -327,13 +327,13 @@ def wapp_get(wapp, resourcetype, id_, test_session_id, URL=None):
     return resp
 
 
-def wapp_post(wapp, resourcetype, data, test_session_id):
+def wapp_post(wapp, resourcetype, data, test_session_id, id_=None):
     """
 
     We build the request as a blank and copy it to allow restrest to work
 
     """
-    URL = get_url(resourcetype, id_=None, method="POST")
+    URL = get_url(resourcetype, id_=id_, method="POST")
 
     headerd = get_cookie_hdr(test_session_id)
     ###
@@ -719,56 +719,76 @@ def test_put_publish_module_baduser():
 
 
 @with_setup(funcsetup)
-def test_put_publish_module_rouser():
+def test_post_publish_module_rouser():
     # TODO we don't seem to have read only users
     return
     data = decl.declarationdict['module']
     data['body'] = 'NEVER HIT DB'
     data['publish_comment'] = 'Version 1'
-    resp = wapp_put(TESTAPP,
-                    'content',
-                    data,
-                    developers['OTHERUSER']['sessionid'],
-                    RECORDTRAIL['module_uid'])
+    resp = wapp_post(TESTAPP,
+                     'content',
+                     data,
+                     developers['OTHERUSER']['sessionid'],
+                     RECORDTRAIL['module_uid'])
     assert resp.status_int == 403, resp.status_int
 
 
 @with_setup(funcsetup)
-def test_put_publish_module_validations():
+def test_post_publish_module_validations():
     data = decl.declarationdict['module']
-    data['publish_comment'] = 'Version 1'
+    data['title'] = ''
     data['maintainers'] = None
     data['editors'] = None
     data['authors'] = None
-    data['translators'] = None
+    data['maintainers'] = None
+    data['copyrightHolders'] = None
+    data['keywords'] = []
     resp = wapp_put(TESTAPP,
                     'content',
                     data,
                     developers['GOODUSER']['sessionid'],
                     RECORDTRAIL['module_uid'])
+    assert resp.status_int == 200
+
+    data = {'publish_comment': 'Version 1'}
+
+    resp = wapp_post(TESTAPP,
+                     'content',
+                     data,
+                     developers['GOODUSER']['sessionid'],
+                     RECORDTRAIL['module_uid'])
     assert resp.status_int == 400, resp.status_int
     validation_errors = '''Module publish validations failed:
 Please confirm that the roles are correct.
+Metadata field &quot;title&quot; must not be empty.
 Metadata field &quot;authors&quot; must not be empty.
 Metadata field &quot;maintainers&quot; must not be empty.
-Metadata field &quot;editors&quot; must not be empty.
-Metadata field &quot;translators&quot; must not be empty.
+Metadata field &quot;copyrightHolders&quot; must not be empty.
+Metadata field &quot;keywords&quot; must not be empty.
 Please confirm that you agree to the license.
 '''
     assert validation_errors in resp.body, resp.body
 
 
 @with_setup(funcsetup)
-def test_put_publish_module_gooduser():
+def test_post_publish_module_gooduser():
     data = decl.declarationdict['module']
-    data['publish_comment'] = 'Version 1'
-    data['roles_accepted'] = 'true'
-    data['license_accepted'] = 'true'
+    data['keywords'] = ['module', 'keywords', 'published']
     resp = wapp_put(TESTAPP,
                     'content',
                     data,
                     developers['GOODUSER']['sessionid'],
                     RECORDTRAIL['module_uid'])
+
+    data = {'publish_comment': 'Version 1',
+            'roles_accepted': True,
+            'license_accepted': True}
+
+    resp = wapp_post(TESTAPP,
+                     'content',
+                     data,
+                     developers['GOODUSER']['sessionid'],
+                     RECORDTRAIL['module_uid'])
     assert resp.status_int == 200, resp.status_int
 
 
