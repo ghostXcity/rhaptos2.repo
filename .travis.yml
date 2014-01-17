@@ -15,6 +15,17 @@ before_script:
   - sudo -u postgres psql -d postgres -c "CREATE USER rhaptos2repo WITH SUPERUSER PASSWORD 'rhaptos2repo';"
   # Set up the database
   - sudo -u postgres createdb -O rhaptos2repo rhaptos2repo-testing
+
+  # Set up archive postgres roles
+  - sudo -u postgres psql -d postgres -c "CREATE USER cnxarchive WITH SUPERUSER PASSWORD 'cnxarchive';"
+  # Set up the archive database
+  - sudo -u postgres createdb -O cnxarchive cnxarchive-testing
+  # Install cnx-archive
+  - git clone https://github.com/Connexions/cnx-archive.git
+  - cd cnx-archive && python setup.py install && cd ..
+  # Set up archive test data
+  - initialize_cnx-archive_db --with-example-data cnx-archive/testing.ini
+
   # Install rhaptos2.common
   - git clone https://github.com/Connexions/rhaptos2.common.git
   - cd rhaptos2.common && python setup.py install && cd ..

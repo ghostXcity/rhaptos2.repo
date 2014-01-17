@@ -52,12 +52,14 @@ from flask import (
     redirect, abort,
     send_from_directory
 )
+from lxml import etree
 import psycopg2
 import requests
 import werkzeug.exceptions
 
 from . import get_app, get_settings, auth, VERSION
-from .database import CONNECTION_SETTINGS_KEY, SQL
+from .database import (ARCHIVE_CONNECTION_SETTINGS_KEY,
+                       CONNECTION_SETTINGS_KEY, SQL)
 from .err import (Rhaptos2Error,
                   Rhaptos2SecurityError,
                   Rhaptos2HTTPStatusError)
@@ -392,9 +394,35 @@ def license_accepted(payload):
 
 def validate_module_links(content):
     errors = []
-    # Do something to validate the links in content['body']
-    # How do the links look like?
-    # Validate against the database in archive?
+    uids = []
+    settings = get_settings()
+    document = etree.fromstring(content['body'])
+
+    link_xpaths = {
+            '//cnxml:link': ['document', 'version'],
+            }
+    namespaces = document.nsmap.copy()
+    if None in namespaces:
+        namespaces.pop(None)
+    namespaces['cnxml'] = 'http://cnx.rice.edu/cnxml'
+
+    for link_xpath, attrs in link_xpaths.iteritems():
+        for elem in document.xpath(link_xpath, namespaces=namespaces):
+            uid = elem.get(attrs[0])
+            version = elem.get(attrs[1])
+            uids.append((uid, version))
+
+    # Check module links to make sure they are documents in archive
+    with psycopg2.connect(settings[ARCHIVE_CONNECTION_SETTINGS_KEY]) as db_connection:
+        with db_connection.cursor() as cursor:
+            for uid, version in uids:
+                cursor.execute(SQL['check-uid-in-archive'], {
+                    'id': uid,
+                    'version': version,
+                    })
+                if cursor.fetchone()[0] == 0:
+                    errors.append('Module link uid "{}" version {} not found'
+                                  .format(uid, version))
     return errors
 
 

@@ -19,15 +19,19 @@ unpub repo.
 sect1 = {
          "mediaType":"application/vnd.org.cnx.module",
          "title": "Introduction",
-         "body": """<h1>In CONGRESS, July 4, 1776.</h1>
-<p>The unanimous Declaration of the thirteen united States of America,</p>
+         "body": """<content xmlns="http://cnx.rice.edu/cnxml"><section>
+<title>In CONGRESS, July 4, 1776.</title>
+<para>The unanimous Declaration of the thirteen united States of America,</para>
 
-<p>When in the Course of human events, it becomes necessary for one
+<para>When in the Course of 
+<link document="209deb1f-1a46-4369-9e0d-18674cf58a3e">human events</link>,
+it becomes necessary for one
 people to dissolve the political bands which have connected them with
 another, and to assume among the powers of the earth, the separate and
 equal station to which the Laws of Nature and of Nature's God entitles
 them, a decent respect to the opinions of mankind requires that they
-should declare the causes which impel them to the separation.</p>
+should declare the causes which impel them to the separation.</para>
+</section></content>
 """,
 
          "authors":

@@ -11,6 +11,7 @@ import psycopg2
 
 
 CONNECTION_SETTINGS_KEY = 'db-connection-string'
+ARCHIVE_CONNECTION_SETTINGS_KEY = 'archive-db-connection-string'
 
 here = os.path.abspath(os.path.dirname(__file__))
 SQL_DIRECTORY = os.path.join(here, 'sql')
@@ -25,6 +26,8 @@ SQL = {
     'get-folder': _read_sql_file('get-folder'),
     'get-folder-contents': _read_sql_file('get-folder-contents'),
     'get-workspace': _read_sql_file('get-workspace'),
+    'check-uid-in-archive': _read_sql_file('check-uid-in-archive'),
+    'check-uid-n-version-in-archive': _read_sql_file('check-uid-n-version-in-archive'),
     }
 
 def initdb(settings):

@@ -115,6 +115,18 @@ CREATE TABLE cnxmodule (
 ALTER TABLE public.cnxmodule OWNER TO rhaptos2repo;
 
 --
+-- Name: cnxmodule_file; Type: TABLE; Schema: public; Owner: rhaptos2repo; Tablespace: 
+--
+
+CREATE TABLE cnxmodule_file (
+    id_ serial PRIMARY KEY,
+    filename character varying NOT NULL,
+    mimetype character varying NOT NULL,
+    file bytea NOT NULL,
+    module_id character varying NOT NULL
+);
+
+--
 -- Name: session_cache; Type: TABLE; Schema: public; Owner: rhaptos2repo; Tablespace: 
 --
 

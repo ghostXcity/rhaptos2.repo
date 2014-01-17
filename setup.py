@@ -63,6 +63,7 @@ setup(
     install_requires=[
         "flask >= 0.9",
         "Flask-OpenID==1.0.1",
+        "lxml",
         "psycopg2 >= 2.5.1",
         "requests",
         "statsd",

@@ -789,6 +789,7 @@ def test_post_publish_module_gooduser():
                      data,
                      developers['GOODUSER']['sessionid'],
                      RECORDTRAIL['module_uid'])
+    print resp.body
     assert resp.status_int == 200, resp.status_int
 
 
